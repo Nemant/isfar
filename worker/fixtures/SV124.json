@@ -1,0 +1,30 @@
+{
+  "found": true,
+  "airline": "Saudia",
+  "code": "SV124",
+  "aircraft": "Boeing 787-9",
+  "dateISO": "2026-06-06",
+  "date": "Friday, 6 June 2026",
+  "from": {
+    "iata": "LHR",
+    "city": "London",
+    "airport": "Heathrow",
+    "lat": 51.47,
+    "lon": -0.4543,
+    "tz": "Europe/London",
+    "zone": "BST",
+    "gmt": "GMT+1"
+  },
+  "to": {
+    "iata": "JED",
+    "city": "Jeddah",
+    "airport": "King Abdulaziz",
+    "lat": 21.6796,
+    "lon": 39.1565,
+    "tz": "Asia/Riyadh",
+    "zone": "AST",
+    "gmt": "GMT+3"
+  },
+  "depUTC": "2026-06-06T13:20:00Z",
+  "arrUTC": "2026-06-06T20:05:00Z"
+}
