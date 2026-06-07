@@ -11,11 +11,11 @@ const LOAD_MSGS = [
   "Calculating prayer times aloft…"
 ];
 
-/* resolve auto → light/dark from the local hour (proxy for sun up/down) */
+/* resolve auto → light/dark from the OS colour-scheme preference */
 function resolveTheme(theme) {
   if (theme !== "auto") return theme;
-  const h = new Date().getHours();
-  return (h >= 7 && h < 19) ? "light" : "dark";
+  try { return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"; }
+  catch (e) { return "light"; }
 }
 
 function App() {
@@ -23,7 +23,14 @@ function App() {
     theme: "auto",
     warmth: 1.0
   } /*EDITMODE-END*/;
-  const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
+  // Theme is a real user setting persisted on the device (unlike the design-time
+  // tweaks) — seed it from localStorage so a chosen theme survives reload.
+  const savedTheme = (() => { try { return localStorage.getItem("rihla.theme"); } catch (e) { return null; } })();
+  const [t, setTweak] = useTweaks(savedTheme ? { ...TWEAK_DEFAULTS, theme: savedTheme } : TWEAK_DEFAULTS);
+  function setTheme(v) {
+    setTweak("theme", v);
+    try { localStorage.setItem("rihla.theme", v); } catch (e) {}
+  }
 
   // prayer-calculation settings — real user settings, persisted on the device
   const [settings, setSettings] = useS(() => {
@@ -89,12 +96,28 @@ function App() {
 
   const resolved = resolveTheme(t.theme);
 
+  // When following the OS ("auto"), re-render if the system flips dark/light live.
+  const [, bumpTheme] = useS(0);
+  useE(() => {
+    if (t.theme !== "auto" || !window.matchMedia) return;
+    const mq = window.matchMedia("(prefers-color-scheme: dark)");
+    const onChange = () => bumpTheme((n) => n + 1);
+    if (mq.addEventListener) mq.addEventListener("change", onChange);
+    else mq.addListener(onChange);
+    return () => {
+      if (mq.removeEventListener) mq.removeEventListener("change", onChange);
+      else mq.removeListener(onChange);
+    };
+  }, [t.theme]);
+
   // apply warmth to the theme container
   const rootStyle = { "--warmth": t.warmth };
 
+  // Two-state flip on the *visible* theme so a tap always changes what you see.
+  // From "auto" this picks the opposite of whatever auto currently resolves to.
+  // (auto stays the first-load default and is still selectable in the Tweaks panel.)
   function cycleTheme() {
-    const order = { light: "dark", dark: "auto", auto: "light" };
-    setTweak("theme", order[t.theme]);
+    setTheme(resolved === "dark" ? "light" : "dark");
   }
 
   function goHome() {
@@ -142,7 +165,7 @@ function App() {
     <div className="rihla" data-theme={resolved} style={rootStyle}>
       <div className="sky" aria-hidden="true"></div>
       <div className="col">
-        <Header theme={t.theme} onCycleTheme={cycleTheme} onHome={goHome} onOpenSettings={() => setShowSettings(true)} onOpenGuide={() => setShowGuide(true)} onOpenMethod={() => setShowMethod(true)} />
+        <Header theme={resolved} onCycleTheme={cycleTheme} onHome={goHome} onOpenSettings={() => setShowSettings(true)} onOpenGuide={() => setShowGuide(true)} onOpenMethod={() => setShowMethod(true)} />
 
         {view === "landing"  && <Landing query={query} setQuery={setQuery} date={date} setDate={setDate}
                                           err={err} onSubmit={submit}
@@ -158,7 +181,7 @@ function App() {
           <TweakSection label="Appearance" />
           <TweakRadio label="Theme" value={t.theme}
                       options={["light", "dark", "auto"]}
-                      onChange={(v) => setTweak("theme", v)} />
+                      onChange={(v) => setTheme(v)} />
           <TweakSlider label="Accent warmth" value={t.warmth} min={0.2} max={1.6} step={0.05}
                        onChange={(v) => setTweak("warmth", v)} />
         </TweaksPanel>

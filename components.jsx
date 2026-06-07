@@ -30,9 +30,11 @@ const PRAYER_GLYPH = { fajr: Ic.dawn, dhuhr: Ic.noon, asr: Ic.sun, maghrib: Ic.d
 
 /* ---- Header ------------------------------------------------------------- */
 function Header({ theme, onCycleTheme, onHome, onOpenSettings, onOpenGuide, onOpenMethod }) {
-  const next = theme === "light" ? "dark" : theme === "dark" ? "auto" : "light";
-  const TIc = theme === "light" ? Ic.sun : theme === "dark" ? Ic.moon : Ic.auto;
-  const label = theme === "auto" ? "Auto theme (following the sky)" : theme === "dark" ? "Dark theme" : "Light theme";
+  // `theme` here is the *resolved* visible theme (light|dark), so the toggle is a
+  // plain two-state flip — every tap visibly changes the sky.
+  const next = theme === "dark" ? "light" : "dark";
+  const TIc = theme === "dark" ? Ic.moon : Ic.sun;
+  const label = theme === "dark" ? "Dark theme" : "Light theme";
   return (
     <header className="hdr">
       <div className="brand" onClick={onHome} role="link" tabIndex={0}
