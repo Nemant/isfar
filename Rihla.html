@@ -4,7 +4,113 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="theme-color" content="#16131f" />
-<title>Rihla — prayer times across your flight</title>
+
+<!-- TODO: replace PLACEHOLDER_DOMAIN with the real custom domain before launch -->
+<title>Rihla — Prayer times across your flight (Fajr to Isha)</title>
+<meta name="description" content="Enter your flight number and see every prayer — Fajr, Dhuhr, Asr, Maghrib, Isha — mapped before departure, in the air, and after arrival, shown in both origin and destination time zones." />
+
+<!-- Canonical URL -->
+<link rel="canonical" href="https://PLACEHOLDER_DOMAIN/" />
+
+<!-- Open Graph -->
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="Rihla" />
+<meta property="og:title" content="Rihla — Prayer times across your flight (Fajr to Isha)" />
+<meta property="og:description" content="Enter your flight number and see every prayer — Fajr, Dhuhr, Asr, Maghrib, Isha — mapped before departure, in the air, and after arrival, shown in both origin and destination time zones." />
+<meta property="og:url" content="https://PLACEHOLDER_DOMAIN/" />
+<meta property="og:image" content="https://PLACEHOLDER_DOMAIN/og-cover.png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Rihla — Prayer times across your flight (Fajr to Isha)" />
+<meta name="twitter:description" content="Enter your flight number and see every prayer — Fajr, Dhuhr, Asr, Maghrib, Isha — mapped before departure, in the air, and after arrival, shown in both origin and destination time zones." />
+<meta name="twitter:image" content="https://PLACEHOLDER_DOMAIN/og-cover.png" />
+
+<!-- Structured data: WebApplication -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "Rihla",
+  "description": "Enter your flight number and see every prayer — Fajr, Dhuhr, Asr, Maghrib, Isha — mapped before departure, in the air, and after arrival, shown in both origin and destination time zones.",
+  "url": "https://PLACEHOLDER_DOMAIN/",
+  "applicationCategory": "TravelApplication",
+  "operatingSystem": "Web",
+  "browserRequirements": "Requires JavaScript",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+  },
+  "featureList": [
+    "Five daily prayer times mapped across any flight",
+    "Dual time-zone display (origin and destination)",
+    "Qasr and jam' guidance for travelling Muslims",
+    "Qibla direction relative to the aircraft heading",
+    "Offline support for saved flights"
+  ]
+}
+</script>
+
+<!-- Structured data: FAQPage -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "Can you pray on an airplane?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes. The majority of scholars hold that a Muslim must pray on the aircraft if the prayer time passes during the flight and there is no prospect of landing in time. You pray as best you can — standing if space allows, otherwise seated — facing the qibla if possible, or at least the general direction. Rihla shows which prayers fall before departure, during the flight, and after arrival so you can plan ahead."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What is qasr (shortening prayers) when travelling?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Qasr means shortening the four-unit (rak'ah) prayers — Dhuhr, Asr, and Isha — to two units while travelling. It is established in the Quran and Sunnah and is agreed upon across the major legal schools, though they differ on the minimum travel distance that triggers it and on whether it is obligatory or merely permitted. Consult a scholar familiar with your madhhab for personal rulings."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What is jam' (combining prayers) when travelling?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Jam' means combining Dhuhr with Asr (praying both together) and Maghrib with Isha (praying both together). This is permitted during travel according to the Hanbali, Shafi'i, and Maliki schools; the Hanafi school generally does not permit combining except at Arafah and Muzdalifah. Rihla highlights which prayers fall in the air so you can decide, with your scholar's guidance, whether to combine or keep them separate."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How do I face the qibla on a plane?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Rihla calculates the qibla bearing from your aircraft's position at each prayer time and expresses it as a clock position relative to the nose — for example, '3 o'clock' means face right. Because the aircraft turns and the position changes throughout the flight, the qibla direction at prayer time is shown individually for each prayer. Most scholars hold that a traveller who cannot determine or maintain the exact direction should face as close to it as they can; standing prayer is preferred if there is space and stability."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "When does Maghrib begin at altitude?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "At cruising altitude the horizon is lower than at sea level, so the sun appears to set a few minutes later than it would on the ground. Rihla applies a horizon-dip correction based on altitude so the in-flight Maghrib time is slightly later — erring on the side of caution. Similarly, the end of Fajr (the Fajr-ending sunrise) is calculated a little earlier at altitude. These are modest adjustments of a few minutes at typical cruise levels."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Which prayer-time calculation method should I use?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Rihla offers the same calculation methods as adhan.js — including Muslim World League, ISNA, Egyptian General Authority, Umm Al-Qura (used for Saudi Arabia), and others. The right choice depends on the convention used by your community or country of origin. If you are unsure, the Muslim World League method is widely accepted globally, and Umm Al-Qura is standard for travellers departing from or arriving into Saudi Arabia."
+      }
+    }
+  ]
+}
+</script>
 
 <!-- installable / offline (PWA) -->
 <link rel="manifest" href="manifest.webmanifest" />
