@@ -20,7 +20,7 @@ compatibility_date = "2025-01-01"
 # Hard daily ceiling on UPSTREAM (RapidAPI) calls — a cost backstop, separate
 # from per-IP rate limiting. Tune to your RapidAPI plan's daily quota. Set to
 # 0 (or unset) to disable the ceiling entirely.
-CEILING = "900"
+CEILING = "1000"
 
 # --------------------------------------------------------------------------- #
 # KV — flight record cache + the daily upstream counter
@@ -32,8 +32,8 @@ CEILING = "900"
 #     wrangler kv namespace create FLIGHT_CACHE --preview
 [[kv_namespaces]]
 binding = "FLIGHT_CACHE"
-id = "TODO_REPLACE_WITH_KV_NAMESPACE_ID"             # <- from `wrangler kv namespace create FLIGHT_CACHE`
-preview_id = "TODO_REPLACE_WITH_KV_PREVIEW_ID"       # <- from `... --preview`
+id = "7cb844a84ef149a88d0c4cbe517461ed"
+preview_id = "91de0eb4e47742aeb9ada815275b4e08"
 
 # --------------------------------------------------------------------------- #
 # Routing — bind /api/* to the custom domain so Pages + Worker are same-origin
