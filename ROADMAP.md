@@ -19,8 +19,9 @@ adhan-js) that maps the five prayers across a flight, using a **placeholder flig
   the user's wallet — and because the operator complexity lands on Claude, not the user.
 - **Flight API:** AeroDataBox via RapidAPI.
 - **First milestone:** Real flight lookup working (highest-risk part first).
-- **Domain:** the user's own custom domain, wired from day one (keeps `/api/*` and the site
+- **Domain:** `isfar.app` (purchased), wired from day one (keeps `/api/*` and the site
   same-origin → no CORS; sets canonical URLs correctly for SEO).
+- **Brand:** the app is being renamed **Rihla → Isfar** ("Rihla" is overcrowded). See Phase A½.
 
 **Division of labor:** User drives prompting, review, QA, tool/account setup, and billing. Claude
 drives all engineering, infra config (via Wrangler CLI + Cloudflare MCP), and deploys.
@@ -155,6 +156,22 @@ These get set up once, near the start. **[User]** = needs the user's account/bil
 | **GitHub → Cloudflare Pages** | [User→Claude] | Repo is `Nemant/isfar`. `gh` CLI already available for PRs. User authorizes Cloudflare Pages to access the repo; Claude configures the build. |
 | **Playwright MCP** | [already available] | Used by Claude for browser QA/verification of UI and end-to-end lookup. |
 
+### Secret handling (the repo is PUBLIC — this is non-negotiable)
+
+The RapidAPI key (and any other secret) **never enters git, `wrangler.toml`, or client JS**. It
+lives in exactly two places, both outside the repo:
+
+- **Production → Cloudflare Secrets.** `npx wrangler secret put RAPIDAPI_KEY` stores it encrypted in
+  Cloudflare; the Worker reads it at runtime as `env.RAPIDAPI_KEY`. The repo references only the
+  *name*. (Same for `TURNSTILE_SECRET`, `SESSION_HMAC_KEY`.)
+- **Local dev → `worker/.dev.vars`** (gitignored). `wrangler dev` reads it; never committed.
+- **`.gitignore`** excludes `.dev.vars`, `.env*`, `.wrangler/` — the guardrail against an accidental
+  public leak.
+- **Keeping the key out of Claude's transcript:** the **user** runs `wrangler secret put` and the A0
+  validation call themselves via `!` so the value flows terminal→Cloudflare/RapidAPI, never through
+  the model context. Claude provides the exact commands and a validation script that prints only the
+  flight JSON (never the key).
+
 ---
 
 ## The plan, by phase
@@ -215,6 +232,28 @@ validation gates the API-tier recommendation.
 **Done when:** a real flight number returns live data on the deployed custom domain; repeat
 lookups are served from KV (verify $0/no upstream); rate-limit + daily ceiling demonstrably cap
 upstream calls; saved flights re-display offline.
+
+### Phase A½ — Brand rename (Rihla → Isfar) — *do early, before deploy + SEO indexing*
+
+A single careful sweep, best done **before** the Worker/KV/Pages cloud resources are created and
+before any SEO content gets indexed as "Rihla" (no users yet ⇒ changing `localStorage` keys is
+free). This is **serial, not parallel** — it touches nearly every file, so one owner does it as one
+atomic change.
+
+- **Identifiers:** `window.RIHLA_DATA/RIHLA_ENGINE/RIHLA_API_BASE` → `ISFAR_*`; `localStorage`
+  `rihla.settings/recents/theme` → `isfar.*`; CSS root class `.rihla[data-theme]` → `.isfar`;
+  SW cache `rihla-v1` → `isfar-v1` (the version bump also purges old caches cleanly).
+- **Entry file:** rename `Rihla.html` → **`index.html`** so `https://isfar.app/` serves it directly
+  (matches canonical root); update `manifest.webmanifest` `start_url`/`name`/`short_name`, the SW
+  precache list + shell fallback (`sw.js`), and any in-repo references.
+- **Copy & assets:** header wordmark "Rihla" → "Isfar"; the Arabic wordmark (currently رحلة) → the
+  user's chosen Arabic spelling for Isfar **(needs user input — see open items)**; `manifest` name;
+  `og-cover` wordmark (folds into the OG regen follow-up); `README.md`, `CLAUDE.md`,
+  `worker/CONTRACT.md`/fixtures comments, `ROADMAP.md` self-references.
+- **Cloud naming:** name the Worker/Pages project and `wrangler.toml` `name` `isfar-*` from the
+  start; KV namespace can stay `FLIGHT_CACHE`.
+- **Done when:** no case-insensitive `rihla` remains except deliberate historical notes; app boots,
+  sample flights render, theme/recents persist under the new keys; Playwright-verified.
 
 ### Phase B — SEO Phase 0 (parallel track, no accounts needed)
 
@@ -297,9 +336,27 @@ submission, Muslim-travel/Hajj-Umrah community links.
 
 ---
 
-## Open items the user owns (billing/accounts)
+## Tracked follow-ups (small; slot into the waves above)
 
-- Pick the AeroDataBox tier after A0 (Claude recommends; user subscribes).
+- [ ] **Swap `PLACEHOLDER_DOMAIN` → `isfar.app`** across `index.html` (canonical/OG/Twitter/JSON-LD),
+      `robots.txt`, `sitemap.xml` (8 occurrences; single find-replace). Do during Phase A½/domain wiring.
+- [ ] **Regenerate `og-cover.png` with real brand typography.** The Wave-0 placeholder uses a crude
+      bitmap wordmark that clashes with the Newsreader serif and reads as "slop" (golden rule #2).
+      Re-render the wordmark in **Newsreader** (the brand serif) via headless-browser/SVG→PNG, on the
+      same calm sky-arc + five-dots composition, with the new "Isfar" wordmark.
+- [ ] **Self-host fonts** (deferred from SEO Phase 0; this is SEO Phase 1): replace the Google Fonts
+      `<link>` with local `@font-face` (Newsreader, Hanken Grotesk, Noto Kufi Arabic) + `/fonts`;
+      update the SW precache. Kills a render-blocking round-trip → better LCP.
+- [ ] **Worker `wrangler.toml` TODOs:** KV namespace id (after `wrangler kv namespace create`),
+      `/api/*` route on `isfar.app`, native rate-limit rule. Fill during Wave 1 deploy.
+- [ ] **Date resolution:** Worker currently uses "today UTC + first matching segment"; implement true
+      "next departure ≥ now" + the optional date chip already present in the UI.
+
+## Open items the user owns (billing/accounts/decisions)
+
+- Pick the AeroDataBox tier after A0 (Claude recommends; user subscribes). *(RapidAPI signed up ✓)*
 - Choose the **daily upstream `CEILING`** (the bill cap number).
 - Decide whether to launch with Turnstile or defer it.
-- Provide the custom domain and authorize Cloudflare Pages on the GitHub repo.
+- **Arabic wordmark** for "Isfar" (replaces رحلة) — needed for Phase A½ rename + OG regen.
+- Domain `isfar.app` ✓ purchased; Cloudflare ✓ signed up — pending: `wrangler login`, set
+  `RAPIDAPI_KEY` secret, authorize Cloudflare Pages on the GitHub repo.

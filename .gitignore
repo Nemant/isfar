@@ -1,0 +1,18 @@
+# Secrets — NEVER commit (repo is public)
+.dev.vars
+worker/.dev.vars
+.env
+.env.*
+*.local
+
+# Cloudflare / Wrangler
+.wrangler/
+
+# Node
+node_modules/
+
+# Test / tooling artifacts
+.playwright-mcp/
+
+# OS
+.DS_Store
