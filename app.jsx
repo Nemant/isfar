@@ -122,6 +122,7 @@ function App() {
 
   function goHome() {
     clearTimeout(loadTimer.current);
+    loadTimer.current = null;            // invalidate any in-flight async lookup
     setView("landing"); setRaw(null); setErr(null); setActiveKey(null);
   }
 
@@ -136,15 +137,25 @@ function App() {
     let i = 0;
     const msgInt = setInterval(() => { i = Math.min(i + 1, LOAD_MSGS.length - 1); setLoadMsg(i); }, 620);
 
-    loadTimer.current = setTimeout(() => {
+    // token marks this run live; goHome() nulls it to drop a stale resolution
+    const token = {};
+    loadTimer.current = token;
+
+    // Await the lookup AND a minimum calm dwell so the loading animation never
+    // feels jarring — whichever finishes last gates the transition.
+    (async () => {
+      const [res] = await Promise.all([
+        window.RIHLA_DATA.lookupRemote(raw, date),
+        new Promise((r) => setTimeout(r, 1200))
+      ]);
       clearInterval(msgInt);
-      const res = window.RIHLA_DATA.lookup(raw);
+      if (loadTimer.current !== token) return;   // user navigated away mid-load
       setRaw(res);
       if (!res.found) { setView("error"); return; }
       recordRecent(res);
       let model; try { model = window.RIHLA_ENGINE.compute(res, { method: settings.method, madhab: settings.madhab }); } catch (e) { model = res; }
       setView(model && model.noSunset ? "nosunset" : "results");
-    }, 2350);
+    })();
   }
 
   function selectPrayer(key) {
@@ -310,16 +321,21 @@ function Results({ f, activeKey, selectPrayer, cardRefs, onBack }) {
 
 /* ---- Error -------------------------------------------------------------- */
 function ErrorState({ code, kind, onRetry }) {
-  const isFormat = kind === "format";
+  const heading =
+    kind === "format"  ? "That doesn’t look like a flight number" :
+    kind === "offline" ? "You’re offline" :
+    kind === "busy"    ? "Just a moment" :
+                         "We couldn’t find that flight";
+  const body =
+    kind === "format"  ? <>A flight number is an airline code plus digits — like <span className="code">SV124</span> or <span className="code">BA286</span>.</> :
+    kind === "offline" ? <>Saved flights still work — connect to look up a new one.</> :
+    kind === "busy"    ? <>Lots of lookups right now. Please try again in a moment.</> :
+                         <>We searched for <span className="code">{code}</span> but found no matching flight for this date. Check the number and date, then try again.</>;
   return (
     <main className="state-card">
       <div className="state-ic"><Ic.plane aria-hidden="true" /></div>
-      <h2 className="display">{isFormat ? "That doesn’t look like a flight number" : "We couldn’t find that flight"}</h2>
-      <p>
-        {isFormat
-          ? <>A flight number is an airline code plus digits — like <span className="code">SV124</span> or <span className="code">BA286</span>.</>
-          : <>We searched for <span className="code">{code}</span> but found no matching flight for this date. Check the number and date, then try again.</>}
-      </p>
+      <h2 className="display">{heading}</h2>
+      <p>{body}</p>
       <div className="state-actions">
         <button className="btn" onClick={onRetry}><Ic.back style={{width:16,height:16}} aria-hidden="true" /> Try another flight</button>
       </div>

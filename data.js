@@ -14,7 +14,7 @@ window.RIHLA_DATA = (function () {
     code: "SV124",
     aircraft: "Boeing 787-9",
     dateISO: "2026-06-06",
-    date: "Friday, 6 June 2026",
+    date: "Saturday, 6 June 2026",
     from: { iata: "LHR", city: "London", airport: "Heathrow",
             lat: 51.4700, lon: -0.4543, tz: "Europe/London", zone: "BST", gmt: "GMT+1" },
     to:   { iata: "JED", city: "Jeddah", airport: "King Abdulaziz",
@@ -67,7 +67,7 @@ window.RIHLA_DATA = (function () {
     code: "DY394",
     aircraft: "Boeing 737-800",
     dateISO: "2026-06-06",
-    date: "Friday, 6 June 2026",
+    date: "Saturday, 6 June 2026",
     from: { iata: "OSL", city: "Oslo",   airport: "Gardermoen",
             lat: 60.1939, lon: 11.1004, tz: "Europe/Oslo", zone: "CEST", gmt: "GMT+2" },
     to:   { iata: "TOS", city: "Tromsø", airport: "Langnes",
@@ -84,6 +84,47 @@ window.RIHLA_DATA = (function () {
     if (FLIGHTS[code]) return FLIGHTS[code];
     if (/^[A-Z]{2}\d{1,4}$/.test(code)) return { found: false, error: "notfound", code };
     return { found: false, error: "format", code };
+  }
+
+  // Base URL of the flight Worker. Empty ⇒ local dev: no backend, fall back to
+  // the built-in FLIGHTS table so the sample chips keep working unchanged.
+  const API_BASE = (typeof window !== "undefined" && window.RIHLA_API_BASE) || "";
+
+  // Async lookup. Resolves to the SAME shapes as lookup(): a success record, or
+  // { found:false, error:... } / { error:"empty" }. Format + empty checks happen
+  // client-side first (instant feedback, no network round-trip).
+  function lookupRemote(raw, date) {
+    const code = String(raw || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+    if (!code) return Promise.resolve({ error: "empty" });
+    if (!/^[A-Z]{2,3}\d{1,4}$/.test(code)) {
+      return Promise.resolve({ found: false, error: "format", code });
+    }
+
+    // Local dev / no Worker configured: use the synchronous local table.
+    if (!API_BASE) {
+      return Promise.resolve(lookup(code));
+    }
+
+    if (typeof navigator !== "undefined" && navigator.onLine === false) {
+      return Promise.resolve({ found: false, error: "offline" });
+    }
+
+    const url = `${API_BASE}/api/flight?code=${encodeURIComponent(code)}` +
+                (date ? `&date=${encodeURIComponent(date)}` : "");
+
+    return fetch(url)
+      .then((resp) => {
+        if (resp.status === 503) return { found: false, error: "busy" };
+        return resp.json().then((body) => {
+          if (resp.status === 404) {
+            return body && body.error
+              ? body
+              : { found: false, error: "notfound", code };
+          }
+          return body;
+        });
+      })
+      .catch(() => ({ found: false, error: "offline" }));
   }
 
   // colour key per prayer → CSS sun-arc variables
@@ -130,5 +171,5 @@ window.RIHLA_DATA = (function () {
     }
   ];
 
-  return { lookup, COLOR, META, METHODS, GUIDANCE, SAMPLE: "SV124" };
+  return { lookup, lookupRemote, COLOR, META, METHODS, GUIDANCE, SAMPLE: "SV124" };
 })();
