@@ -1,0 +1,71 @@
+# wrangler.toml — Rihla flight-lookup Worker
+#
+# Deploy:   wrangler deploy        (from worker/)
+# Local:    wrangler dev
+#
+# This config is launch-ready except for three placeholders the orchestrator
+# fills once the Cloudflare account + RapidAPI key land (search "TODO").
+
+name = "rihla-flight"
+main = "src/index.js"
+compatibility_date = "2025-01-01"
+
+# Full ICU is available on Workers by default (no flag needed) — relied on for
+# all Intl.DateTimeFormat tz/date derivations in src/map.js.
+
+# --------------------------------------------------------------------------- #
+# Non-secret vars
+# --------------------------------------------------------------------------- #
+[vars]
+# Hard daily ceiling on UPSTREAM (RapidAPI) calls — a cost backstop, separate
+# from per-IP rate limiting. Tune to your RapidAPI plan's daily quota. Set to
+# 0 (or unset) to disable the ceiling entirely.
+CEILING = "900"
+
+# --------------------------------------------------------------------------- #
+# KV — flight record cache + the daily upstream counter
+#   key  flight:{code}:{date}        -> success record (TTL 6h future / 30d past)
+#   key  upstream:count:{YYYY-MM-DD} -> integer counter (TTL 48h)
+# --------------------------------------------------------------------------- #
+# TODO(orchestrator): create the namespace and paste its id below:
+#     wrangler kv namespace create FLIGHT_CACHE
+#     wrangler kv namespace create FLIGHT_CACHE --preview
+[[kv_namespaces]]
+binding = "FLIGHT_CACHE"
+id = "TODO_REPLACE_WITH_KV_NAMESPACE_ID"             # <- from `wrangler kv namespace create FLIGHT_CACHE`
+preview_id = "TODO_REPLACE_WITH_KV_PREVIEW_ID"       # <- from `... --preview`
+
+# --------------------------------------------------------------------------- #
+# Routing — bind /api/* to the custom domain so Pages + Worker are same-origin
+# (lets the service worker cache /api/flight responses for offline re-display).
+# --------------------------------------------------------------------------- #
+# TODO(orchestrator): set the real zone + domain, then uncomment:
+#
+# [[routes]]
+# pattern = "rihla.app/api/*"      # <- TODO real domain
+# zone_name = "rihla.app"          # <- TODO real zone
+# custom_domain = false
+#
+# (Alternatively configure the route in the Cloudflare dashboard under the
+#  Worker's Triggers tab.)
+
+# --------------------------------------------------------------------------- #
+# Secrets — set via `wrangler secret put <NAME>` (never commit these):
+#
+#   wrangler secret put RAPIDAPI_KEY       # AeroDataBox key (X-RapidAPI-Key)
+#   wrangler secret put TURNSTILE_SECRET   # OPTIONAL — Turnstile siteverify secret.
+#                                          #   Leave UNSET to launch without Turnstile;
+#                                          #   verifyTurnstile() is a no-op until set.
+#   wrangler secret put SESSION_HMAC_KEY   # reserved for Wave-1 signed-session abuse
+#                                          #   controls (not yet read by code).
+# --------------------------------------------------------------------------- #
+
+# --------------------------------------------------------------------------- #
+# Native per-IP Rate Limiting (create in the Cloudflare dashboard, NOT in code):
+#   Security -> WAF -> Rate limiting rules:
+#     • Match:   http.request.uri.path eq "/api/flight"
+#     • Rate:    30 requests / 60 seconds, characteristic = IP
+#     • Action:  Block (or Managed Challenge) for 60s
+#   This is the per-IP burst guard. The in-code CEILING is the separate
+#   total-daily-spend guard; Turnstile is the per-session guard.
+# --------------------------------------------------------------------------- #
