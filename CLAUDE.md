@@ -1,4 +1,4 @@
-# CLAUDE.md — Rihla development guide
+# CLAUDE.md — Isfar development guide
 
 Working context for Claude Code. Read this first; it captures the architecture and the rules
 that aren't obvious from any single file.
@@ -7,7 +7,7 @@ that aren't obvious from any single file.
 
 A single-page, mobile-first web app that maps the five daily prayers across a flight. Plain
 HTML + in-browser React (Babel Standalone) + adhan-js. **No build step, no package manager.**
-Open `Rihla.html` on a static server.
+Open `index.html` on a static server.
 
 ## Golden rules
 
@@ -27,15 +27,15 @@ Open `Rihla.html` on a static server.
 
 | File | Role |
 |---|---|
-| `Rihla.html` | Entry point. Loads scripts in order, registers `sw.js`, links manifest/icons. |
-| `data.js` | `window.RIHLA_DATA`: placeholder flights, `lookup()`, `COLOR`, `META`, `METHODS` (12), `GUIDANCE` (qasr/jam'). **Swap `lookup()` for a real flight API here.** |
-| `engine.js` | `window.RIHLA_ENGINE.compute(raw, {method, madhab})` → display model. All geometry. |
+| `index.html` | Entry point. Loads scripts in order, registers `sw.js`, links manifest/icons. |
+| `data.js` | `window.ISFAR_DATA`: placeholder flights, `lookup()`, `COLOR`, `META`, `METHODS` (12), `GUIDANCE` (qasr/jam'). **Swap `lookup()` for a real flight API here.** |
+| `engine.js` | `window.ISFAR_ENGINE.compute(raw, {method, madhab})` → display model. All geometry. |
 | `tweaks-panel.jsx` | Tweaks shell (theme, accent warmth). Host-protocol scaffold. |
 | `components.jsx` | Icons (`Ic`), `Header`, sheets (`SettingsSheet`, `GuideSheet`, `MethodSheet`), `FlightSummary`, `TzBanner`, `PlaneQibla`, `NextPrayer`. |
 | `arc.jsx` | `ArcTimeline` — sun-elevation curve, prayer dots, in-flight band, day-break dividers. |
 | `cards.jsx` | `PrayerCard`, `PrayerList` (grouped into Before/In-flight/After sections). |
 | `app.jsx` | `App` state machine + `Landing`/`Loading`/`Results`/`ErrorState`/`NoSunset`. Mounts root. |
-| `styles.css` | All styling. oklch sun-arc palette; `.rihla[data-theme=light|dark]` tokens. |
+| `styles.css` | All styling. oklch sun-arc palette; `.isfar[data-theme=light|dark]` tokens. |
 | `sw.js`, `manifest.webmanifest`, `icon-*.png` | PWA: offline caching + install. |
 
 ## Conventions (important)
@@ -43,12 +43,12 @@ Open `Rihla.html` on a static server.
 - **Each `<script type="text/babel">` has its own scope.** Components are shared by assigning to
   `window` at the end of each file (`Object.assign(window, {...})`), and referenced as
   `window.Foo` or destructured. When adding a component, export it on `window` and load order in
-  `Rihla.html` matters (data → engine → tweaks → components → arc → cards → app).
+  `index.html` matters (data → engine → tweaks → components → arc → cards → app).
 - **No `const styles = {}`** global objects (name collisions across Babel scripts). Use inline
   styles or uniquely-named objects.
-- React/Babel are **pinned with integrity hashes** in `Rihla.html` — keep them.
+- React/Babel are **pinned with integrity hashes** in `index.html` — keep them.
 - Tweak defaults live in `app.jsx` inside `/*EDITMODE-START*/ … /*EDITMODE-END*/`.
-- Persisted state: `localStorage` keys `rihla.settings` (method/madhab) and `rihla.recents`.
+- Persisted state: `localStorage` keys `isfar.settings` (method/madhab) and `isfar.recents`.
 
 ## The engine model (`engine.js`)
 
@@ -75,7 +75,7 @@ Key internals:
 
 ## Verifying changes
 
-Open `Rihla.html`, click a sample chip, watch the console. The blurry horizontal band in
+Open `index.html`, click a sample chip, watch the console. The blurry horizontal band in
 html-to-image screenshots is a **capture artifact with `backdrop-filter`**, not a real bug —
 confirm layout via DOM/`getBoundingClientRect` or a real pixel screenshot if unsure.
 

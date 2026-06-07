@@ -1,5 +1,5 @@
 /* ===========================================================================
-   Rihla — ArcTimeline: the sun's path across the journey
+   Isfar — ArcTimeline: the sun's path across the journey
    x  = every prayer the flight crosses, evenly spaced in order (5 — or more,
         with repeats, on ultra-long eastbound routes that sweep >24h of sun)
    y  = the sun's elevation at that prayer's time of day: dawn & dusk on the
@@ -51,7 +51,7 @@ function ArcTimeline({ f, activeKey, onSelect }) {
   }
   const multiDay = new Set(pts.map(p => dateOf(p.pr))).size > 1;
 
-  const dotColor = (k) => window.RIHLA_DATA.COLOR[k];
+  const dotColor = (k) => window.ISFAR_DATA.COLOR[k];
   const ORD = { 1: "1st", 2: "2nd", 3: "3rd", 4: "4th", 5: "5th" };
 
   // zig-zag label sides so adjacent labels never overlap

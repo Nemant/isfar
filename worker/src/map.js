@@ -1,6 +1,6 @@
 // worker/src/map.js
 //
-// PURE mapping layer: AeroDataBox flight segment  ->  Rihla success record.
+// PURE mapping layer: AeroDataBox flight segment  ->  Isfar success record.
 //
 // This file has NO network and NO Worker/env dependencies on purpose, so the
 // whole field-provenance table in worker/CONTRACT.md can be unit-tested offline
@@ -138,7 +138,7 @@ function mapEndpoint(endpoint, instant) {
 }
 
 /**
- * Map a single AeroDataBox segment to the Rihla success record.
+ * Map a single AeroDataBox segment to the Isfar success record.
  * On any non-recoverable gap returns { found:false, error:"notfound", code }.
  *
  * @param {object} seg   one AeroDataBox segment

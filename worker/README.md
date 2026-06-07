@@ -1,6 +1,6 @@
-# Rihla flight-lookup Worker
+# Isfar flight-lookup Worker
 
-A Cloudflare Worker that serves `GET /api/flight?code=&date=` for the Rihla app.
+A Cloudflare Worker that serves `GET /api/flight?code=&date=` for the Isfar app.
 It maps an [AeroDataBox](https://aerodatabox.com/) flight segment to the exact
 record `engine.compute()` already consumes — so wiring the real API needs **no
 changes** to `app.jsx` or `engine.js`. The request/response shape is frozen in
@@ -13,7 +13,7 @@ GET /api/flight?code=SV124&date=2026-06-06
   -> 503  { found:false, error:"busy" }              // daily ceiling hit, rate-limited, or upstream failure
 ```
 
-A debug header `X-Rihla-Cache: hit|miss` is set on every response so QA can
+A debug header `X-Isfar-Cache: hit|miss` is set on every response so QA can
 confirm KV behaviour.
 
 ## Layout
@@ -99,7 +99,7 @@ matches what `engine.compute()` expects (the placeholders in `data.js`):
       the operating carrier. Confirm `pickSegment()` selects the operating
       segment and the record still resolves (or document the codeshare behaviour).
 
-For each: verify `X-Rihla-Cache: miss` on the first call, `hit` on the second,
+For each: verify `X-Isfar-Cache: miss` on the first call, `hit` on the second,
 and that a bad code (e.g. `ZZ999`) returns **404 `notfound`**.
 
 ## Assumptions to confirm in Wave-1 (AeroDataBox live shape)

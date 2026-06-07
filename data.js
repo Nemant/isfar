@@ -1,11 +1,11 @@
 /* ===========================================================================
-   Rihla — flight records (placeholder; in production from a flight API)
+   Isfar — flight records (placeholder; in production from a flight API)
    Real coordinates + true departure/arrival in UTC, plus IANA timezones.
    Prayer times are NOT stored here — they are computed live by engine.js
    (adhan-js) at the aircraft's position along the great-circle path.
    =========================================================================== */
 
-window.RIHLA_DATA = (function () {
+window.ISFAR_DATA = (function () {
 
   // ---- Hero route: London → Jeddah (the pilgrim's arc, crosses dusk) ------
   const SV124 = {
@@ -88,7 +88,7 @@ window.RIHLA_DATA = (function () {
 
   // Base URL of the flight Worker. Empty ⇒ local dev: no backend, fall back to
   // the built-in FLIGHTS table so the sample chips keep working unchanged.
-  const API_BASE = (typeof window !== "undefined" && window.RIHLA_API_BASE) || "";
+  const API_BASE = (typeof window !== "undefined" && window.ISFAR_API_BASE) || "";
 
   // Async lookup. Resolves to the SAME shapes as lookup(): a success record, or
   // { found:false, error:... } / { error:"empty" }. Format + empty checks happen

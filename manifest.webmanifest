@@ -1,10 +1,10 @@
 {
-  "name": "Rihla — Prayer times across your flight",
-  "short_name": "Rihla",
+  "name": "Isfar — Prayer times across your flight",
+  "short_name": "Isfar",
   "description": "Know your five daily prayers across any flight — which to pray before departure, in the air, and after arrival.",
   "lang": "en",
   "dir": "ltr",
-  "start_url": "Rihla.html",
+  "start_url": "index.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",

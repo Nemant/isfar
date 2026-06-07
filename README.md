@@ -1,18 +1,18 @@
-# Rihla — رحلة
+# Isfar — إسفار
 
 **Know your prayers from gate to gate.** A calm, single-page web app that maps the five
 daily prayers across an airline flight — telling a Muslim traveller which prayers to pray
 before departure, which fall in the air, and which after arrival, in both the origin and
 destination time zones.
 
-> _Rihla_ (رحلة) means "journey." The app is mobile-first, works offline once loaded,
+> _Isfar_ (إسفار) means "journey." The app is mobile-first, works offline once loaded,
 > needs no account, and is built to feel reassuring rather than busy.
 
 ---
 
 ## What it does
 
-Type a flight number (e.g. `SV124`) and Rihla:
+Type a flight number (e.g. `SV124`) and Isfar:
 
 - Looks up the route, departure/arrival times, and time zones.
 - Walks the **great-circle flight path** and computes each prayer **at the aircraft's actual
@@ -57,15 +57,15 @@ No build step. It's plain HTML + in-browser React/Babel + adhan-js from a CDN.
 ```bash
 # any static server, e.g.
 npx serve .
-# then open http://localhost:3000/Rihla.html
+# then open http://localhost:3000/index.html
 ```
 
-Or open `Rihla.html` through any static host. A **service worker** (`sw.js`) caches the app
+Or open `index.html` through any static host. A **service worker** (`sw.js`) caches the app
 and its libraries on first load, so it works offline afterwards, and a web manifest makes it
 **installable** ("Add to Home Screen").
 
 > **Note:** flight data is realistic **placeholder** data in `data.js`. A production build
-> would swap `RIHLA_DATA.lookup()` for a real flight API (e.g. AeroDataBox) — the model shape
+> would swap `ISFAR_DATA.lookup()` for a real flight API (e.g. AeroDataBox) — the model shape
 > is already API-ready. Everything else (prayer math, geometry, offline) is real.
 
 ---

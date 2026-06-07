@@ -1,5 +1,5 @@
 /* ===========================================================================
-   Rihla — prayer engine
+   Isfar — prayer engine
    Computes the prayers across a flight using adhan-js, evaluated at the
    aircraft's position along the great-circle path.
 
@@ -18,7 +18,7 @@
    returns an Invalid Date — surfaced as the "no sunset" state.
    =========================================================================== */
 
-window.RIHLA_ENGINE = (function () {
+window.ISFAR_ENGINE = (function () {
   const D2R = Math.PI / 180, R2D = 180 / Math.PI;
   const ORDER = ["fajr", "dhuhr", "asr", "maghrib", "isha"];
   const BEFORE_CAP = 2, AFTER_CAP = 2;
@@ -227,7 +227,7 @@ window.RIHLA_ENGINE = (function () {
 
     // ---- assemble ordered display model -------------------------------------
     entries.sort((a, b) => a.ms - b.ms);
-    const META = window.RIHLA_DATA.META;
+    const META = window.ISFAR_DATA.META;
     const durationMin = Math.round((arr - dep) / 60000);
 
     // day labels at each prayer's own locale (origin/dest civil, or solar aloft)

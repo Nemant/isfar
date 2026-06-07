@@ -1,12 +1,12 @@
 // worker/src/index.js
 //
-// Rihla flight-lookup Worker.  GET /api/flight?code=&date=  ->  the success
+// Isfar flight-lookup Worker.  GET /api/flight?code=&date=  ->  the success
 // record consumed verbatim by engine.compute() (see worker/CONTRACT.md).
 //
 // Request lifecycle (in order):
 //   1. parse + normalize `code` exactly like data.js:82; reject empty
 //   2. resolve `date` (given, else today's UTC date / next segment)
-//   3. KV read-through  (X-Rihla-Cache: hit|miss)
+//   3. KV read-through  (X-Isfar-Cache: hit|miss)
 //   4. abuse scaffolding: daily upstream CEILING counter + optional Turnstile
 //   5. call AeroDataBox, map via the pure mapFlight()
 //   6. store in KV with TTL, return record
@@ -181,7 +181,7 @@ async function handleFlight(request, env) {
   if (!code) {
     // Blank input is a client-side concern (data.js -> {error:"empty"}); the
     // Worker treats a missing code as notfound-with-empty-code for safety.
-    return notfound("", { "X-Rihla-Cache": "miss" });
+    return notfound("", { "X-Isfar-Cache": "miss" });
   }
 
   // 2. resolve date
@@ -202,11 +202,11 @@ async function handleFlight(request, env) {
         "content-type": "application/json; charset=utf-8",
         "access-control-allow-origin": "*",
         "cache-control": "no-store",
-        "X-Rihla-Cache": "hit",
+        "X-Isfar-Cache": "hit",
       },
     });
   }
-  const missHeaders = { "X-Rihla-Cache": "miss" };
+  const missHeaders = { "X-Isfar-Cache": "miss" };
 
   // 4a. Turnstile (only on miss; no-op when secret unset)
   const ip = request.headers.get("CF-Connecting-IP") || "";

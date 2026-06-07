@@ -1,5 +1,5 @@
 /* ===========================================================================
-   Rihla — app shell: state machine + theme + tweaks
+   Isfar — app shell: state machine + theme + tweaks
    states: landing · loading · results · error · nosunset
    =========================================================================== */
 const { useState: useS, useEffect: useE, useRef: useR } = React;
@@ -25,23 +25,23 @@ function App() {
   } /*EDITMODE-END*/;
   // Theme is a real user setting persisted on the device (unlike the design-time
   // tweaks) — seed it from localStorage so a chosen theme survives reload.
-  const savedTheme = (() => { try { return localStorage.getItem("rihla.theme"); } catch (e) { return null; } })();
+  const savedTheme = (() => { try { return localStorage.getItem("isfar.theme"); } catch (e) { return null; } })();
   const [t, setTweak] = useTweaks(savedTheme ? { ...TWEAK_DEFAULTS, theme: savedTheme } : TWEAK_DEFAULTS);
   function setTheme(v) {
     setTweak("theme", v);
-    try { localStorage.setItem("rihla.theme", v); } catch (e) {}
+    try { localStorage.setItem("isfar.theme", v); } catch (e) {}
   }
 
   // prayer-calculation settings — real user settings, persisted on the device
   const [settings, setSettings] = useS(() => {
     const def = { method: "isna", madhab: "shafi" };
-    try { return Object.assign(def, JSON.parse(localStorage.getItem("rihla.settings") || "{}")); }
+    try { return Object.assign(def, JSON.parse(localStorage.getItem("isfar.settings") || "{}")); }
     catch (e) { return def; }
   });
   function setSetting(key, val) {
     setSettings((prev) => {
       const next = Object.assign({}, prev, { [key]: val });
-      try { localStorage.setItem("rihla.settings", JSON.stringify(next)); } catch (e) {}
+      try { localStorage.setItem("isfar.settings", JSON.stringify(next)); } catch (e) {}
       return next;
     });
   }
@@ -61,7 +61,7 @@ function App() {
 
   // recent searches — persisted locally so they're available offline
   const [recents, setRecents] = useS(() => {
-    try { return JSON.parse(localStorage.getItem("rihla.recents") || "[]"); }
+    try { return JSON.parse(localStorage.getItem("isfar.recents") || "[]"); }
     catch (e) { return []; }
   });
   function recordRecent(rec) {
@@ -72,19 +72,19 @@ function App() {
     };
     setRecents((prev) => {
       const next = [item, ...prev.filter((r) => r.code !== item.code)].slice(0, 6);
-      try { localStorage.setItem("rihla.recents", JSON.stringify(next)); } catch (e) {}
+      try { localStorage.setItem("isfar.recents", JSON.stringify(next)); } catch (e) {}
       return next;
     });
   }
   function clearRecents() {
     setRecents([]);
-    try { localStorage.removeItem("rihla.recents"); } catch (e) {}
+    try { localStorage.removeItem("isfar.recents"); } catch (e) {}
   }
 
   // derive the live-computed model whenever the record or calc settings change
   const data = React.useMemo(() => {
     if (!raw || !raw.found) return raw;
-    try { return window.RIHLA_ENGINE.compute(raw, { method: settings.method, madhab: settings.madhab }); }
+    try { return window.ISFAR_ENGINE.compute(raw, { method: settings.method, madhab: settings.madhab }); }
     catch (e) { console.error("compute failed", e); return raw; }
   }, [raw, settings.method, settings.madhab]);
 
@@ -145,7 +145,7 @@ function App() {
     // feels jarring — whichever finishes last gates the transition.
     (async () => {
       const [res] = await Promise.all([
-        window.RIHLA_DATA.lookupRemote(raw, date),
+        window.ISFAR_DATA.lookupRemote(raw, date),
         new Promise((r) => setTimeout(r, 1200))
       ]);
       clearInterval(msgInt);
@@ -153,7 +153,7 @@ function App() {
       setRaw(res);
       if (!res.found) { setView("error"); return; }
       recordRecent(res);
-      let model; try { model = window.RIHLA_ENGINE.compute(res, { method: settings.method, madhab: settings.madhab }); } catch (e) { model = res; }
+      let model; try { model = window.ISFAR_ENGINE.compute(res, { method: settings.method, madhab: settings.madhab }); } catch (e) { model = res; }
       setView(model && model.noSunset ? "nosunset" : "results");
     })();
   }
@@ -173,7 +173,7 @@ function App() {
   useE(() => () => clearTimeout(loadTimer.current), []);
 
   return (
-    <div className="rihla" data-theme={resolved} style={rootStyle}>
+    <div className="isfar" data-theme={resolved} style={rootStyle}>
       <div className="sky" aria-hidden="true"></div>
       <div className="col">
         <Header theme={resolved} onCycleTheme={cycleTheme} onHome={goHome} onOpenSettings={() => setShowSettings(true)} onOpenGuide={() => setShowGuide(true)} onOpenMethod={() => setShowMethod(true)} />

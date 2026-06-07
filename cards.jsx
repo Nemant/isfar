@@ -1,5 +1,5 @@
 /* ===========================================================================
-   Rihla — prayer cards, status tags, traveller guidance
+   Isfar — prayer cards, status tags, traveller guidance
    =========================================================================== */
 const { useRef: useRefCards } = React;
 
@@ -13,7 +13,7 @@ const ORD = { 1: "1st", 2: "2nd", 3: "3rd", 4: "4th", 5: "5th" };
 
 function PrayerCard({ pr, active, multiDay, order, refEl }) {
   const Glyph = window.PRAYER_GLYPH[pr.key] || window.Ic.sun;
-  const color = window.RIHLA_DATA.COLOR[pr.key];
+  const color = window.ISFAR_DATA.COLOR[pr.key];
   const zs = order.map((iata) => pr.zones[iata]).filter(Boolean);
   return (
     <article ref={refEl} className={"prayer-card" + (active ? " active" : "")} style={{ "--dot": color }}
@@ -87,7 +87,7 @@ function PrayerList({ f, activeKey, cardRefs }) {
 
 /* ---- Traveller guidance (collapsible) ---------------------------------- */
 function Guidance() {
-  const G = window.RIHLA_DATA.GUIDANCE;
+  const G = window.ISFAR_DATA.GUIDANCE;
   return (
     <details className="guidance">
       <summary className="g-head">

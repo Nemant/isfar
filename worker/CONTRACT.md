@@ -28,7 +28,7 @@ Optional header (Phase A3, may be absent at launch):
 |---|---|
 | `CF-Turnstile-Token` | Turnstile token, verified only on cache-miss. Omitted when Turnstile is deferred. |
 
-Responses are `application/json`. A debug header `X-Rihla-Cache: hit|miss` is set so QA can confirm
+Responses are `application/json`. A debug header `X-Isfar-Cache: hit|miss` is set so QA can confirm
 KV behavior.
 
 ---
@@ -42,7 +42,7 @@ KV behavior.
   "code": "SV124",                // normalized, no spaces
   "aircraft": "Boeing 787-9",     // string; "—" if upstream omits it
   "dateISO": "2026-06-06",        // resolved departure date, origin-local (YYYY-MM-DD)
-  "date": "Friday, 6 June 2026",  // human string, derived in-Worker via Intl
+  "date": "Saturday, 6 June 2026", // human string, derived in-Worker via Intl
   "from": {
     "iata": "LHR",                // 3-letter (or ICAO fallback)
     "city": "London",             // municipalityName; fallback to airport short name
@@ -113,6 +113,6 @@ five render through the existing/extended `ErrorState` (`components.jsx:312`).
 
 - KV key: `flight:{code}:{resolvedDate}`; value = the success record above.
 - TTL: today/future 6h; past flights 30d.
-- Cache hit ⇒ returned with `X-Rihla-Cache: hit`, **no upstream call**.
+- Cache hit ⇒ returned with `X-Isfar-Cache: hit`, **no upstream call**.
 - Same-origin (Pages + Worker on one custom domain) ⇒ the service worker also caches the
   `/api/flight?...` response, enabling offline re-display of saved flights.

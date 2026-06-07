@@ -1,5 +1,5 @@
 /* ===========================================================================
-   Rihla — prayer times across a flight
+   Isfar — prayer times across a flight
    Type:  Newsreader (display) · Hanken Grotesk (UI/body) · Noto Kufi Arabic
    Color: oklch sun-arc palette, warmth-scalable, light + dark themes
    =========================================================================== */
@@ -14,7 +14,7 @@ body {
 }
 
 /* ---- Theme container ----------------------------------------------------- */
-.rihla {
+.isfar {
   --warmth: 1;
   min-height: 100svh;
   width: 100%;
@@ -31,7 +31,7 @@ body {
 }
 
 /* ---- Light (daytime sky) ------------------------------------------------- */
-.rihla[data-theme="light"] {
+.isfar[data-theme="light"] {
   --bg-top:    oklch(0.90 0.045 248);
   --bg-mid:    oklch(0.95 0.028 230);
   --bg-bottom: oklch(0.975 0.022 86);
@@ -50,7 +50,7 @@ body {
 }
 
 /* ---- Dark (night sky) ---------------------------------------------------- */
-.rihla[data-theme="dark"] {
+.isfar[data-theme="dark"] {
   --bg-top:    oklch(0.20 0.045 282);
   --bg-mid:    oklch(0.16 0.04 286);
   --bg-bottom: oklch(0.115 0.03 288);
@@ -78,7 +78,7 @@ body {
     linear-gradient(180deg, var(--bg-top), var(--bg-mid) 52%, var(--bg-bottom));
   transition: background .6s ease;
 }
-.rihla[data-theme="dark"] .sky::after {
+.isfar[data-theme="dark"] .sky::after {
   content: "";
   position: absolute;
   inset: 0;

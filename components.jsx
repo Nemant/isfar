@@ -1,5 +1,5 @@
 /* ===========================================================================
-   Rihla — icons + presentational components
+   Isfar — icons + presentational components
    Exposed on window for the other Babel scripts.
    =========================================================================== */
 const { useState, useEffect, useRef } = React;
@@ -38,12 +38,12 @@ function Header({ theme, onCycleTheme, onHome, onOpenSettings, onOpenGuide, onOp
   return (
     <header className="hdr">
       <div className="brand" onClick={onHome} role="link" tabIndex={0}
-           onKeyDown={(e)=>{ if(e.key==="Enter") onHome(); }} aria-label="Rihla — home">
-        <span className="mark">Rihla</span>
-        <span className="mark-ar ar" aria-hidden="true">رحلة</span>
+           onKeyDown={(e)=>{ if(e.key==="Enter") onHome(); }} aria-label="Isfar — home">
+        <span className="mark">Isfar</span>
+        <span className="mark-ar ar" aria-hidden="true">إسفار</span>
       </div>
       <div className="hdr-actions">
-        <button className="iconbtn" onClick={onOpenMethod} aria-label="How Rihla works" title="How it works">
+        <button className="iconbtn" onClick={onOpenMethod} aria-label="How Isfar works" title="How it works">
           <Ic.info aria-hidden="true" />
         </button>
         <button className="iconbtn" onClick={onOpenGuide} aria-label="Traveller’s guide — qasr &amp; jam'" title="Traveller’s guide">
@@ -69,7 +69,7 @@ function SettingsSheet({ open, onClose, method, madhab, onChange }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose]);
   if (!open) return null;
-  const METHODS = window.RIHLA_DATA.METHODS;
+  const METHODS = window.ISFAR_DATA.METHODS;
   return (
     <div className="settings-backdrop" onClick={onClose}>
       <div className="settings-sheet" role="dialog" aria-modal="true" aria-label="Settings"
@@ -113,7 +113,7 @@ function GuideSheet({ open, onClose }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose]);
   if (!open) return null;
-  const G = window.RIHLA_DATA.GUIDANCE;
+  const G = window.ISFAR_DATA.GUIDANCE;
   return (
     <div className="settings-backdrop" onClick={onClose}>
       <div className="settings-sheet" role="dialog" aria-modal="true" aria-label="Traveller's guide"
@@ -166,10 +166,10 @@ function MethodSheet({ open, onClose }) {
   ];
   return (
     <div className="settings-backdrop" onClick={onClose}>
-      <div className="settings-sheet" role="dialog" aria-modal="true" aria-label="How Rihla works"
+      <div className="settings-sheet" role="dialog" aria-modal="true" aria-label="How Isfar works"
            onClick={(e) => e.stopPropagation()}>
         <div className="settings-head">
-          <h2>How Rihla works</h2>
+          <h2>How Isfar works</h2>
           <button className="iconbtn" onClick={onClose} aria-label="Close"><Ic.close aria-hidden="true" /></button>
         </div>
         <div className="settings-body">
@@ -297,7 +297,7 @@ function NextPrayer({ prayers, order }) {
   const left = h > 0 ? `${h}h ${String(m).padStart(2, "0")}m`
             : m > 0 ? `${m}m ${String(s).padStart(2, "0")}s`
             : `${s}s`;
-  const color = window.RIHLA_DATA.COLOR[next.key];
+  const color = window.ISFAR_DATA.COLOR[next.key];
   const statusText = next.status === "inflight" ? "in flight" : next.status === "before" ? "before departure" : "after arrival";
   const zs = (order || Object.keys(next.zones)).map(i => next.zones[i]).filter(Boolean);
   return (

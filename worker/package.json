@@ -1,9 +1,9 @@
 {
-  "name": "rihla-worker",
+  "name": "isfar-worker",
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Cloudflare Worker serving GET /api/flight for the Rihla app (AeroDataBox -> engine record).",
+  "description": "Cloudflare Worker serving GET /api/flight for the Isfar app (AeroDataBox -> engine record).",
   "main": "src/index.js",
   "scripts": {
     "test": "node --test \"test/*.mjs\"",

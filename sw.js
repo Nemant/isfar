@@ -1,5 +1,5 @@
 /* ===========================================================================
-   Rihla — service worker
+   Isfar — service worker
    Makes the app available offline (airplane mode) and installable.
 
    Strategy:
@@ -9,11 +9,11 @@
      are cached on first use so they're there next time you're offline.
    =========================================================================== */
 
-const CACHE = "rihla-v1";
+const CACHE = "isfar-v1";
 
 // Core shell precached on install so the very first offline load works.
 const CORE = [
-  "Rihla.html",
+  "index.html",
   "styles.css",
   "data.js",
   "engine.js",
@@ -68,7 +68,7 @@ self.addEventListener("fetch", (e) => {
         const cached = await caches.match(req, { ignoreSearch: true });
         if (cached) return cached;
         if (req.mode === "navigate") {
-          const shell = await caches.match("Rihla.html", { ignoreSearch: true });
+          const shell = await caches.match("index.html", { ignoreSearch: true });
           if (shell) return shell;
         }
         throw err;

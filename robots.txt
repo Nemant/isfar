@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://PLACEHOLDER_DOMAIN/sitemap.xml
+Sitemap: https://isfar.app/sitemap.xml
