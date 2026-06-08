@@ -41,7 +41,7 @@ body {
 }
 
 /* ---- Light (daytime sky) ------------------------------------------------- */
-.isfar[data-theme="light"] {
+[data-theme="light"] .isfar {
   --bg-top:    oklch(0.90 0.045 248);
   --bg-mid:    oklch(0.95 0.028 230);
   --bg-bottom: oklch(0.975 0.022 86);
@@ -60,7 +60,7 @@ body {
 }
 
 /* ---- Dark (night sky) ---------------------------------------------------- */
-.isfar[data-theme="dark"] {
+[data-theme="dark"] .isfar {
   --bg-top:    oklch(0.20 0.045 282);
   --bg-mid:    oklch(0.16 0.04 286);
   --bg-bottom: oklch(0.115 0.03 288);
@@ -88,7 +88,7 @@ body {
     linear-gradient(180deg, var(--bg-top), var(--bg-mid) 52%, var(--bg-bottom));
   transition: background .6s ease;
 }
-.isfar[data-theme="dark"] .sky::after {
+[data-theme="dark"] .sky::after {
   content: "";
   position: absolute;
   inset: 0;

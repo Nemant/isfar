@@ -116,6 +116,13 @@ export default function App() {
     } catch (e) {}
   }, []);
 
+  // Gate theme-dependent DOM/render until after mount. Until then the inline
+  // <head> script (set-theme-before-paint) owns the visual theme; React must not
+  // render or sync a theme that differs from the server HTML (it would flash /
+  // mismatch). Flips true in the same commit the saved theme loads above.
+  const [mounted, setMounted] = useS(false);
+  useE(() => { setMounted(true); }, []);
+
   // derive the live-computed model whenever the record or calc settings change
   const data = React.useMemo(() => {
     if (!raw || !raw.found) return raw;
@@ -145,21 +152,26 @@ export default function App() {
     };
   }, [t.theme]);
 
-  // Paint the document canvas (html/body) to match the theme's bottom-of-sky
-  // colour. The .sky backdrop is position:fixed and only covers the viewport, so
-  // momentum-scrolling past the content on iOS would otherwise flash the white
-  // browser canvas. Reading the resolved theme's --bg-bottom keeps it accurate.
-  // Also narrow the browser-chrome <meta theme-color> to the resolved theme's
-  // sky-top colour, so a user's explicit light/dark override (which the static
-  // per-scheme metas in the head can't follow) still tints the iOS status bar /
-  // notch + URL bar correctly. Hex literals match styles.css --bg-top per theme.
+  // Keep the document in sync with the resolved theme on every change (toggles,
+  // live OS flips). The theme lives on <html data-theme> — CSS reads it from the
+  // root and the inline <head> script set it before first paint — so we update
+  // documentElement, not a React-rendered attribute. Also paint the html/body
+  // canvas to the sky's bottom colour (the .sky backdrop is position:fixed and
+  // only covers the viewport, so iOS overscroll/notch would otherwise flash
+  // white), and narrow the browser-chrome <meta theme-color> to the resolved
+  // theme's sky-top colour (hex matches styles.css --bg-top per theme).
+  // Gated on `mounted`: until then the inline head script owns these, and the
+  // pre-localStorage "auto" theme would otherwise briefly fight it.
   useE(() => {
+    if (!mounted) return;
+    document.documentElement.setAttribute("data-theme", resolved);
     const el = document.querySelector(".isfar");
-    if (!el) return;
-    const bg = getComputedStyle(el).getPropertyValue("--bg-bottom").trim();
-    if (bg) {
-      document.documentElement.style.background = bg;
-      document.body.style.background = bg;
+    if (el) {
+      const bg = getComputedStyle(el).getPropertyValue("--bg-bottom").trim();
+      if (bg) {
+        document.documentElement.style.background = bg;
+        document.body.style.background = bg;
+      }
     }
     const topHex = resolved === "dark" ? "#13132a" : "#c7e1fb";
     const metas = document.querySelectorAll('meta[name="theme-color"]');
@@ -167,10 +179,10 @@ export default function App() {
       if (i === 0) { m.removeAttribute("media"); m.setAttribute("content", topHex); }
       else m.remove();
     });
-  }, [resolved, t.warmth]);
+  }, [mounted, resolved, t.warmth]);
 
-  // apply warmth to the theme container
-  const rootStyle = { "--warmth": t.warmth };
+  // apply warmth to the theme container (default until mount to match the server)
+  const rootStyle = { "--warmth": mounted ? t.warmth : 1 };
 
   // Two-state flip on the *visible* theme so a tap always changes what you see.
   // From "auto" this picks the opposite of whatever auto currently resolves to.
@@ -232,10 +244,10 @@ export default function App() {
   useE(() => () => clearTimeout(loadTimer.current), []);
 
   return (
-    <div className="isfar" data-theme={resolved} style={rootStyle}>
+    <div className="isfar" style={rootStyle}>
       <div className="sky" aria-hidden="true"></div>
       <div className="col">
-        <Header theme={resolved} onCycleTheme={cycleTheme} onHome={goHome} onOpenSettings={() => setShowSettings(true)} onOpenGuide={() => setShowGuide(true)} onOpenMethod={() => setShowMethod(true)} />
+        <Header theme={mounted ? resolved : "light"} onCycleTheme={cycleTheme} onHome={goHome} onOpenSettings={() => setShowSettings(true)} onOpenGuide={() => setShowGuide(true)} onOpenMethod={() => setShowMethod(true)} />
 
         {view === "landing"  && <Landing query={query} setQuery={setQuery} date={date} setDate={setDate}
                                           err={err} onSubmit={submit}
