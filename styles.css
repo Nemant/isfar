@@ -193,6 +193,21 @@
 *, *::before, *::after { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; }
 
+/* Document canvas — the iOS safe-area + overscroll backstop. iOS Safari tints
+   BOTH the status-bar and address-bar regions (and rubber-band overscroll) with
+   this single background-color; no element placed behind the bars can override
+   it, so top and bottom necessarily share one colour. We match it to the sky's
+   TOP colour (--bg-top) so the always-visible status bar is seamless; the bottom
+   then shows that same colour against the cream sky bottom — the accepted
+   trade-off (the address bar auto-hides). The --bg-* tokens live on [data-theme]
+   (below) and are set on <html> before first paint by the inline script in
+   index.html, then kept in sync by app.jsx, so the canvas is correct on load and
+   on every theme toggle — no JS painting. */
+html {
+  min-height: 100%;
+  background-color: var(--bg-top);
+}
+
 body {
   font-family: "Hanken Grotesk", ui-sans-serif, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -219,7 +234,8 @@ body {
 }
 
 /* ---- Light (daytime sky) ------------------------------------------------- */
-.isfar[data-theme="light"] {
+[data-theme="light"] {
+  color-scheme: light;   /* tints Safari's native translucent bars + scrollbars */
   --bg-top:    oklch(0.90 0.045 248);
   --bg-mid:    oklch(0.95 0.028 230);
   --bg-bottom: oklch(0.975 0.022 86);
@@ -238,7 +254,8 @@ body {
 }
 
 /* ---- Dark (night sky) ---------------------------------------------------- */
-.isfar[data-theme="dark"] {
+[data-theme="dark"] {
+  color-scheme: dark;    /* tints Safari's native translucent bars + scrollbars */
   --bg-top:    oklch(0.20 0.045 282);
   --bg-mid:    oklch(0.16 0.04 286);
   --bg-bottom: oklch(0.115 0.03 288);
@@ -258,7 +275,15 @@ body {
 
 /* ---- Sky backdrop -------------------------------------------------------- */
 .sky {
-  position: fixed;
+  /* absolute, NOT fixed: the gradient scrolls with the document so content
+     scrolls *under* iOS Safari's translucent status bar + address bar. A
+     position:fixed full-screen layer makes iOS force those bars opaque, killing
+     the translucent effect. Trade-off: a scrolling layer can't paint the iOS
+     safe-area / overscroll zones — iOS fills those from <html>'s single solid
+     background-color (the backstop above), which is why those edge zones are one
+     colour and can't follow the gradient's light-top / cream-bottom. .isfar is
+     position:relative and grows to full content height, so inset:0 covers it. */
+  position: absolute;
   inset: 0;
   z-index: 0;
   background:
@@ -288,7 +313,14 @@ body {
   z-index: 1;
   width: 100%;
   max-width: 480px;
-  padding: clamp(20px, 5vw, 34px) clamp(18px, 5vw, 28px) 64px;
+  /* viewport-fit=cover lets the page extend under the iOS status bar / Dynamic
+     Island and Safari's address bar. Reserve those safe areas here so the
+     *content* isn't clipped behind the bars — without this the header tucks under
+     the status bar and the last card hides behind the address bar. env() is 0
+     where there are no insets, so desktop is unchanged. */
+  padding:
+    calc(clamp(20px, 5vw, 34px) + env(safe-area-inset-top)) clamp(18px, 5vw, 28px)
+    calc(64px + env(safe-area-inset-bottom));
   display: flex;
   flex-direction: column;
   min-height: 100svh;

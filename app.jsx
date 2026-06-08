@@ -110,19 +110,15 @@ function App() {
     };
   }, [t.theme]);
 
-  // Paint the document canvas (html/body) to match the theme's bottom-of-sky
-  // colour. The .sky backdrop is position:fixed and only covers the viewport, so
-  // momentum-scrolling past the content on iOS would otherwise flash the white
-  // browser canvas. Reading the resolved theme's --bg-bottom keeps it accurate.
+  // Keep the document themed in sync with the resolved theme. <html data-theme>
+  // selects the CSS theme tokens (sky colours + color-scheme) in styles.css, so
+  // just setting the attribute repaints the .sky gradient and the <html> canvas
+  // backstop and re-tints Safari's native translucent bars — on every toggle and
+  // live OS flip. No theme-color meta: that would turn those bars into solid
+  // blocks the page can't scroll behind.
   useE(() => {
-    const el = document.querySelector(".isfar");
-    if (!el) return;
-    const bg = getComputedStyle(el).getPropertyValue("--bg-bottom").trim();
-    if (bg) {
-      document.documentElement.style.background = bg;
-      document.body.style.background = bg;
-    }
-  }, [resolved, t.warmth]);
+    document.documentElement.setAttribute("data-theme", resolved);
+  }, [resolved]);
 
   // apply warmth to the theme container
   const rootStyle = { "--warmth": t.warmth };

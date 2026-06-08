@@ -3,7 +3,28 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<meta name="theme-color" content="#16131f" />
+<!-- Deliberately NO <meta name="theme-color">. Setting it makes iOS Safari paint
+     the status bar + address bar as SOLID opaque blocks, so the page can't scroll
+     visibly behind them. Leaving it unset keeps Safari's native translucent bars,
+     so content scrolls under them. `color-scheme` (set per theme in styles.css)
+     tells Safari which way to tint those bars; the safe-area edges themselves fall
+     back to the <html> backstop colour (styles.css). -->
+
+<!-- Pre-paint theme bootstrap. Babel Standalone compiles the app in-browser, so
+     React mounts noticeably late; set <html data-theme> from the saved choice
+     (localStorage isfar.theme, resolving "auto" via the OS) BEFORE first paint so
+     the themed canvas (styles.css) is correct immediately — no white flash.
+     app.jsx keeps it in sync on later toggles / live OS flips. -->
+<script>
+  (function () {
+    try {
+      var saved = localStorage.getItem("isfar.theme");
+      var pref = (saved === "light" || saved === "dark") ? saved
+        : (window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+      document.documentElement.setAttribute("data-theme", pref);
+    } catch (e) {}
+  })();
+</script>
 
 <!-- TODO: replace isfar.app with the real custom domain before launch -->
 <title>Isfar — Prayer times across your flight (Fajr to Isha)</title>

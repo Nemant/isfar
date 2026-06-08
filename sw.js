@@ -9,7 +9,7 @@
      are cached on first use so they're there next time you're offline.
    =========================================================================== */
 
-const CACHE = "isfar-v3";
+const CACHE = "isfar-v17";
 
 // Core shell precached on install so the very first offline load works.
 const CORE = [
