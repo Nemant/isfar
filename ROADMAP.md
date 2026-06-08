@@ -331,12 +331,61 @@ After lookups work. **Strangler migration — the app stays runnable throughout.
 - **Retire** the `tweaks-panel.jsx` `__edit_mode_*` postMessage host bridge from the production
   bundle (dev-editor tooling, no end-user value); user-facing theme/warmth tweaks stay.
 
-### Phase D — SEO build-out (the payoff for choosing Astro)
+### Phase D — SEO build-out ⏳ NEXT (the payoff for choosing Astro)
 
-Former `SEO.md` Phases 1–4, now cheap because Astro generates them: precompiled perf (Babel already
-gone), programmatic per-route pages (`/prayer-times/lhr-to-jed/`), guide content hub, then i18n
-(`hreflang`, RTL) — Arabic/Urdu/Indonesian/Turkish/Malay. Off-page: Search Console + sitemap
-submission, Muslim-travel/Hajj-Umrah community links.
+Phase C gives us cheap crawlable, zero-JS pages. Phase D turns Isfar from a single tool page into an
+indexable content surface. **Guiding principles:**
+- **Route/guide pages are static, zero-JS** — they ship no island; only the homepage hydrates the
+  `Calculator`. Each links *into* the calculator with a CTA rather than embedding it.
+- **No thin/doorway pages.** Every generated page must carry substantive, *unique* content (built
+  from real `engine.js` math, not boilerplate), a `canonical`, and genuine internal links — or
+  Google treats them as spam and it backfires.
+
+Sequenced cheapest-ROI-first. **D1 and D2 are independent → parallelizable.** D3 depends on them.
+
+**D0 — Auto-sitemap + Search Console (quick win, do first).**
+- Add `@astrojs/sitemap` so the sitemap regenerates from built pages (replaces the hand-written
+  `public/sitemap.xml`; D1/D2 pages then appear automatically).
+- Audit island hydration cost — consider `client:idle`/`client:visible` for the homepage so JS never
+  blocks first paint; Lighthouse pass (LCP already improved by self-hosted fonts).
+- [User] verify the property in **Google Search Console** and submit the sitemap.
+
+**D1 — Programmatic route pages `/prayer-times/{from}-{to}/`.**
+- `src/pages/prayer-times/[route].astro` + `getStaticPaths()` over a **curated** airport-pair list
+  (top Muslim-travel corridors first: LHR↔JED, JFK↔DXB, KUL↔JED, CGK↔JED, IST↔JED, DXB↔LHR, LHR↔ISB…).
+- Each page (zero-JS), generated at build from `data.js`/`engine.js`: route + airports, typical
+  duration, **which prayers usually fall in flight**, the dual-tz framing, both airports' **qibla
+  bearings**, a representative timing, and a CTA deep-linking into the homepage calculator.
+- Hub `/prayer-times/` lists routes; cross-link related routes + the calculator. Targets queries like
+  "prayer times on an LHR→Jeddah flight". Only generate routes we can fill substantively; canonical each.
+
+**D2 — Guide content hub `/guides/{slug}/`.**
+- Astro **content collection** (`src/content/guides/*.md` + `[slug].astro`). Long-form evergreen
+  answers to the high-intent questions already in the FAQ JSON-LD: *can you pray on a plane*, *qasr*,
+  *jam'*, *facing qibla in the air*, *Maghrib at altitude*, *which calculation method*. Real search
+  volume; the FAQ answers are a drafting head-start.
+- Each guide: headings, `Article` + `FAQ` JSON-LD, internal links to the calculator + related guides +
+  route pages.
+- [User] **religious-content review** — guides must honour the "honest copy" golden rule (state
+  madhhab differences, don't flatten them); a knowledgeable source checks accuracy before publish.
+
+**D3 — i18n (hreflang + RTL).** *Biggest chunk; needs translators.*
+- Astro i18n routing (`astro:i18n`) for the largest Muslim-traveller languages: **Arabic, Urdu,
+  Indonesian, Turkish, Malay**. `hreflang` alternates; `dir="rtl"` + a CSS logical-property audit
+  (`margin/padding-inline`, etc.) for Arabic/Urdu.
+- Translate the **static shell + guides first** (highest SEO leverage); extract the island's UI
+  strings into a dictionary and translate after. Start `ar`/`id`, expand.
+- [User/resource] **real translators** — machine-translated religious copy is not acceptable.
+
+**D4 — Off-page.** Muslim-travel / Hajj-Umrah directories + community links; monitor Search Console
+coverage. (Mostly marketing — user-owned.)
+
+**Verification (per page type):** view-source shows content as static HTML (not JS-injected);
+route/guide pages ship **zero JS**; Rich Results + hreflang validators pass; sitemap includes new
+pages and fetches 200; Lighthouse SEO 100 / CWV green; spot-check canonicals + no thin content.
+
+**User-owned for Phase D:** curated route list (or Claude proposes from Muslim-travel demand);
+Google Search Console verify + submit; religious-content review; translators for i18n.
 
 ---
 
@@ -396,20 +445,25 @@ submission, Muslim-travel/Hajj-Umrah community links.
 - [x] ~~**Regenerate `og-cover.png`**~~ — done: rendered at 1200×630 in a headless browser with
       Newsreader "Isfar" + إسفار, the dusk sky-arc + five prayer dots, and a tagline. `og:image`/
       `twitter:image` bumped to `?v=2` to cache-bust social scrapers.
-- [ ] **Self-host fonts** (deferred from SEO Phase 0; this is SEO Phase 1): replace the Google Fonts
-      `<link>` with local `@font-face` (Newsreader, Hanken Grotesk, Noto Kufi Arabic) + `/fonts`;
-      update the SW precache. Kills a render-blocking round-trip → better LCP.
-- [ ] **Date resolution:** Worker currently uses "today UTC + first matching segment"; implement true
+- [x] ~~**Self-host fonts** (SEO Phase 1)~~ — done. On the Astro stack via `@fontsource`
+      (Newsreader/Hanken/Noto Kufi, latin+latin-ext+arabic subsets, 23 faces); no Google Fonts hop;
+      precached in the build-generated SW. Better LCP.
+- [x] ~~**Worker 429-retry**~~ — done. AeroDataBox's ~1 req/s cap (all tiers) made concurrent cold
+      lookups 503; the Worker now retries 429 with a >1s backoff+jitter, hidden by the client dwell.
+- [ ] **Date resolution:** Worker still uses "today UTC + first matching segment"; implement true
       "next departure ≥ now" + the optional date chip already present in the UI.
-- [ ] **Favicon source:** `favicon.ico` is downscaled from `icon-192.png` via Pillow (`pip install`
-      in the sandbox). If the brand mark changes, regenerate it.
+- [ ] **Per-flight cruise altitude:** engine defaults 38,000 ft for the Maghrib/sunrise horizon-dip.
+      AeroDataBox gives aircraft *type*, not cruise alt — best we can do is estimate from type +
+      route distance (small accuracy win; low priority).
+- [ ] **Favicon source:** `favicon.ico` is downscaled from `icon-192.png` via Pillow. If the brand
+      mark changes, regenerate it.
 
 ## Open items the user owns (billing/accounts/decisions)
 
-- [ ] **Pick an AeroDataBox paid tier** — free tier throttles after ~3 quick upstream calls; needed
-      before wide launch. *(RapidAPI signed up ✓; Claude to recommend a tier.)*
-- [ ] **Rotate the RapidAPI key** — it appeared in the chat transcript; regenerate on RapidAPI and
-      Claude re-sets the `RAPIDAPI_KEY` Worker secret.
+- [x] ~~**Pick an AeroDataBox paid tier**~~ — done. (The tier keeps the ~1 req/s cap, so the Worker
+      **429-retry** is what actually smooths concurrent cold lookups; KV cache shields repeats.)
+- [x] ~~**Rotate the RapidAPI key**~~ — done; new key live in the `RAPIDAPI_KEY` Worker secret
+      (verified via a cache-miss lookup against the live API).
 - [x] ~~Daily upstream `CEILING`~~ — set to **1000**.
 - [x] ~~Turnstile launch vs defer~~ — **deferred** (rate-limit + ceiling cap the bill).
 - [x] ~~Arabic wordmark for "Isfar"~~ — **إسفار**.
