@@ -1,12 +1,13 @@
 # Isfar — Product & Engineering Roadmap
 
-## Status (updated 2026-06-08) — Milestone 1 SHIPPED ✅
+## Status (updated 2026-06-08) — Milestone 1 SHIPPED ✅ · Astro port (Phase C) SHIPPED ✅
 
-**`isfar.app` is live**: real, abuse-protected flight lookups rendered in dual time zones, on the
-current no-build stack. Hosting turned out to be **two Cloudflare Workers under one domain via
-routes** (not Pages — Cloudflare's "Connect to Git" now creates a static-asset Worker):
-- **`isfar`** — the static SPA, GitHub-connected → **auto-deploys on every push** to `Nemant/isfar`
-  `main`; serves `isfar.app/*`.
+**`isfar.app` is live**: real, abuse-protected flight lookups rendered in dual time zones, now on
+the **Astro** stack (Babel dropped). Hosting is **two Cloudflare Workers under one domain via
+routes** (not Pages — Cloudflare's "Connect to Git" creates a static-asset Worker):
+- **`isfar`** — the static site, GitHub-connected → **auto-deploys on every push** to `Nemant/isfar`
+  `main`. Runs `npm run build` (Astro → `dist/`) then `npx wrangler deploy` (root `wrangler.toml`,
+  assets-only); serves `isfar.app/*`. A failed build keeps the last good deploy live.
 - **`isfar-flight`** — the `/api` backend; serves `isfar.app/api/*` (more-specific route wins).
 
 Operational ids/gotchas live in the `isfar-cloud-infra` memory.
@@ -28,14 +29,22 @@ Operational ids/gotchas live in the `isfar-cloud-infra` memory.
   - **End-to-end Playwright-verified on `isfar.app`** with a real non-sample flight (BA117 LHR→JFK).
 - ✅ Domain `isfar.app` + `www` wired (parking records replaced; Namecheap MX/SPF email kept);
   `favicon.ico` added; browser console clean.
+- ✅ **Worker 429-retry** — AeroDataBox's ~1 req/s cap (paid tiers too) made concurrent cold
+  lookups 503; Worker now retries 429 with >1s backoff (client loading dwell hides it).
+- ✅ **Self-host fonts** (SEO Phase 1) — Newsreader/Hanken/Noto Kufi bundled locally; no Google
+  Fonts hop. On the Astro stack via `@fontsource` (latin/latin-ext/arabic subsets).
+- ✅ **Phase C — Astro port (Wave 2):** Babel Standalone dropped; the calculator is one React
+  island (`client:load`); `window.*` globals → ES imports; `adhan` an npm dep; SW precache
+  generated from the build manifest (`isfar-v4`). Old no-build files removed. **End-to-end
+  Playwright-verified on `isfar.app`** (real flight EK1, dual zones, clean console, clean
+  hydration with populated `localStorage`). `worker/` untouched.
 
 **Left**
-- ⏳ **User/billing decisions (non-blocking):** pick an AeroDataBox **paid tier** (free tier
-  throttles after ~3 quick upstream calls); **rotate the RapidAPI key** (it appeared in chat).
-- ⏳ **Phase C — Astro port** (Wave 2) + SW precache-from-manifest (next cache bump = `isfar-v3`).
-- ⏳ **Phase D — SEO build-out** (programmatic route/guide pages, i18n) — needs C.
-- ⏳ **Follow-ups:** regenerate `og-cover.png` in Newsreader; self-host fonts; true
-  "next departure ≥ now" date resolution. (See *Tracked follow-ups*.)
+- ⏳ **User/billing decisions (non-blocking):** AeroDataBox paid tier picked; RapidAPI key
+  rotated. (Both resolved — the 1 req/s cap is now handled by the Worker 429-retry above.)
+- ⏳ **Phase D — SEO build-out** (programmatic route/guide pages, i18n) — now unblocked by C.
+- ⏳ **Follow-ups:** true "next departure ≥ now" date resolution; per-flight cruise altitude.
+  (See *Tracked follow-ups*.)
 
 The phase detail below is the original plan, kept for context; this Status block is the current truth.
 
@@ -303,7 +312,7 @@ description, Open Graph + Twitter cards (+ `og-cover.png`), canonical + lang, JS
 (`WebApplication` + `FAQPage`), `robots.txt` + `sitemap.xml`, self-host fonts. Pure win, helps
 regardless of the framework choice, nothing thrown away by the later port.
 
-### Phase C — Astro port ⏳ NEXT (Wave 2) — (the long-term foundation)
+### Phase C — Astro port ✅ SHIPPED (Wave 2) — (the long-term foundation)
 
 After lookups work. **Strangler migration — the app stays runnable throughout.**
 - Structure: static `index.astro` + future `routes/[slug]` / `guides/[slug]` pages (zero-JS, for
