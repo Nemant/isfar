@@ -384,10 +384,9 @@ submission, Muslim-travel/Hajj-Umrah community links.
       live (set via the **zone Worker-Routes API**, not the `wrangler.toml` routes block, since the
       SPA is a separate GitHub-connected Worker). The `[[routes]]` block in `worker/wrangler.toml`
       stays commented — routing is managed on the zone.
-- [ ] **Regenerate `og-cover.png` with real brand typography.** The Wave-0 placeholder uses a crude
-      bitmap wordmark that clashes with the Newsreader serif and reads as "slop" (golden rule #2).
-      Re-render the wordmark in **Newsreader** (the brand serif) via headless-browser/SVG→PNG, on the
-      same calm sky-arc + five-dots composition, with the "Isfar" wordmark.
+- [x] ~~**Regenerate `og-cover.png`**~~ — done: rendered at 1200×630 in a headless browser with
+      Newsreader "Isfar" + إسفار, the dusk sky-arc + five prayer dots, and a tagline. `og:image`/
+      `twitter:image` bumped to `?v=2` to cache-bust social scrapers.
 - [ ] **Self-host fonts** (deferred from SEO Phase 0; this is SEO Phase 1): replace the Google Fonts
       `<link>` with local `@font-face` (Newsreader, Hanken Grotesk, Noto Kufi Arabic) + `/fonts`;
       update the SW precache. Kills a render-blocking round-trip → better LCP.

@@ -104,5 +104,5 @@ confirm layout via DOM/`getBoundingClientRect` or a real pixel screenshot if uns
 - **Next major work:** Astro port (drop Babel, prerender SEO pages) → see `ROADMAP.md` Phase C.
 - Read true cruise altitude per flight instead of the 38,000 ft default.
 - Worker date resolution is "today UTC + first matching segment"; implement true "next departure ≥ now".
-- Regenerate `og-cover.png` in Newsreader; self-host fonts (SEO Phase 1).
+- ~~Regenerate `og-cover.png` in Newsreader~~ ✅ done; self-host fonts still pending (SEO Phase 1).
 - Optional: live "current/next prayer" highlight already exists via `NextPrayer`.
