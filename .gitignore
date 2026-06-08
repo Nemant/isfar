@@ -11,6 +11,10 @@ worker/.dev.vars
 # Node
 node_modules/
 
+# Astro build output
+dist/
+.astro/
+
 # Test / tooling artifacts
 .playwright-mcp/
 

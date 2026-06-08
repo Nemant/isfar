@@ -1,0 +1,29 @@
+/* ===========================================================================
+   Isfar — self-hosted fonts (replaces the Google Fonts <link>)
+   Bundled via @fontsource so the production build makes no fonts.googleapis.com
+   / fonts.gstatic.com round-trip. Same families + weights as the previous
+   Google Fonts <link>:
+     Newsreader (display)   — 400, 500, + italic 400
+     Hanken Grotesk (UI)    — 400, 500, 600, 700
+     Noto Kufi Arabic (ar)  — 400, 500, 600
+   Each @fontsource package registers the EXACT family name styles.css already
+   uses ("Newsreader", "Hanken Grotesk", "Noto Kufi Arabic"), so no aliasing is
+   needed. Vite fingerprints + emits the woff2 files; the SW precache script
+   picks them up from the build manifest.
+   =========================================================================== */
+
+/* Newsreader — display serif (regular, medium, + italic regular) */
+@import "@fontsource/newsreader/400.css";
+@import "@fontsource/newsreader/500.css";
+@import "@fontsource/newsreader/400-italic.css";
+
+/* Hanken Grotesk — UI / body */
+@import "@fontsource/hanken-grotesk/400.css";
+@import "@fontsource/hanken-grotesk/500.css";
+@import "@fontsource/hanken-grotesk/600.css";
+@import "@fontsource/hanken-grotesk/700.css";
+
+/* Noto Kufi Arabic — Arabic wordmark + glyphs */
+@import "@fontsource/noto-kufi-arabic/400.css";
+@import "@fontsource/noto-kufi-arabic/500.css";
+@import "@fontsource/noto-kufi-arabic/600.css";

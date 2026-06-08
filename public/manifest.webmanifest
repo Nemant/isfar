@@ -1,0 +1,17 @@
+{
+  "name": "Isfar — Prayer times across your flight",
+  "short_name": "Isfar",
+  "description": "Know your five daily prayers across any flight — which to pray before departure, in the air, and after arrival.",
+  "lang": "en",
+  "dir": "ltr",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0e0c18",
+  "theme_color": "#16131f",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
