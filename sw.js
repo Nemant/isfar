@@ -9,7 +9,7 @@
      are cached on first use so they're there next time you're offline.
    =========================================================================== */
 
-const CACHE = "isfar-v1";
+const CACHE = "isfar-v2";
 
 // Core shell precached on install so the very first offline load works.
 const CORE = [
@@ -23,6 +23,7 @@ const CORE = [
   "cards.jsx",
   "app.jsx",
   "manifest.webmanifest",
+  "favicon.ico",
   "icon-192.png",
   "icon-512.png",
   "https://unpkg.com/react@18.3.1/umd/react.development.js",
