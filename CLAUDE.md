@@ -27,7 +27,7 @@ Open `index.html` on a static server.
 
 | File | Role |
 |---|---|
-| `index.html` | Entry point. Loads scripts in order, registers `sw.js`, links manifest/icons. |
+| `index.html` | Entry point. Loads scripts in order, registers `sw.js`, links manifest/icons. Inline pre-paint script sets `<html data-theme>` before React mounts (no FOUC); intentionally **no** `theme-color` meta (see iOS chrome note). |
 | `data.js` | `window.ISFAR_DATA`: sample flights, `lookup()` (sync, sample table), **`lookupRemote(raw,date)`** (async; calls the live `/api/flight` Worker in prod), `useRemoteApi()` (env switch), `COLOR`, `META`, `METHODS` (12), `GUIDANCE` (qasr/jam'). |
 | `worker/` | The `isfar-flight` Cloudflare Worker (`/api/flight`): AeroDataBox lookup, `Intl`-derived tz/date, KV cache, daily ceiling. `CONTRACT.md` freezes the response shape (= the `data.js` record). |
 | `favicon.ico` | Tab/bookmark icon, downscaled from `icon-192.png`; declared via `<link rel="icon">` + in the SW precache. |
@@ -37,7 +37,7 @@ Open `index.html` on a static server.
 | `arc.jsx` | `ArcTimeline` — sun-elevation curve, prayer dots, in-flight band, day-break dividers. |
 | `cards.jsx` | `PrayerCard`, `PrayerList` (grouped into Before/In-flight/After sections). |
 | `app.jsx` | `App` state machine + `Landing`/`Loading`/`Results`/`ErrorState`/`NoSunset`. Mounts root. |
-| `styles.css` | All styling. oklch sun-arc palette; `.isfar[data-theme=light|dark]` tokens. |
+| `styles.css` | All styling. oklch sun-arc palette; `[data-theme=light|dark]` tokens (now on `<html>` **and** `.isfar`, so the canvas can read them). iOS chrome handling (see note). |
 | `sw.js`, `manifest.webmanifest`, `icon-*.png` | PWA: offline caching + install. |
 
 ## Conventions (important)
@@ -50,7 +50,17 @@ Open `index.html` on a static server.
   styles or uniquely-named objects.
 - React/Babel are **pinned with integrity hashes** in `index.html` — keep them.
 - Tweak defaults live in `app.jsx` inside `/*EDITMODE-START*/ … /*EDITMODE-END*/`.
-- Persisted state: `localStorage` keys `isfar.settings` (method/madhab) and `isfar.recents`.
+- Persisted state: `localStorage` keys `isfar.settings` (method/madhab), `isfar.theme`
+  (`light|dark|auto`), and `isfar.recents`.
+- **iOS mobile chrome (don't regress).** The page runs edge-to-edge under iOS Safari's
+  *translucent* status/address bars via `viewport-fit=cover`, with content scrolling behind
+  them. Keep it that way: (1) **no `<meta theme-color>`** — it forces the bars opaque and kills
+  the scroll-behind effect; (2) `.sky` must stay `position: absolute` (scrolls) — `fixed` makes
+  iOS force the bars solid; (3) iOS tints *both* safe areas from the single `<html>`
+  `background-color` (matched to `--bg-top`) — no element behind the bars can override it, so the
+  top/bottom edges can't be different colours; (4) `.col` reserves the safe areas with
+  `env(safe-area-inset-*)` padding so content isn't clipped. Theme is set on `<html data-theme>`
+  by the inline pre-paint script and kept in sync by `app.jsx`.
 
 ## The engine model (`engine.js`)
 
