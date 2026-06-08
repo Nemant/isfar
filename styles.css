@@ -5,12 +5,7 @@
    =========================================================================== */
 
 *, *::before, *::after { box-sizing: border-box; }
-html, body {
-  margin: 0; padding: 0;
-  overflow-x: hidden;   /* belt-and-suspenders: never scroll sideways on mobile */
-  overflow-x: clip;     /* clip is better where supported (no scroll container) */
-  overscroll-behavior-y: none; /* tame iOS rubber-band so the bottom can't flash */
-}
+html, body { margin: 0; padding: 0; }
 
 body {
   font-family: "Hanken Grotesk", ui-sans-serif, system-ui, sans-serif;
@@ -23,6 +18,8 @@ body {
   --warmth: 1;
   min-height: 100svh;
   width: 100%;
+  overflow-x: clip;   /* guard sideways scroll without becoming the scroller
+                         (keeps natural vertical momentum + bounce on body) */
   position: relative;
   display: flex;
   justify-content: center;
