@@ -5,7 +5,12 @@
    =========================================================================== */
 
 *, *::before, *::after { box-sizing: border-box; }
-html, body { margin: 0; padding: 0; }
+html, body {
+  margin: 0; padding: 0;
+  overflow-x: hidden;   /* belt-and-suspenders: never scroll sideways on mobile */
+  overflow-x: clip;     /* clip is better where supported (no scroll container) */
+  overscroll-behavior-y: none; /* tame iOS rubber-band so the bottom can't flash */
+}
 
 body {
   font-family: "Hanken Grotesk", ui-sans-serif, system-ui, sans-serif;
@@ -215,6 +220,7 @@ body {
 .input-wrap { position: relative; }
 .input {
   width: 100%;
+  min-width: 0;   /* allow the field to shrink inside any flex/grid parent */
   height: 64px;
   padding: 0 18px;
   border-radius: 16px;
@@ -240,6 +246,20 @@ body {
   font-family: "Hanken Grotesk", sans-serif; font-weight: 500;
 }
 .input.compact::placeholder { letter-spacing: 0; }
+
+/* Native date field: iOS Safari gives <input type="date"> a fixed intrinsic
+   width and ignores width:100%, which overflowed the column and pushed the
+   "date picker beyond the screen". Resetting the appearance lets it size to its
+   container; the OS picker still opens natively on tap. */
+.input[type="date"] {
+  -webkit-appearance: none;
+  appearance: none;
+  min-width: 0;
+}
+.input[type="date"]::-webkit-date-and-time-value { text-align: left; margin: 0; }
+.input[type="date"]::-webkit-calendar-picker-indicator {
+  margin-left: auto; opacity: .55; cursor: pointer;
+}
 
 /* primary button */
 .btn {

@@ -110,6 +110,20 @@ function App() {
     };
   }, [t.theme]);
 
+  // Paint the document canvas (html/body) to match the theme's bottom-of-sky
+  // colour. The .sky backdrop is position:fixed and only covers the viewport, so
+  // momentum-scrolling past the content on iOS would otherwise flash the white
+  // browser canvas. Reading the resolved theme's --bg-bottom keeps it accurate.
+  useE(() => {
+    const el = document.querySelector(".isfar");
+    if (!el) return;
+    const bg = getComputedStyle(el).getPropertyValue("--bg-bottom").trim();
+    if (bg) {
+      document.documentElement.style.background = bg;
+      document.body.style.background = bg;
+    }
+  }, [resolved, t.warmth]);
+
   // apply warmth to the theme container
   const rootStyle = { "--warmth": t.warmth };
 
