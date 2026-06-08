@@ -154,32 +154,23 @@ export default function App() {
 
   // Keep the document in sync with the resolved theme on every change (toggles,
   // live OS flips). The theme lives on <html data-theme> — CSS reads it from the
-  // root and the inline <head> script set it before first paint — so we update
-  // documentElement, not a React-rendered attribute. Also paint the html/body
-  // canvas to the sky's bottom colour (the .sky backdrop is position:fixed and
-  // only covers the viewport, so iOS overscroll/notch would otherwise flash
-  // white), and narrow the browser-chrome <meta theme-color> to the resolved
-  // theme's sky-top colour (hex matches styles.css --bg-top per theme).
-  // Gated on `mounted`: until then the inline head script owns these, and the
-  // pre-localStorage "auto" theme would otherwise briefly fight it.
+  // root (tokens + the canvas gradient) and the inline <head> script set it
+  // before first paint — so we just update the attribute, not a React-rendered
+  // one, and the canvas repaints via CSS. We also narrow the browser-chrome
+  // <meta theme-color> to the resolved theme's sky-top colour (hex matches
+  // styles.css --bg-top per theme). Gated on `mounted`: until then the inline
+  // head script owns these, and the pre-localStorage "auto" theme would
+  // otherwise briefly fight it.
   useE(() => {
     if (!mounted) return;
     document.documentElement.setAttribute("data-theme", resolved);
-    const el = document.querySelector(".isfar");
-    if (el) {
-      const bg = getComputedStyle(el).getPropertyValue("--bg-bottom").trim();
-      if (bg) {
-        document.documentElement.style.background = bg;
-        document.body.style.background = bg;
-      }
-    }
     const topHex = resolved === "dark" ? "#13132a" : "#c7e1fb";
     const metas = document.querySelectorAll('meta[name="theme-color"]');
     metas.forEach((m, i) => {
       if (i === 0) { m.removeAttribute("media"); m.setAttribute("content", topHex); }
       else m.remove();
     });
-  }, [mounted, resolved, t.warmth]);
+  }, [mounted, resolved]);
 
   // apply warmth to the theme container (default until mount to match the server)
   const rootStyle = { "--warmth": mounted ? t.warmth : 1 };

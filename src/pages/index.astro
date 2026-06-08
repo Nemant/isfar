@@ -33,9 +33,7 @@ const ogImage = "https://isfar.app/og-cover.png?v=2";
       var t = (k === "light" || k === "dark" || k === "auto") ? k : "auto";
       var dark = t === "dark" ||
         (t === "auto" && window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches);
-      var de = document.documentElement;
-      de.setAttribute("data-theme", dark ? "dark" : "light");
-      de.style.background = dark ? "#05040f" : "#fdf6e7"; // --bg-bottom per theme
+      document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
       var metas = document.querySelectorAll('meta[name="theme-color"]');
       var top = dark ? "#13132a" : "#c7e1fb"; // --bg-top per theme
       for (var i = 0; i < metas.length; i++) {

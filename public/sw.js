@@ -15,7 +15,7 @@
    build. The cache name is bumped each cutover so stale assets are purged.
    =========================================================================== */
 
-const CACHE = "isfar-v6";
+const CACHE = "isfar-v7";
 
 // __PRECACHE__ — replaced at build time with the real, hashed asset list.
 const CORE = ["/"];

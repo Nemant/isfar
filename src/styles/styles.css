@@ -7,13 +7,16 @@
 *, *::before, *::after { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; }
 
-/* Paint the document canvas behind the app to the sky's bottom colour, per OS
-   scheme, so the iOS notch / status bar and overscroll never flash white before
-   the app's JS runs. The .sky backdrop is position:fixed and only covers the
-   viewport; this covers the safe-area + rubber-band regions. JS overrides this
-   with the resolved theme's --bg-bottom for explicit light/dark choices. */
-html { background: #05040f; }
-@media (prefers-color-scheme: light) { html { background: #fdf6e7; } }
+/* The document canvas behind the app carries the SAME sky gradient, viewport-
+   fixed, so the iOS safe areas (notch / home indicator) and overscroll continue
+   the sky seamlessly instead of showing a flat off-theme band. It's driven by
+   <html data-theme> (set before first paint by the inline script in
+   index.astro), so it's right on load and repaints instantly on a theme toggle —
+   no JS painting required. Theme tokens live on :root so html can read them. */
+html {
+  min-height: 100%;
+  background: linear-gradient(180deg, var(--bg-top), var(--bg-mid) 52%, var(--bg-bottom)) fixed;
+}
 
 body {
   font-family: "Hanken Grotesk", ui-sans-serif, system-ui, sans-serif;
@@ -41,7 +44,7 @@ body {
 }
 
 /* ---- Light (daytime sky) ------------------------------------------------- */
-[data-theme="light"] .isfar {
+:root[data-theme="light"] {
   --bg-top:    oklch(0.90 0.045 248);
   --bg-mid:    oklch(0.95 0.028 230);
   --bg-bottom: oklch(0.975 0.022 86);
@@ -60,7 +63,7 @@ body {
 }
 
 /* ---- Dark (night sky) ---------------------------------------------------- */
-[data-theme="dark"] .isfar {
+:root[data-theme="dark"] {
   --bg-top:    oklch(0.20 0.045 282);
   --bg-mid:    oklch(0.16 0.04 286);
   --bg-bottom: oklch(0.115 0.03 288);
