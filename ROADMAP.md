@@ -1,4 +1,45 @@
-# Rihla — Product & Engineering Roadmap
+# Isfar — Product & Engineering Roadmap
+
+## Status (updated 2026-06-08) — Milestone 1 SHIPPED ✅
+
+**`isfar.app` is live**: real, abuse-protected flight lookups rendered in dual time zones, on the
+current no-build stack. Hosting turned out to be **two Cloudflare Workers under one domain via
+routes** (not Pages — Cloudflare's "Connect to Git" now creates a static-asset Worker):
+- **`isfar`** — the static SPA, GitHub-connected → **auto-deploys on every push** to `Nemant/isfar`
+  `main`; serves `isfar.app/*`.
+- **`isfar-flight`** — the `/api` backend; serves `isfar.app/api/*` (more-specific route wins).
+
+Operational ids/gotchas live in the `isfar-cloud-infra` memory.
+
+**Done**
+- ✅ **Phase A½ — Rename Rihla → Isfar** (identifiers, `localStorage` keys, `.isfar` class, entry
+  file `index.html`, Arabic wordmark إسفار, SW cache `isfar-*`).
+- ✅ **Phase B — SEO Phase 0** (title/meta, OG/Twitter, JSON-LD WebApplication+FAQ, robots,
+  sitemap — all on `isfar.app`). *Self-hosting fonts deferred → follow-ups.*
+- ✅ **Phase A (A0–A4) — Real flight lookup (Milestone 1):**
+  - A0 AeroDataBox validated live (SV124/QF10/EK215 map cleanly).
+  - A1 Worker `GET /api/flight` + `Intl`-derived zone/gmt/date, strict-ISO times.
+  - A2 KV `FLIGHT_CACHE` read-through (verified miss→hit via `X-Isfar-Cache`).
+  - A3 abuse protection: **KV cache** + **per-IP edge rate limit** (10 req/10s — free plan caps the
+    window at 10s; verified 10×200→429, client maps 429→`busy`) + **daily `CEILING=1000`** upstream
+    bill cap. **Turnstile deferred** (rate-limit + ceiling already cap the bill).
+  - A4 client `lookupRemote` + async submit + `offline`/`busy` ErrorState; `useRemoteApi()` hits
+    same-origin `/api/flight` in prod, the sample table locally; curated sample chips stay local.
+  - **End-to-end Playwright-verified on `isfar.app`** with a real non-sample flight (BA117 LHR→JFK).
+- ✅ Domain `isfar.app` + `www` wired (parking records replaced; Namecheap MX/SPF email kept);
+  `favicon.ico` added; browser console clean.
+
+**Left**
+- ⏳ **User/billing decisions (non-blocking):** pick an AeroDataBox **paid tier** (free tier
+  throttles after ~3 quick upstream calls); **rotate the RapidAPI key** (it appeared in chat).
+- ⏳ **Phase C — Astro port** (Wave 2) + SW precache-from-manifest (next cache bump = `isfar-v3`).
+- ⏳ **Phase D — SEO build-out** (programmatic route/guide pages, i18n) — needs C.
+- ⏳ **Follow-ups:** regenerate `og-cover.png` in Newsreader; self-host fonts; true
+  "next departure ≥ now" date resolution. (See *Tracked follow-ups*.)
+
+The phase detail below is the original plan, kept for context; this Status block is the current truth.
+
+---
 
 ## Context
 
@@ -176,7 +217,7 @@ lives in exactly two places, both outside the repo:
 
 ## The plan, by phase
 
-### Phase A — Real flight lookup (Milestone 1) — *the primary track*
+### Phase A — Real flight lookup (Milestone 1) ✅ SHIPPED — *the primary track*
 
 Ships real lookups **on the current no-build app** first, de-risking the data layer before any
 framework change. The contract: whatever the Worker returns is reshaped into the **exact**
@@ -233,7 +274,7 @@ validation gates the API-tier recommendation.
 lookups are served from KV (verify $0/no upstream); rate-limit + daily ceiling demonstrably cap
 upstream calls; saved flights re-display offline.
 
-### Phase A½ — Brand rename (Rihla → Isfar) — *do early, before deploy + SEO indexing*
+### Phase A½ — Brand rename (Rihla → Isfar) ✅ DONE — *do early, before deploy + SEO indexing*
 
 A single careful sweep, best done **before** the Worker/KV/Pages cloud resources are created and
 before any SEO content gets indexed as "Rihla" (no users yet ⇒ changing `localStorage` keys is
@@ -255,14 +296,14 @@ atomic change.
 - **Done when:** no case-insensitive `rihla` remains except deliberate historical notes; app boots,
   sample flights render, theme/recents persist under the new keys; Playwright-verified.
 
-### Phase B — SEO Phase 0 (parallel track, no accounts needed)
+### Phase B — SEO Phase 0 ✅ DONE (fonts deferred) — (parallel track, no accounts needed)
 
 Can run alongside Phase A since it touches only HTML/static files. Real `<title>`/meta
 description, Open Graph + Twitter cards (+ `og-cover.png`), canonical + lang, JSON-LD
 (`WebApplication` + `FAQPage`), `robots.txt` + `sitemap.xml`, self-host fonts. Pure win, helps
 regardless of the framework choice, nothing thrown away by the later port.
 
-### Phase C — Astro port (the long-term foundation)
+### Phase C — Astro port ⏳ NEXT (Wave 2) — (the long-term foundation)
 
 After lookups work. **Strangler migration — the app stays runnable throughout.**
 - Structure: static `index.astro` + future `routes/[slug]` / `guides/[slug]` pages (zero-JS, for
@@ -338,25 +379,30 @@ submission, Muslim-travel/Hajj-Umrah community links.
 
 ## Tracked follow-ups (small; slot into the waves above)
 
-- [ ] **Swap `PLACEHOLDER_DOMAIN` → `isfar.app`** across `index.html` (canonical/OG/Twitter/JSON-LD),
-      `robots.txt`, `sitemap.xml` (8 occurrences; single find-replace). Do during Phase A½/domain wiring.
+- [x] ~~**Swap `PLACEHOLDER_DOMAIN` → `isfar.app`**~~ — done (canonical/OG/Twitter/JSON-LD, robots, sitemap).
+- [x] ~~**Worker `wrangler.toml` TODOs**~~ — KV id filled; `CEILING=1000`; `/api/*` route + rate-limit
+      live (set via the **zone Worker-Routes API**, not the `wrangler.toml` routes block, since the
+      SPA is a separate GitHub-connected Worker). The `[[routes]]` block in `worker/wrangler.toml`
+      stays commented — routing is managed on the zone.
 - [ ] **Regenerate `og-cover.png` with real brand typography.** The Wave-0 placeholder uses a crude
       bitmap wordmark that clashes with the Newsreader serif and reads as "slop" (golden rule #2).
       Re-render the wordmark in **Newsreader** (the brand serif) via headless-browser/SVG→PNG, on the
-      same calm sky-arc + five-dots composition, with the new "Isfar" wordmark.
+      same calm sky-arc + five-dots composition, with the "Isfar" wordmark.
 - [ ] **Self-host fonts** (deferred from SEO Phase 0; this is SEO Phase 1): replace the Google Fonts
       `<link>` with local `@font-face` (Newsreader, Hanken Grotesk, Noto Kufi Arabic) + `/fonts`;
       update the SW precache. Kills a render-blocking round-trip → better LCP.
-- [ ] **Worker `wrangler.toml` TODOs:** KV namespace id (after `wrangler kv namespace create`),
-      `/api/*` route on `isfar.app`, native rate-limit rule. Fill during Wave 1 deploy.
 - [ ] **Date resolution:** Worker currently uses "today UTC + first matching segment"; implement true
       "next departure ≥ now" + the optional date chip already present in the UI.
+- [ ] **Favicon source:** `favicon.ico` is downscaled from `icon-192.png` via Pillow (`pip install`
+      in the sandbox). If the brand mark changes, regenerate it.
 
 ## Open items the user owns (billing/accounts/decisions)
 
-- Pick the AeroDataBox tier after A0 (Claude recommends; user subscribes). *(RapidAPI signed up ✓)*
-- Choose the **daily upstream `CEILING`** (the bill cap number).
-- Decide whether to launch with Turnstile or defer it.
-- **Arabic wordmark** for "Isfar" (replaces رحلة) — needed for Phase A½ rename + OG regen.
-- Domain `isfar.app` ✓ purchased; Cloudflare ✓ signed up — pending: `wrangler login`, set
-  `RAPIDAPI_KEY` secret, authorize Cloudflare Pages on the GitHub repo.
+- [ ] **Pick an AeroDataBox paid tier** — free tier throttles after ~3 quick upstream calls; needed
+      before wide launch. *(RapidAPI signed up ✓; Claude to recommend a tier.)*
+- [ ] **Rotate the RapidAPI key** — it appeared in the chat transcript; regenerate on RapidAPI and
+      Claude re-sets the `RAPIDAPI_KEY` Worker secret.
+- [x] ~~Daily upstream `CEILING`~~ — set to **1000**.
+- [x] ~~Turnstile launch vs defer~~ — **deferred** (rate-limit + ceiling cap the bill).
+- [x] ~~Arabic wordmark for "Isfar"~~ — **إسفار**.
+- [x] ~~Domain + Cloudflare + secrets + GitHub hosting~~ — all wired; site auto-deploys on push.

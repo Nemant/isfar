@@ -8,6 +8,9 @@ destination time zones.
 > _Isfar_ (إسفار) means "journey." The app is mobile-first, works offline once loaded,
 > needs no account, and is built to feel reassuring rather than busy.
 
+**Live at [isfar.app](https://isfar.app)** — real flight lookups via AeroDataBox, served by a
+Cloudflare Worker with KV caching and per-IP abuse protection.
+
 ---
 
 ## What it does
@@ -64,9 +67,20 @@ Or open `index.html` through any static host. A **service worker** (`sw.js`) cac
 and its libraries on first load, so it works offline afterwards, and a web manifest makes it
 **installable** ("Add to Home Screen").
 
-> **Note:** flight data is realistic **placeholder** data in `data.js`. A production build
-> would swap `ISFAR_DATA.lookup()` for a real flight API (e.g. AeroDataBox) — the model shape
-> is already API-ready. Everything else (prayer math, geometry, offline) is real.
+> **Local vs. production lookups.** `data.js` decides via `useRemoteApi()`: on `localhost`/
+> `file://` it uses the built-in **sample table** (`SV124`, `QF10`, `EK215`, `DY394`, `BA286`)
+> so the demo works with no backend and offline. On the live domain it calls the real
+> same-origin `/api/flight` Worker for **any** flight number — while the curated sample chips
+> still resolve from the local table so they reliably show their edge cases. Everything else
+> (prayer math, geometry, offline) is real in both modes.
+
+### Hosting (production)
+
+Two Cloudflare Workers share `isfar.app` via routes: a **GitHub-connected static-asset Worker**
+serves the app (auto-deploys on push to `main`), and a **`isfar-flight` Worker** serves
+`/api/flight` — looking up AeroDataBox, caching records in KV, and enforcing a per-IP edge rate
+limit plus a hard daily upstream ceiling. The API key lives only in a Cloudflare secret, never
+in the repo. See `ROADMAP.md` for the full architecture and `worker/` for the Worker source.
 
 ---
 
@@ -84,7 +98,9 @@ See **CLAUDE.md** for the architecture and file map.
 
 ## Status & license
 
-Prototype / design exploration. Times are guidance for travellers — verify with a local
-source on arrival, and follow your own madhhab or a trusted scholar where rulings differ.
+**Live** at [isfar.app](https://isfar.app) with real, abuse-protected flight lookups (Milestone 1).
+Next: an Astro port (drop Babel, prerender SEO pages) and i18n — see `ROADMAP.md`. Times are
+guidance for travellers — verify with a local source on arrival, and follow your own madhhab or a
+trusted scholar where rulings differ.
 
 License: **MIT** © 2026 Danish Khan. See [`LICENSE`](./LICENSE).

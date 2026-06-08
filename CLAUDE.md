@@ -28,7 +28,9 @@ Open `index.html` on a static server.
 | File | Role |
 |---|---|
 | `index.html` | Entry point. Loads scripts in order, registers `sw.js`, links manifest/icons. |
-| `data.js` | `window.ISFAR_DATA`: placeholder flights, `lookup()`, `COLOR`, `META`, `METHODS` (12), `GUIDANCE` (qasr/jam'). **Swap `lookup()` for a real flight API here.** |
+| `data.js` | `window.ISFAR_DATA`: sample flights, `lookup()` (sync, sample table), **`lookupRemote(raw,date)`** (async; calls the live `/api/flight` Worker in prod), `useRemoteApi()` (env switch), `COLOR`, `META`, `METHODS` (12), `GUIDANCE` (qasr/jam'). |
+| `worker/` | The `isfar-flight` Cloudflare Worker (`/api/flight`): AeroDataBox lookup, `Intl`-derived tz/date, KV cache, daily ceiling. `CONTRACT.md` freezes the response shape (= the `data.js` record). |
+| `favicon.ico` | Tab/bookmark icon, downscaled from `icon-192.png`; declared via `<link rel="icon">` + in the SW precache. |
 | `engine.js` | `window.ISFAR_ENGINE.compute(raw, {method, madhab})` → display model. All geometry. |
 | `tweaks-panel.jsx` | Tweaks shell (theme, accent warmth). Host-protocol scaffold. |
 | `components.jsx` | Icons (`Ic`), `Header`, sheets (`SettingsSheet`, `GuideSheet`, `MethodSheet`), `FlightSummary`, `TzBanner`, `PlaneQibla`, `NextPrayer`. |
@@ -71,7 +73,24 @@ Key internals:
 
 `SV124` LHR→JED (normal, crosses dusk) · `BA286` codeshare · `QF10` LHR→PER (9 prayers,
 2 days, eastbound) · `EK215` DXB→LAX (stretched day, westbound) · `DY394` OSL→TOS
-(midnight sun, no-sunset). Any unknown but well-formed code → error state.
+(midnight sun, no-sunset). Any unknown but well-formed code → live Worker lookup in prod
+(error state locally). These five are curated demos: they resolve from the **local table even in
+production** so their edge cases stay reliable; every other code hits the real API.
+
+## Production / hosting (LIVE — Milestone 1 shipped)
+
+`isfar.app` is served by **two Cloudflare Workers under one domain via Worker Routes** (not Pages):
+- **`isfar`** — static-asset Worker, GitHub-connected (Cloudflare "Connect to Git" made a Worker,
+  not Pages). **Auto-deploys on every push to `Nemant/isfar` `main`** — that *is* the deploy.
+  Serves `isfar.app/*`.
+- **`isfar-flight`** — the `/api/flight` backend (`worker/`). Serves `isfar.app/api/*` (more-specific
+  route wins). Holds the AeroDataBox key as a Cloudflare secret; KV cache; per-IP rate limit
+  (10 req/10s, free-plan cap); daily `CEILING=1000` upstream bill cap.
+- `data.js` `useRemoteApi()` picks live API vs. sample table by hostname (`localhost`/`file://` →
+  table). Same-origin `/api/flight` ⇒ no CORS and the SW can cache lookups for offline replay.
+- **To deploy app changes:** just `git push` (per [[commit-straight-to-main]]). The Worker source in
+  `worker/` deploys separately via `wrangler deploy`. Operational ids/secrets: see the
+  `isfar-cloud-infra` memory.
 
 ## Verifying changes
 
@@ -81,6 +100,9 @@ confirm layout via DOM/`getBoundingClientRect` or a real pixel screenshot if uns
 
 ## Known follow-ups
 
-- Wire a real flight API into `data.js` `lookup()` (model shape is ready).
+- ~~Wire a real flight API~~ ✅ done (live `/api/flight` Worker + `lookupRemote`).
+- **Next major work:** Astro port (drop Babel, prerender SEO pages) → see `ROADMAP.md` Phase C.
 - Read true cruise altitude per flight instead of the 38,000 ft default.
+- Worker date resolution is "today UTC + first matching segment"; implement true "next departure ≥ now".
+- Regenerate `og-cover.png` in Newsreader; self-host fonts (SEO Phase 1).
 - Optional: live "current/next prayer" highlight already exists via `NextPrayer`.
