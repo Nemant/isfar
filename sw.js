@@ -9,7 +9,7 @@
      are cached on first use so they're there next time you're offline.
    =========================================================================== */
 
-const CACHE = "isfar-v2";
+const CACHE = "isfar-v3";
 
 // Core shell precached on install so the very first offline load works.
 const CORE = [
@@ -30,7 +30,30 @@ const CORE = [
   "https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js",
   "https://unpkg.com/@babel/standalone@7.29.0/babel.min.js",
   "https://cdn.jsdelivr.net/npm/adhan@4.4.3/lib/bundles/adhan.umd.min.js",
-  "https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Hanken+Grotesk:wght@400;500;600;700&family=Noto+Kufi+Arabic:wght@400;500;600&display=swap"
+  // self-hosted fonts (no Google Fonts hop; precached for offline)
+  "fonts/hanken-grotesk-latin-400.woff2",
+  "fonts/hanken-grotesk-latin-500.woff2",
+  "fonts/hanken-grotesk-latin-600.woff2",
+  "fonts/hanken-grotesk-latin-700.woff2",
+  "fonts/hanken-grotesk-latin-ext-400.woff2",
+  "fonts/hanken-grotesk-latin-ext-500.woff2",
+  "fonts/hanken-grotesk-latin-ext-600.woff2",
+  "fonts/hanken-grotesk-latin-ext-700.woff2",
+  "fonts/newsreader-latin-400.woff2",
+  "fonts/newsreader-latin-400-italic.woff2",
+  "fonts/newsreader-latin-500.woff2",
+  "fonts/newsreader-latin-ext-400.woff2",
+  "fonts/newsreader-latin-ext-400-italic.woff2",
+  "fonts/newsreader-latin-ext-500.woff2",
+  "fonts/noto-kufi-arabic-400.woff2",
+  "fonts/noto-kufi-arabic-500.woff2",
+  "fonts/noto-kufi-arabic-600.woff2",
+  "fonts/noto-kufi-latin-400.woff2",
+  "fonts/noto-kufi-latin-500.woff2",
+  "fonts/noto-kufi-latin-600.woff2",
+  "fonts/noto-kufi-latin-ext-400.woff2",
+  "fonts/noto-kufi-latin-ext-500.woff2",
+  "fonts/noto-kufi-latin-ext-600.woff2"
 ];
 
 self.addEventListener("install", (e) => {
