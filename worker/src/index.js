@@ -19,6 +19,8 @@ import { mapFlight } from "./map.js";
 const TURNSTILE_VERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
 const ADB_HOST = "aerodatabox.p.rapidapi.com";
 
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
 /* ----------------------------------------------------------------------- *
  * small response helpers
  * ----------------------------------------------------------------------- */
@@ -119,12 +121,21 @@ async function fetchAeroDataBox(flightNumber, date, env) {
   const url =
     `https://${ADB_HOST}/flights/number/${encodeURIComponent(flightNumber)}/${date}` +
     `?withLocation=true`;
-  const res = await fetch(url, {
-    headers: {
-      "X-RapidAPI-Key": env.RAPIDAPI_KEY || "",
-      "X-RapidAPI-Host": ADB_HOST,
-    },
-  });
+  const headers = {
+    "X-RapidAPI-Key": env.RAPIDAPI_KEY || "",
+    "X-RapidAPI-Host": ADB_HOST,
+  };
+
+  // AeroDataBox throttles to ~1 request/second even on paid tiers, so two
+  // near-simultaneous cache-misses make the second one 429. Retry a couple of
+  // times with a >1s backoff (+jitter) instead of failing straight to "busy" —
+  // the client's minimum loading dwell hides the extra second.
+  let res;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    res = await fetch(url, { headers });
+    if (res.status !== 429) break;
+    if (attempt < 2) await sleep(1100 + Math.floor(Math.random() * 400));
+  }
 
   if (res.status === 404) return { ok: false, status: 404 };
   if (!res.ok) return { ok: false, status: res.status };
