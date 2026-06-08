@@ -41,20 +41,19 @@ export default function App() {
     warmth: 1.0
   } /*EDITMODE-END*/;
   // Theme is a real user setting persisted on the device (unlike the design-time
-  // tweaks) — seed it from localStorage so a chosen theme survives reload.
-  const savedTheme = (() => { try { return localStorage.getItem("isfar.theme"); } catch (e) { return null; } })();
-  const [t, setTweak] = useTweaks(savedTheme ? { ...TWEAK_DEFAULTS, theme: savedTheme } : TWEAK_DEFAULTS);
+  // tweaks). It's loaded from localStorage in a mount effect below — NOT during
+  // the initial render — so the first client render matches the server-rendered
+  // HTML and React hydrates cleanly (see the hydration effect after recents).
+  const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
   function setTheme(v) {
     setTweak("theme", v);
     try { localStorage.setItem("isfar.theme", v); } catch (e) {}
   }
 
-  // prayer-calculation settings — real user settings, persisted on the device
-  const [settings, setSettings] = useS(() => {
-    const def = { method: "isna", madhab: "shafi" };
-    try { return Object.assign(def, JSON.parse(localStorage.getItem("isfar.settings") || "{}")); }
-    catch (e) { return def; }
-  });
+  // prayer-calculation settings — real user settings, persisted on the device.
+  // Initialised to defaults; the saved values are loaded in the mount effect
+  // below (not in render) to keep server and first client render identical.
+  const [settings, setSettings] = useS({ method: "isna", madhab: "shafi" });
   function setSetting(key, val) {
     setSettings((prev) => {
       const next = Object.assign({}, prev, { [key]: val });
@@ -76,11 +75,9 @@ export default function App() {
   const cardRefs = useR({});
   const loadTimer = useR(null);
 
-  // recent searches — persisted locally so they're available offline
-  const [recents, setRecents] = useS(() => {
-    try { return JSON.parse(localStorage.getItem("isfar.recents") || "[]"); }
-    catch (e) { return []; }
-  });
+  // recent searches — persisted locally so they're available offline. Loaded in
+  // the mount effect below (not in render) to avoid a hydration mismatch.
+  const [recents, setRecents] = useS([]);
   function recordRecent(rec) {
     const item = {
       code: rec.code, airline: rec.airline,
@@ -97,6 +94,27 @@ export default function App() {
     setRecents([]);
     try { localStorage.removeItem("isfar.recents"); } catch (e) {}
   }
+
+  // Hydrate persisted device state (theme, calc settings, recents) AFTER mount.
+  // Astro server-renders this island at build time with empty localStorage, so
+  // reading it during the initial render would make the first client render
+  // diverge from the server HTML and trip a hydration mismatch for any returning
+  // user. Loading it in a mount-only effect keeps hydration clean; the values
+  // apply one frame later via a normal state update.
+  useE(() => {
+    try {
+      const savedTheme = localStorage.getItem("isfar.theme");
+      if (savedTheme) setTweak("theme", savedTheme);
+    } catch (e) {}
+    try {
+      const s = JSON.parse(localStorage.getItem("isfar.settings") || "null");
+      if (s && typeof s === "object") setSettings((prev) => Object.assign({}, prev, s));
+    } catch (e) {}
+    try {
+      const r = JSON.parse(localStorage.getItem("isfar.recents") || "null");
+      if (Array.isArray(r) && r.length) setRecents(r);
+    } catch (e) {}
+  }, []);
 
   // derive the live-computed model whenever the record or calc settings change
   const data = React.useMemo(() => {

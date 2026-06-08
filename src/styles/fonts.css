@@ -10,20 +10,38 @@
    uses ("Newsreader", "Hanken Grotesk", "Noto Kufi Arabic"), so no aliasing is
    needed. Vite fingerprints + emits the woff2 files; the SW precache script
    picks them up from the build manifest.
+
+   Subsets are imported explicitly (latin + latin-ext for the Latin families,
+   arabic for Noto Kufi) so the build only emits the faces the app can render —
+   importing the bare "/400.css" would drag in cyrillic/vietnamese/math/symbols
+   subsets that get precached but never requested.
    =========================================================================== */
 
 /* Newsreader — display serif (regular, medium, + italic regular) */
-@import "@fontsource/newsreader/400.css";
-@import "@fontsource/newsreader/500.css";
-@import "@fontsource/newsreader/400-italic.css";
+@import "@fontsource/newsreader/latin-400.css";
+@import "@fontsource/newsreader/latin-500.css";
+@import "@fontsource/newsreader/latin-400-italic.css";
+@import "@fontsource/newsreader/latin-ext-400.css";
+@import "@fontsource/newsreader/latin-ext-500.css";
+@import "@fontsource/newsreader/latin-ext-400-italic.css";
 
 /* Hanken Grotesk — UI / body */
-@import "@fontsource/hanken-grotesk/400.css";
-@import "@fontsource/hanken-grotesk/500.css";
-@import "@fontsource/hanken-grotesk/600.css";
-@import "@fontsource/hanken-grotesk/700.css";
+@import "@fontsource/hanken-grotesk/latin-400.css";
+@import "@fontsource/hanken-grotesk/latin-500.css";
+@import "@fontsource/hanken-grotesk/latin-600.css";
+@import "@fontsource/hanken-grotesk/latin-700.css";
+@import "@fontsource/hanken-grotesk/latin-ext-400.css";
+@import "@fontsource/hanken-grotesk/latin-ext-500.css";
+@import "@fontsource/hanken-grotesk/latin-ext-600.css";
+@import "@fontsource/hanken-grotesk/latin-ext-700.css";
 
-/* Noto Kufi Arabic — Arabic wordmark + glyphs */
-@import "@fontsource/noto-kufi-arabic/400.css";
-@import "@fontsource/noto-kufi-arabic/500.css";
-@import "@fontsource/noto-kufi-arabic/600.css";
+/* Noto Kufi Arabic — Arabic wordmark + glyphs (+ latin for mixed runs) */
+@import "@fontsource/noto-kufi-arabic/arabic-400.css";
+@import "@fontsource/noto-kufi-arabic/arabic-500.css";
+@import "@fontsource/noto-kufi-arabic/arabic-600.css";
+@import "@fontsource/noto-kufi-arabic/latin-400.css";
+@import "@fontsource/noto-kufi-arabic/latin-500.css";
+@import "@fontsource/noto-kufi-arabic/latin-600.css";
+@import "@fontsource/noto-kufi-arabic/latin-ext-400.css";
+@import "@fontsource/noto-kufi-arabic/latin-ext-500.css";
+@import "@fontsource/noto-kufi-arabic/latin-ext-600.css";
