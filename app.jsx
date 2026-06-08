@@ -1,25 +1,8 @@
 /* ===========================================================================
    Isfar — app shell: state machine + theme + tweaks
    states: landing · loading · results · error · nosunset
-
-   ES-module port: this is the SINGLE React island (`Calculator`) hydrated
-   client:load by Astro. It is the exact former `#root` tree from app.jsx, with
-   `window.*` globals replaced by ES imports and the bottom createRoot() call
-   removed (Astro mounts it). All state, props, localStorage keys, and the
-   EDITMODE tweak-defaults marker are preserved.
    =========================================================================== */
-import React, { useState, useEffect, useRef } from "react";
-import * as ISFAR_DATA from "../lib/data.js";
-import { compute } from "../lib/engine.js";
-import { useTweaks, TweaksPanel, TweakSection, TweakRadio, TweakSlider } from "./tweaks-panel.jsx";
-import {
-  Ic, Header, SettingsSheet, GuideSheet, MethodSheet,
-  FlightSummary, NextPrayer
-} from "./components.jsx";
-import { ArcTimeline } from "./arc.jsx";
-import { PrayerList } from "./cards.jsx";
-
-const useS = useState, useE = useEffect, useR = useRef;
+const { useState: useS, useEffect: useE, useRef: useR } = React;
 
 const LOAD_MSGS = [
   "Finding your flight…",
@@ -35,15 +18,13 @@ function resolveTheme(theme) {
   catch (e) { return "light"; }
 }
 
-export default function App() {
+function App() {
   const TWEAK_DEFAULTS = /*EDITMODE-START*/ {
     theme: "auto",
     warmth: 1.0
   } /*EDITMODE-END*/;
   // Theme is a real user setting persisted on the device (unlike the design-time
-  // tweaks) — seed it from localStorage so a chosen theme survives reload. The
-  // island is client:only (no SSR), so reading localStorage in render is safe and
-  // the correct theme is shown from the very first paint (no flash).
+  // tweaks) — seed it from localStorage so a chosen theme survives reload.
   const savedTheme = (() => { try { return localStorage.getItem("isfar.theme"); } catch (e) { return null; } })();
   const [t, setTweak] = useTweaks(savedTheme ? { ...TWEAK_DEFAULTS, theme: savedTheme } : TWEAK_DEFAULTS);
   function setTheme(v) {
@@ -51,7 +32,7 @@ export default function App() {
     try { localStorage.setItem("isfar.theme", v); } catch (e) {}
   }
 
-  // prayer-calculation settings — real user settings, persisted on the device.
+  // prayer-calculation settings — real user settings, persisted on the device
   const [settings, setSettings] = useS(() => {
     const def = { method: "isna", madhab: "shafi" };
     try { return Object.assign(def, JSON.parse(localStorage.getItem("isfar.settings") || "{}")); }
@@ -103,7 +84,7 @@ export default function App() {
   // derive the live-computed model whenever the record or calc settings change
   const data = React.useMemo(() => {
     if (!raw || !raw.found) return raw;
-    try { return compute(raw, { method: settings.method, madhab: settings.madhab }); }
+    try { return window.ISFAR_ENGINE.compute(raw, { method: settings.method, madhab: settings.madhab }); }
     catch (e) { console.error("compute failed", e); return raw; }
   }, [raw, settings.method, settings.madhab]);
 
@@ -178,7 +159,7 @@ export default function App() {
     // feels jarring — whichever finishes last gates the transition.
     (async () => {
       const [res] = await Promise.all([
-        ISFAR_DATA.lookupRemote(raw, date),
+        window.ISFAR_DATA.lookupRemote(raw, date),
         new Promise((r) => setTimeout(r, 1200))
       ]);
       clearInterval(msgInt);
@@ -186,7 +167,7 @@ export default function App() {
       setRaw(res);
       if (!res.found) { setView("error"); return; }
       recordRecent(res);
-      let model; try { model = compute(res, { method: settings.method, madhab: settings.madhab }); } catch (e) { model = res; }
+      let model; try { model = window.ISFAR_ENGINE.compute(res, { method: settings.method, madhab: settings.madhab }); } catch (e) { model = res; }
       setView(model && model.noSunset ? "nosunset" : "results");
     })();
   }
@@ -426,3 +407,5 @@ function Foot() {
     </footer>
   );
 }
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);

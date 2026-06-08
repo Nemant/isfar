@@ -1,9 +1,7 @@
 /* ===========================================================================
    Isfar — prayer cards, status tags, traveller guidance
    =========================================================================== */
-import React from "react";
-import { COLOR, GUIDANCE } from "../lib/data.js";
-import { Ic, PRAYER_GLYPH, PlaneQibla } from "./components.jsx";
+const { useRef: useRefCards } = React;
 
 const STATUS_LABEL = {
   before:   { cls: "before",   text: "Before departure" },
@@ -14,8 +12,8 @@ const STATUS_LABEL = {
 const ORD = { 1: "1st", 2: "2nd", 3: "3rd", 4: "4th", 5: "5th" };
 
 function PrayerCard({ pr, active, multiDay, order, refEl }) {
-  const Glyph = PRAYER_GLYPH[pr.key] || Ic.sun;
-  const color = COLOR[pr.key];
+  const Glyph = window.PRAYER_GLYPH[pr.key] || window.Ic.sun;
+  const color = window.ISFAR_DATA.COLOR[pr.key];
   const zs = order.map((iata) => pr.zones[iata]).filter(Boolean);
   return (
     <article ref={refEl} className={"prayer-card" + (active ? " active" : "")} style={{ "--dot": color }}
@@ -30,13 +28,13 @@ function PrayerCard({ pr, active, multiDay, order, refEl }) {
           <div className="pc-meta">
             {pr.qiblaClock ? (
               <span className="pc-qibla" title={`Qibla at your ${pr.qiblaClock} o'clock, relative to the direction of travel`}>
-                <PlaneQibla rel={pr.qiblaRel} color={color} />
+                <window.PlaneQibla rel={pr.qiblaRel} color={color} />
                 Qibla
               </span>
             ) : null}
             {pr.sunrise ? (
               <span className="pc-sunrise" title="Fajr ends at sunrise">
-                <Ic.sunrise aria-hidden="true" />
+                <window.Ic.sunrise aria-hidden="true" />
                 Sunrise · {order.map((i) => pr.sunrise[i] && `${i} ${pr.sunrise[i]}`).filter(Boolean).join(" · ")}
               </span>
             ) : null}
@@ -56,7 +54,7 @@ function PrayerCard({ pr, active, multiDay, order, refEl }) {
   );
 }
 
-export function PrayerList({ f, activeKey, cardRefs }) {
+function PrayerList({ f, activeKey, cardRefs }) {
   const order = [f.from.iata, f.to.iata];
   const multiDay = order.some(i => new Set(f.prayers.map(p => (p.zones[i] || {}).date)).size > 1);
   const sections = [
@@ -88,19 +86,20 @@ export function PrayerList({ f, activeKey, cardRefs }) {
 }
 
 /* ---- Traveller guidance (collapsible) ---------------------------------- */
-export function Guidance() {
+function Guidance() {
+  const G = window.ISFAR_DATA.GUIDANCE;
   return (
     <details className="guidance">
       <summary className="g-head">
-        <span className="g-ic"><Ic.book aria-hidden="true" /></span>
+        <span className="g-ic"><window.Ic.book aria-hidden="true" /></span>
         <span className="g-tt">
           <b>Travelling lightly</b>
           <span>Qasr &amp; jam' — concessions for the journey</span>
         </span>
-        <span className="chev"><Ic.chev aria-hidden="true" /></span>
+        <span className="chev"><window.Ic.chev aria-hidden="true" /></span>
       </summary>
       <div className="g-body">
-        {GUIDANCE.map((g) => (
+        {G.map((g) => (
           <div className="rule" key={g.key}>
             <h4>{g.title} <span className="ar" aria-hidden="true">{g.ar}</span>
               <span style={{fontWeight:500, color:"var(--text-mute)", fontSize:"13px"}}>· {g.label}</span></h4>
@@ -108,10 +107,13 @@ export function Guidance() {
           </div>
         ))}
         <div className="g-note">
-          <Ic.info aria-hidden="true" />
+          <window.Ic.info aria-hidden="true" />
           <span>Rulings vary between schools of fiqh and circumstances. This is general guidance — follow your own madhhab or a trusted scholar where you have doubt.</span>
         </div>
       </div>
     </details>
   );
 }
+
+window.PrayerList = PrayerList;
+window.Guidance = Guidance;

@@ -7,10 +7,8 @@
    dot = filled when prayed ALOFT, hollow when prayed ON THE GROUND
    colour = the sun-arc palette (Fajr violet → Dhuhr gold → Maghrib orange …)
    =========================================================================== */
-import React from "react";
-import { COLOR } from "../lib/data.js";
 
-export function ArcTimeline({ f, activeKey, onSelect }) {
+function ArcTimeline({ f, activeKey, onSelect }) {
   const n = f.prayers.length;
   const originIata = f.from.iata;
   const dateOf = (pr) => (pr.zones[originIata] || Object.values(pr.zones)[0]).date;
@@ -53,7 +51,7 @@ export function ArcTimeline({ f, activeKey, onSelect }) {
   }
   const multiDay = new Set(pts.map(p => dateOf(p.pr))).size > 1;
 
-  const dotColor = (k) => COLOR[k];
+  const dotColor = (k) => window.ISFAR_DATA.COLOR[k];
   const ORD = { 1: "1st", 2: "2nd", 3: "3rd", 4: "4th", 5: "5th" };
 
   // zig-zag label sides so adjacent labels never overlap
@@ -136,3 +134,5 @@ export function ArcTimeline({ f, activeKey, onSelect }) {
     </section>
   );
 }
+
+window.ArcTimeline = ArcTimeline;

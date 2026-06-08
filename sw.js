@@ -5,20 +5,56 @@
    Strategy:
    - Same-origin app files → NETWORK-FIRST (always fresh when online, falls
      back to cache when offline). Navigations fall back to the cached shell.
-   - Cross-origin requests (none ship by default now that fonts + React + adhan
-     are bundled same-origin) → CACHE-FIRST, cached on first use.
-
-   PRECACHE: the CORE list below is GENERATED at build time from the Astro build
-   output by scripts/gen-sw-precache.mjs — every emitted asset (hashed JS/CSS,
-   self-hosted font woff2, the shell, manifest, icons, og-cover) is precached so
-   the very first offline load works. Do NOT hand-edit the list — re-run the
-   build. The cache name is bumped each cutover so stale assets are purged.
+   - Cross-origin libraries + fonts (immutable, versioned) → CACHE-FIRST, and
+     are cached on first use so they're there next time you're offline.
    =========================================================================== */
 
-const CACHE = "isfar-v8";
+const CACHE = "isfar-v3";
 
-// __PRECACHE__ — replaced at build time with the real, hashed asset list.
-const CORE = ["/"];
+// Core shell precached on install so the very first offline load works.
+const CORE = [
+  "index.html",
+  "styles.css",
+  "data.js",
+  "engine.js",
+  "tweaks-panel.jsx",
+  "components.jsx",
+  "arc.jsx",
+  "cards.jsx",
+  "app.jsx",
+  "manifest.webmanifest",
+  "favicon.ico",
+  "icon-192.png",
+  "icon-512.png",
+  "https://unpkg.com/react@18.3.1/umd/react.development.js",
+  "https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js",
+  "https://unpkg.com/@babel/standalone@7.29.0/babel.min.js",
+  "https://cdn.jsdelivr.net/npm/adhan@4.4.3/lib/bundles/adhan.umd.min.js",
+  // self-hosted fonts (no Google Fonts hop; precached for offline)
+  "fonts/hanken-grotesk-latin-400.woff2",
+  "fonts/hanken-grotesk-latin-500.woff2",
+  "fonts/hanken-grotesk-latin-600.woff2",
+  "fonts/hanken-grotesk-latin-700.woff2",
+  "fonts/hanken-grotesk-latin-ext-400.woff2",
+  "fonts/hanken-grotesk-latin-ext-500.woff2",
+  "fonts/hanken-grotesk-latin-ext-600.woff2",
+  "fonts/hanken-grotesk-latin-ext-700.woff2",
+  "fonts/newsreader-latin-400.woff2",
+  "fonts/newsreader-latin-400-italic.woff2",
+  "fonts/newsreader-latin-500.woff2",
+  "fonts/newsreader-latin-ext-400.woff2",
+  "fonts/newsreader-latin-ext-400-italic.woff2",
+  "fonts/newsreader-latin-ext-500.woff2",
+  "fonts/noto-kufi-arabic-400.woff2",
+  "fonts/noto-kufi-arabic-500.woff2",
+  "fonts/noto-kufi-arabic-600.woff2",
+  "fonts/noto-kufi-latin-400.woff2",
+  "fonts/noto-kufi-latin-500.woff2",
+  "fonts/noto-kufi-latin-600.woff2",
+  "fonts/noto-kufi-latin-ext-400.woff2",
+  "fonts/noto-kufi-latin-ext-500.woff2",
+  "fonts/noto-kufi-latin-ext-600.woff2"
+];
 
 self.addEventListener("install", (e) => {
   e.waitUntil((async () => {
@@ -56,15 +92,14 @@ self.addEventListener("fetch", (e) => {
         const cached = await caches.match(req, { ignoreSearch: true });
         if (cached) return cached;
         if (req.mode === "navigate") {
-          const shell = await caches.match("/index.html", { ignoreSearch: true }) ||
-                        await caches.match("/", { ignoreSearch: true });
+          const shell = await caches.match("index.html", { ignoreSearch: true });
           if (shell) return shell;
         }
         throw err;
       }
     })());
   } else {
-    // cache-first for any cross-origin resources
+    // cache-first for CDN libraries + fonts
     e.respondWith((async () => {
       const cached = await caches.match(req);
       if (cached) return cached;

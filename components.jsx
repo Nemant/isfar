@@ -1,13 +1,11 @@
 /* ===========================================================================
    Isfar — icons + presentational components
-   ES-module port: React + data constants are imported; the components that
-   used to live on window are now named exports. Markup/props unchanged.
+   Exposed on window for the other Babel scripts.
    =========================================================================== */
-import React, { useState, useEffect, useRef } from "react";
-import { METHODS, GUIDANCE, COLOR } from "../lib/data.js";
+const { useState, useEffect, useRef } = React;
 
 /* ---- Icons (stroke, currentColor) --------------------------------------- */
-export const Ic = {
+const Ic = {
   sun: (p) => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" {...p}><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>),
   moon: (p) => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>),
   auto: (p) => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" {...p}><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 0 0 18z" fill="currentColor" stroke="none"/></svg>),
@@ -28,10 +26,10 @@ export const Ic = {
   dusk: (p) => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M17 18a5 5 0 0 0-10 0M12 9V6M22 18H2M5 11l1.5 1.5M19 11l-1.5 1.5M9 3l3 3 3-3"/></svg>),
   night: (p) => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>)
 };
-export const PRAYER_GLYPH = { fajr: Ic.dawn, dhuhr: Ic.noon, asr: Ic.sun, maghrib: Ic.dusk, isha: Ic.night };
+const PRAYER_GLYPH = { fajr: Ic.dawn, dhuhr: Ic.noon, asr: Ic.sun, maghrib: Ic.dusk, isha: Ic.night };
 
 /* ---- Header ------------------------------------------------------------- */
-export function Header({ theme, onCycleTheme, onHome, onOpenSettings, onOpenGuide, onOpenMethod }) {
+function Header({ theme, onCycleTheme, onHome, onOpenSettings, onOpenGuide, onOpenMethod }) {
   // `theme` here is the *resolved* visible theme (light|dark), so the toggle is a
   // plain two-state flip — every tap visibly changes the sky.
   const next = theme === "dark" ? "light" : "dark";
@@ -63,14 +61,15 @@ export function Header({ theme, onCycleTheme, onHome, onOpenSettings, onOpenGuid
 }
 
 /* ---- Settings sheet ----------------------------------------------------- */
-export function SettingsSheet({ open, onClose, method, madhab, onChange }) {
-  useEffect(() => {
+function SettingsSheet({ open, onClose, method, madhab, onChange }) {
+  React.useEffect(() => {
     if (!open) return;
     const onKey = (e) => { if (e.key === "Escape") onClose(); };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose]);
   if (!open) return null;
+  const METHODS = window.ISFAR_DATA.METHODS;
   return (
     <div className="settings-backdrop" onClick={onClose}>
       <div className="settings-sheet" role="dialog" aria-modal="true" aria-label="Settings"
@@ -106,14 +105,15 @@ export function SettingsSheet({ open, onClose, method, madhab, onChange }) {
 }
 
 /* ---- Traveller guide sheet --------------------------------------------- */
-export function GuideSheet({ open, onClose }) {
-  useEffect(() => {
+function GuideSheet({ open, onClose }) {
+  React.useEffect(() => {
     if (!open) return;
     const onKey = (e) => { if (e.key === "Escape") onClose(); };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose]);
   if (!open) return null;
+  const G = window.ISFAR_DATA.GUIDANCE;
   return (
     <div className="settings-backdrop" onClick={onClose}>
       <div className="settings-sheet" role="dialog" aria-modal="true" aria-label="Traveller's guide"
@@ -124,7 +124,7 @@ export function GuideSheet({ open, onClose }) {
         </div>
         <div className="settings-body">
           <p className="guide-intro">Qasr &amp; jam‘ — the concessions a traveller is given.</p>
-          {GUIDANCE.map((g) => (
+          {G.map((g) => (
             <div className="guide-rule" key={g.key}>
               <h3>{g.title} <span className="ar" aria-hidden="true">{g.ar}</span>
                 <span className="guide-label">· {g.label}</span></h3>
@@ -142,8 +142,8 @@ export function GuideSheet({ open, onClose }) {
 }
 
 /* ---- "How it works" sheet ---------------------------------------------- */
-export function MethodSheet({ open, onClose }) {
-  useEffect(() => {
+function MethodSheet({ open, onClose }) {
+  React.useEffect(() => {
     if (!open) return;
     const onKey = (e) => { if (e.key === "Escape") onClose(); };
     window.addEventListener("keydown", onKey);
@@ -189,7 +189,7 @@ export function MethodSheet({ open, onClose }) {
 }
 
 /* ---- Flight summary ----------------------------------------------------- */
-export function FlightSummary({ f }) {
+function FlightSummary({ f }) {
   const dur = `${Math.floor(f.durationMin/60)}h ${String(f.durationMin%60).padStart(2,"0")}m`;
   return (
     <section className="summary" aria-label="Flight summary">
@@ -222,7 +222,7 @@ export function FlightSummary({ f }) {
 }
 
 /* ---- Timezone reference banner ----------------------------------------- */
-export function TzBanner({ f }) {
+function TzBanner({ f }) {
   return (
     <div className="tzbanner" role="note">
       <Ic.globe aria-hidden="true" />
@@ -235,8 +235,10 @@ export function TzBanner({ f }) {
   );
 }
 
+Object.assign(window, { Ic, PRAYER_GLYPH, Header, SettingsSheet, GuideSheet, MethodSheet, FlightSummary, TzBanner });
+
 /* ---- Qibla relative to the aircraft (plane + bearing marker) ----------- */
-export function PlaneQibla({ rel, color, size = 30 }) {
+function PlaneQibla({ rel, color, size = 30 }) {
   // top-down aircraft, nose pointing up = the direction of travel; the accent
   // marker rides the rim at the qibla's bearing relative to that nose
   const plane = "M15 4 C15.7 4 16.1 5 16.1 6.6 L16.1 10.5 L24 15.5 L24 17.2 "
@@ -256,9 +258,9 @@ export function PlaneQibla({ rel, color, size = 30 }) {
 
 /* ---- Qibla compass (legacy, kept for reference) ------------------------ */
 const CARD8 = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
-export const cardinalOf = (b) => CARD8[Math.round(((b % 360) / 45)) % 8];
+const cardinalOf = (b) => CARD8[Math.round(((b % 360) / 45)) % 8];
 
-export function QiblaCompass({ bearing, color, size = 18 }) {
+function QiblaCompass({ bearing, color, size = 18 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" style={{ flexShrink: 0, display: "block" }}>
       <circle cx="12" cy="12" r="10" fill="none" stroke="var(--border)" strokeWidth="1.5" />
@@ -272,9 +274,9 @@ export function QiblaCompass({ bearing, color, size = 18 }) {
 }
 
 /* ---- Next-prayer live countdown ---------------------------------------- */
-export function NextPrayer({ prayers, order }) {
-  const [now, setNow] = useState(Date.now());
-  useEffect(() => {
+function NextPrayer({ prayers, order }) {
+  const [now, setNow] = React.useState(Date.now());
+  React.useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
   }, []);
@@ -295,7 +297,7 @@ export function NextPrayer({ prayers, order }) {
   const left = h > 0 ? `${h}h ${String(m).padStart(2, "0")}m`
             : m > 0 ? `${m}m ${String(s).padStart(2, "0")}s`
             : `${s}s`;
-  const color = COLOR[next.key];
+  const color = window.ISFAR_DATA.COLOR[next.key];
   const statusText = next.status === "inflight" ? "in flight" : next.status === "before" ? "before departure" : "after arrival";
   const zs = (order || Object.keys(next.zones)).map(i => next.zones[i]).filter(Boolean);
   return (
@@ -315,3 +317,7 @@ export function NextPrayer({ prayers, order }) {
     </div>
   );
 }
+
+/* ---- Timezone switch removed — cards now show both zones equally -------- */
+
+Object.assign(window, { QiblaCompass, PlaneQibla, NextPrayer, cardinalOf });
