@@ -1,0 +1,16 @@
+# wrangler.toml — the "isfar" static-site Worker (serves isfar.app/*)
+#
+# The GitHub-connected build runs `npm run build` (Astro → dist/) and then the
+# dashboard's deploy command `npx wrangler deploy`, which reads THIS config and
+# uploads dist/ as the Worker's static assets. No Worker script (`main`) — this
+# is an assets-only Worker.
+#
+# The /api/* backend is a SEPARATE Worker (worker/, "isfar-flight") on a
+# more-specific route; it deploys on its own and is not touched here. The
+# isfar.app custom domain stays attached to this Worker across deploys.
+
+name = "isfar"
+compatibility_date = "2025-01-01"
+
+[assets]
+directory = "./dist"
