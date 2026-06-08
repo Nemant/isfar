@@ -7,16 +7,6 @@
 *, *::before, *::after { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; }
 
-/* The document canvas behind the app carries the SAME sky gradient, viewport-
-   fixed, so the iOS safe areas (notch / home indicator) and overscroll continue
-   the sky seamlessly instead of showing a flat off-theme band. It's driven by
-   <html data-theme> (set before first paint by the inline script in
-   index.astro), so it's right on load and repaints instantly on a theme toggle —
-   no JS painting required. Theme tokens live on :root so html can read them. */
-html {
-  min-height: 100%;
-  background: linear-gradient(180deg, var(--bg-top), var(--bg-mid) 52%, var(--bg-bottom)) fixed;
-}
 
 body {
   font-family: "Hanken Grotesk", ui-sans-serif, system-ui, sans-serif;
@@ -44,7 +34,7 @@ body {
 }
 
 /* ---- Light (daytime sky) ------------------------------------------------- */
-:root[data-theme="light"] {
+.isfar[data-theme="light"] {
   --bg-top:    oklch(0.90 0.045 248);
   --bg-mid:    oklch(0.95 0.028 230);
   --bg-bottom: oklch(0.975 0.022 86);
@@ -63,7 +53,7 @@ body {
 }
 
 /* ---- Dark (night sky) ---------------------------------------------------- */
-:root[data-theme="dark"] {
+.isfar[data-theme="dark"] {
   --bg-top:    oklch(0.20 0.045 282);
   --bg-mid:    oklch(0.16 0.04 286);
   --bg-bottom: oklch(0.115 0.03 288);
@@ -91,7 +81,7 @@ body {
     linear-gradient(180deg, var(--bg-top), var(--bg-mid) 52%, var(--bg-bottom));
   transition: background .6s ease;
 }
-[data-theme="dark"] .sky::after {
+.isfar[data-theme="dark"] .sky::after {
   content: "";
   position: absolute;
   inset: 0;

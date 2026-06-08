@@ -41,19 +41,22 @@ export default function App() {
     warmth: 1.0
   } /*EDITMODE-END*/;
   // Theme is a real user setting persisted on the device (unlike the design-time
-  // tweaks). It's loaded from localStorage in a mount effect below — NOT during
-  // the initial render — so the first client render matches the server-rendered
-  // HTML and React hydrates cleanly (see the hydration effect after recents).
-  const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
+  // tweaks) — seed it from localStorage so a chosen theme survives reload. The
+  // island is client:only (no SSR), so reading localStorage in render is safe and
+  // the correct theme is shown from the very first paint (no flash).
+  const savedTheme = (() => { try { return localStorage.getItem("isfar.theme"); } catch (e) { return null; } })();
+  const [t, setTweak] = useTweaks(savedTheme ? { ...TWEAK_DEFAULTS, theme: savedTheme } : TWEAK_DEFAULTS);
   function setTheme(v) {
     setTweak("theme", v);
     try { localStorage.setItem("isfar.theme", v); } catch (e) {}
   }
 
   // prayer-calculation settings — real user settings, persisted on the device.
-  // Initialised to defaults; the saved values are loaded in the mount effect
-  // below (not in render) to keep server and first client render identical.
-  const [settings, setSettings] = useS({ method: "isna", madhab: "shafi" });
+  const [settings, setSettings] = useS(() => {
+    const def = { method: "isna", madhab: "shafi" };
+    try { return Object.assign(def, JSON.parse(localStorage.getItem("isfar.settings") || "{}")); }
+    catch (e) { return def; }
+  });
   function setSetting(key, val) {
     setSettings((prev) => {
       const next = Object.assign({}, prev, { [key]: val });
@@ -75,9 +78,11 @@ export default function App() {
   const cardRefs = useR({});
   const loadTimer = useR(null);
 
-  // recent searches — persisted locally so they're available offline. Loaded in
-  // the mount effect below (not in render) to avoid a hydration mismatch.
-  const [recents, setRecents] = useS([]);
+  // recent searches — persisted locally so they're available offline
+  const [recents, setRecents] = useS(() => {
+    try { return JSON.parse(localStorage.getItem("isfar.recents") || "[]"); }
+    catch (e) { return []; }
+  });
   function recordRecent(rec) {
     const item = {
       code: rec.code, airline: rec.airline,
@@ -94,34 +99,6 @@ export default function App() {
     setRecents([]);
     try { localStorage.removeItem("isfar.recents"); } catch (e) {}
   }
-
-  // Hydrate persisted device state (theme, calc settings, recents) AFTER mount.
-  // Astro server-renders this island at build time with empty localStorage, so
-  // reading it during the initial render would make the first client render
-  // diverge from the server HTML and trip a hydration mismatch for any returning
-  // user. Loading it in a mount-only effect keeps hydration clean; the values
-  // apply one frame later via a normal state update.
-  useE(() => {
-    try {
-      const savedTheme = localStorage.getItem("isfar.theme");
-      if (savedTheme) setTweak("theme", savedTheme);
-    } catch (e) {}
-    try {
-      const s = JSON.parse(localStorage.getItem("isfar.settings") || "null");
-      if (s && typeof s === "object") setSettings((prev) => Object.assign({}, prev, s));
-    } catch (e) {}
-    try {
-      const r = JSON.parse(localStorage.getItem("isfar.recents") || "null");
-      if (Array.isArray(r) && r.length) setRecents(r);
-    } catch (e) {}
-  }, []);
-
-  // Gate theme-dependent DOM/render until after mount. Until then the inline
-  // <head> script (set-theme-before-paint) owns the visual theme; React must not
-  // render or sync a theme that differs from the server HTML (it would flash /
-  // mismatch). Flips true in the same commit the saved theme loads above.
-  const [mounted, setMounted] = useS(false);
-  useE(() => { setMounted(true); }, []);
 
   // derive the live-computed model whenever the record or calc settings change
   const data = React.useMemo(() => {
@@ -152,28 +129,22 @@ export default function App() {
     };
   }, [t.theme]);
 
-  // Keep the document in sync with the resolved theme on every change (toggles,
-  // live OS flips). The theme lives on <html data-theme> — CSS reads it from the
-  // root (tokens + the canvas gradient) and the inline <head> script set it
-  // before first paint — so we just update the attribute, not a React-rendered
-  // one, and the canvas repaints via CSS. We also narrow the browser-chrome
-  // <meta theme-color> to the resolved theme's sky-top colour (hex matches
-  // styles.css --bg-top per theme). Gated on `mounted`: until then the inline
-  // head script owns these, and the pre-localStorage "auto" theme would
-  // otherwise briefly fight it.
+  // Paint the document canvas (html/body) to match the theme's bottom-of-sky
+  // colour. The .sky backdrop is position:fixed and only covers the viewport, so
+  // momentum-scrolling past the content on iOS would otherwise flash the white
+  // browser canvas. Reading the resolved theme's --bg-bottom keeps it accurate.
   useE(() => {
-    if (!mounted) return;
-    document.documentElement.setAttribute("data-theme", resolved);
-    const topHex = resolved === "dark" ? "#13132a" : "#c7e1fb";
-    const metas = document.querySelectorAll('meta[name="theme-color"]');
-    metas.forEach((m, i) => {
-      if (i === 0) { m.removeAttribute("media"); m.setAttribute("content", topHex); }
-      else m.remove();
-    });
-  }, [mounted, resolved]);
+    const el = document.querySelector(".isfar");
+    if (!el) return;
+    const bg = getComputedStyle(el).getPropertyValue("--bg-bottom").trim();
+    if (bg) {
+      document.documentElement.style.background = bg;
+      document.body.style.background = bg;
+    }
+  }, [resolved, t.warmth]);
 
-  // apply warmth to the theme container (default until mount to match the server)
-  const rootStyle = { "--warmth": mounted ? t.warmth : 1 };
+  // apply warmth to the theme container
+  const rootStyle = { "--warmth": t.warmth };
 
   // Two-state flip on the *visible* theme so a tap always changes what you see.
   // From "auto" this picks the opposite of whatever auto currently resolves to.
@@ -235,10 +206,10 @@ export default function App() {
   useE(() => () => clearTimeout(loadTimer.current), []);
 
   return (
-    <div className="isfar" style={rootStyle}>
+    <div className="isfar" data-theme={resolved} style={rootStyle}>
       <div className="sky" aria-hidden="true"></div>
       <div className="col">
-        <Header theme={mounted ? resolved : "light"} onCycleTheme={cycleTheme} onHome={goHome} onOpenSettings={() => setShowSettings(true)} onOpenGuide={() => setShowGuide(true)} onOpenMethod={() => setShowMethod(true)} />
+        <Header theme={resolved} onCycleTheme={cycleTheme} onHome={goHome} onOpenSettings={() => setShowSettings(true)} onOpenGuide={() => setShowGuide(true)} onOpenMethod={() => setShowMethod(true)} />
 
         {view === "landing"  && <Landing query={query} setQuery={setQuery} date={date} setDate={setDate}
                                           err={err} onSubmit={submit}

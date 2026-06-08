@@ -13,36 +13,11 @@ const ogImage = "https://isfar.app/og-cover.png?v=2";
 ---
 
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<!-- Browser chrome (iOS status bar / notch + URL bar) matched to the sky's top
-     colour per scheme so it never reads white. JS narrows this to the *resolved*
-     theme when the user picks an explicit light/dark override. -->
-<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#13132a" />
-<meta name="theme-color" media="(prefers-color-scheme: light)" content="#c7e1fb" />
-<!-- Set the theme on <html> BEFORE first paint so the page never flashes the
-     wrong theme. The calculator island is server-rendered; without this the
-     saved/OS theme would only apply after hydration (a visible light→dark flash
-     and a white iOS notch). Mirrors useTweaks' "auto" default + resolveTheme. -->
-<script is:inline>
-  (function () {
-    try {
-      var k = localStorage.getItem("isfar.theme");
-      var t = (k === "light" || k === "dark" || k === "auto") ? k : "auto";
-      var dark = t === "dark" ||
-        (t === "auto" && window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches);
-      document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
-      var metas = document.querySelectorAll('meta[name="theme-color"]');
-      var top = dark ? "#13132a" : "#c7e1fb"; // --bg-top per theme
-      for (var i = 0; i < metas.length; i++) {
-        if (i === 0) { metas[i].removeAttribute("media"); metas[i].setAttribute("content", top); }
-        else metas[i].parentNode.removeChild(metas[i]);
-      }
-    } catch (e) {}
-  })();
-</script>
+<meta name="theme-color" content="#16131f" />
 
 <title>{title}</title>
 <meta name="description" content={description} />
@@ -156,7 +131,7 @@ const ogImage = "https://isfar.app/og-cover.png?v=2";
 </head>
 <body>
 <div id="root">
-  <Calculator client:load />
+  <Calculator client:only="react" />
 </div>
 
 <!-- register the service worker for offline use -->
