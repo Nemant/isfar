@@ -86,9 +86,25 @@ window.ISFAR_DATA = (function () {
     return { found: false, error: "format", code };
   }
 
-  // Base URL of the flight Worker. Empty ⇒ local dev: no backend, fall back to
-  // the built-in FLIGHTS table so the sample chips keep working unchanged.
+  // Optional absolute base for the flight Worker (e.g. a cross-origin API host).
+  // Left empty in production so requests go to the SAME origin: "" + "/api/flight".
   const API_BASE = (typeof window !== "undefined" && window.ISFAR_API_BASE) || "";
+
+  // Whether to hit the real Worker API or the built-in sample table.
+  //   Production (served from a real domain) → real API (same-origin /api/flight).
+  //   Local dev (file://, localhost, blank host) → sample table, so the chips work
+  //   with no backend and offline.
+  // Override with window.ISFAR_USE_REMOTE = true | false.
+  function useRemoteApi() {
+    if (typeof window === "undefined" || !window.location) return false;
+    if (window.ISFAR_USE_REMOTE === true) return true;
+    if (window.ISFAR_USE_REMOTE === false) return false;
+    const h = window.location.hostname || "";
+    const local = window.location.protocol === "file:" || h === "" ||
+                  h === "localhost" || h === "127.0.0.1" || h === "0.0.0.0" ||
+                  h.endsWith(".local");
+    return !local;
+  }
 
   // Async lookup. Resolves to the SAME shapes as lookup(): a success record, or
   // { found:false, error:... } / { error:"empty" }. Format + empty checks happen
@@ -100,9 +116,16 @@ window.ISFAR_DATA = (function () {
       return Promise.resolve({ found: false, error: "format", code });
     }
 
-    // Local dev / no Worker configured: use the synchronous local table.
-    if (!API_BASE) {
+    // Local dev: use the synchronous sample table (no backend needed, works offline).
+    if (!useRemoteApi()) {
       return Promise.resolve(lookup(code));
+    }
+
+    // Production: the curated sample codes still resolve from the local table so the
+    // demo chips reliably illustrate their edge cases (midnight sun, stretched day,
+    // recurring prayers); every other flight number goes to the live Worker.
+    if (FLIGHTS[code]) {
+      return Promise.resolve(FLIGHTS[code]);
     }
 
     if (typeof navigator !== "undefined" && navigator.onLine === false) {
