@@ -5,8 +5,9 @@ daily prayers across an airline flight — telling a Muslim traveller which pray
 before departure, which fall in the air, and which after arrival, in both the origin and
 destination time zones.
 
-> _Isfar_ (إسفار) means "journey." The app is mobile-first, works offline once loaded,
-> needs no account, and is built to feel reassuring rather than busy.
+> _Isfar_ (إسفار) means **daybreak** — the brightening of the sky at first light — from the same
+> root (س-ف-ر) as _safar_, "journey." The app is mobile-first, works offline once loaded, needs no
+> account, and is built to feel reassuring rather than busy.
 
 **Live at [isfar.app](https://isfar.app)** — real flight lookups via AeroDataBox, served by a
 Cloudflare Worker with KV caching and per-IP abuse protection.
