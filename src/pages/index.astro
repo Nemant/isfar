@@ -17,7 +17,11 @@ const ogImage = "https://isfar.app/og-cover.png?v=2";
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<meta name="theme-color" content="#16131f" />
+<!-- Browser chrome (iOS status bar / notch + URL bar) matched to the sky's top
+     colour per scheme so it never reads white. JS narrows this to the *resolved*
+     theme when the user picks an explicit light/dark override. -->
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#13132a" />
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#c7e1fb" />
 
 <title>{title}</title>
 <meta name="description" content={description} />

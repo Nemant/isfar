@@ -7,6 +7,14 @@
 *, *::before, *::after { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; }
 
+/* Paint the document canvas behind the app to the sky's bottom colour, per OS
+   scheme, so the iOS notch / status bar and overscroll never flash white before
+   the app's JS runs. The .sky backdrop is position:fixed and only covers the
+   viewport; this covers the safe-area + rubber-band regions. JS overrides this
+   with the resolved theme's --bg-bottom for explicit light/dark choices. */
+html { background: #05040f; }
+@media (prefers-color-scheme: light) { html { background: #fdf6e7; } }
+
 body {
   font-family: "Hanken Grotesk", ui-sans-serif, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;

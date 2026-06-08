@@ -149,6 +149,10 @@ export default function App() {
   // colour. The .sky backdrop is position:fixed and only covers the viewport, so
   // momentum-scrolling past the content on iOS would otherwise flash the white
   // browser canvas. Reading the resolved theme's --bg-bottom keeps it accurate.
+  // Also narrow the browser-chrome <meta theme-color> to the resolved theme's
+  // sky-top colour, so a user's explicit light/dark override (which the static
+  // per-scheme metas in the head can't follow) still tints the iOS status bar /
+  // notch + URL bar correctly. Hex literals match styles.css --bg-top per theme.
   useE(() => {
     const el = document.querySelector(".isfar");
     if (!el) return;
@@ -157,6 +161,12 @@ export default function App() {
       document.documentElement.style.background = bg;
       document.body.style.background = bg;
     }
+    const topHex = resolved === "dark" ? "#13132a" : "#c7e1fb";
+    const metas = document.querySelectorAll('meta[name="theme-color"]');
+    metas.forEach((m, i) => {
+      if (i === 0) { m.removeAttribute("media"); m.setAttribute("content", topHex); }
+      else m.remove();
+    });
   }, [resolved, t.warmth]);
 
   // apply warmth to the theme container
