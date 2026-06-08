@@ -137,7 +137,7 @@ window.ISFAR_DATA = (function () {
 
     return fetch(url)
       .then((resp) => {
-        if (resp.status === 503) return { found: false, error: "busy" };
+        if (resp.status === 503 || resp.status === 429) return { found: false, error: "busy" };
         return resp.json().then((body) => {
           if (resp.status === 404) {
             return body && body.error
