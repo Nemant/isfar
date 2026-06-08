@@ -58,4 +58,5 @@ if (!re.test(sw)) {
 sw = sw.replace(re, replacement);
 writeFileSync(swPath, sw);
 
-console.log(`[gen-sw-precache] precached ${precache.length} assets into dist/sw.js (cache isfar-v3).`);
+const cache = (sw.match(/const CACHE = "([^"]+)"/) || [, "?"])[1];
+console.log(`[gen-sw-precache] precached ${precache.length} assets into dist/sw.js (cache ${cache}).`);

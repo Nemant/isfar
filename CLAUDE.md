@@ -5,9 +5,15 @@ that aren't obvious from any single file.
 
 ## What this is
 
-A single-page, mobile-first web app that maps the five daily prayers across a flight. Plain
-HTML + in-browser React (Babel Standalone) + adhan-js. **No build step, no package manager.**
-Open `index.html` on a static server.
+A single-page, mobile-first web app that maps the five daily prayers across a flight. **Astro**
+static shell + **one React island** (the calculator) + adhan-js. Built with Vite (`npm run build`
+→ `dist/`); `npm run dev` for local work. The whole interactive app is the `Calculator` island,
+hydrated `client:load`; everything outside it (SEO `<head>`, JSON-LD) is static HTML.
+
+> History: this was a no-build, in-browser-Babel app (plain `index.html` + `*.jsx` loaded as
+> `text/babel`, components shared via `window.*`). Phase C ported it to Astro — Babel Standalone
+> is gone, globals became ES imports, fonts are self-hosted via `@fontsource`. The `worker/`
+> backend was **not** touched by the port.
 
 ## Golden rules
 
@@ -27,30 +33,30 @@ Open `index.html` on a static server.
 
 | File | Role |
 |---|---|
-| `index.html` | Entry point. Loads scripts in order, registers `sw.js`, links manifest/icons. |
-| `data.js` | `window.ISFAR_DATA`: sample flights, `lookup()` (sync, sample table), **`lookupRemote(raw,date)`** (async; calls the live `/api/flight` Worker in prod), `useRemoteApi()` (env switch), `COLOR`, `META`, `METHODS` (12), `GUIDANCE` (qasr/jam'). |
-| `worker/` | The `isfar-flight` Cloudflare Worker (`/api/flight`): AeroDataBox lookup, `Intl`-derived tz/date, KV cache, daily ceiling. `CONTRACT.md` freezes the response shape (= the `data.js` record). |
-| `favicon.ico` | Tab/bookmark icon, downscaled from `icon-192.png`; declared via `<link rel="icon">` + in the SW precache. |
-| `engine.js` | `window.ISFAR_ENGINE.compute(raw, {method, madhab})` → display model. All geometry. |
-| `tweaks-panel.jsx` | Tweaks shell (theme, accent warmth). Host-protocol scaffold. |
-| `components.jsx` | Icons (`Ic`), `Header`, sheets (`SettingsSheet`, `GuideSheet`, `MethodSheet`), `FlightSummary`, `TzBanner`, `PlaneQibla`, `NextPrayer`. |
-| `arc.jsx` | `ArcTimeline` — sun-elevation curve, prayer dots, in-flight band, day-break dividers. |
-| `cards.jsx` | `PrayerCard`, `PrayerList` (grouped into Before/In-flight/After sections). |
-| `app.jsx` | `App` state machine + `Landing`/`Loading`/`Results`/`ErrorState`/`NoSunset`. Mounts root. |
-| `styles.css` | All styling. oklch sun-arc palette; `.isfar[data-theme=light|dark]` tokens. |
-| `sw.js`, `manifest.webmanifest`, `icon-*.png` | PWA: offline caching + install. |
+| `src/pages/index.astro` | Entry point. Static `<head>` (SEO meta, OG/Twitter, JSON-LD, canonical, manifest/icons), mounts the `Calculator` island `client:load`, imports `fonts.css` + `styles.css`. |
+| `src/components/Calculator.jsx` | The **one React island** — `App` state machine + `Landing`/`Loading`/`Results`/`ErrorState`/`NoSunset`. Persisted state (theme/settings/recents) is loaded in a **mount effect**, never during render (else SSG/client hydration mismatch). Tweak defaults in `/*EDITMODE-START*/…/*EDITMODE-END*/`. |
+| `src/lib/data.js` | Named exports: sample flights, `lookup()` (sample table), **`lookupRemote(raw,date)`** (async; live `/api/flight` Worker in prod), `useRemoteApi()` (hostname env switch), `COLOR`, `META`, `METHODS` (12), `GUIDANCE`. |
+| `src/lib/engine.js` | `compute(raw, {method, madhab})` → display model. All geometry. Imports `adhan` + `META`. |
+| `src/components/{components,arc,cards,tweaks-panel}.jsx` | Icons (`Ic`)/`Header`/sheets/`FlightSummary`/`PlaneQibla`/`NextPrayer`; `ArcTimeline`; `PrayerList`/`PrayerCard`; `useTweaks` (theme/warmth — host bridge removed). All ES exports. |
+| `src/styles/{styles,fonts}.css` | All styling (oklch sun-arc palette; `.isfar[data-theme]` tokens) + `@fontsource` imports (latin/latin-ext/arabic subsets only). |
+| `public/` | Static passthrough: `sw.js` (template), `manifest.webmanifest`, `favicon.ico`, `icon-*.png`, `og-cover.png`, `robots.txt`, `sitemap.xml`. |
+| `scripts/gen-sw-precache.mjs` | Post-build: rewrites `dist/sw.js`'s `CORE` list from the real build output. Bump `const CACHE` in `public/sw.js` each cutover. |
+| `worker/` | The `isfar-flight` Cloudflare Worker (`/api/flight`): AeroDataBox lookup, `Intl`-derived tz/date, KV cache, daily ceiling, 429-retry. **Standalone — not part of the Astro build.** `CONTRACT.md` freezes the response shape. |
 
 ## Conventions (important)
 
-- **Each `<script type="text/babel">` has its own scope.** Components are shared by assigning to
-  `window` at the end of each file (`Object.assign(window, {...})`), and referenced as
-  `window.Foo` or destructured. When adding a component, export it on `window` and load order in
-  `index.html` matters (data → engine → tweaks → components → arc → cards → app).
-- **No `const styles = {}`** global objects (name collisions across Babel scripts). Use inline
-  styles or uniquely-named objects.
-- React/Babel are **pinned with integrity hashes** in `index.html` — keep them.
-- Tweak defaults live in `app.jsx` inside `/*EDITMODE-START*/ … /*EDITMODE-END*/`.
-- Persisted state: `localStorage` keys `isfar.settings` (method/madhab) and `isfar.recents`.
+- **ES modules now** — components/helpers are `export`ed and `import`ed (the old `window.*`
+  sharing is gone). `adhan` is an npm dep. Vite compiles JSX at build; there is no Babel Standalone.
+- **The calculator is one island.** Only `Calculator.jsx` (and what it imports) ships JS to the
+  browser; `index.astro` is static. Anything that must be in crawlable HTML (SEO copy) belongs in
+  `index.astro`, not the island.
+- **Hydration-safe rendering.** The island is server-rendered at build time, so the **initial
+  render must be deterministic** — no `localStorage`/`window`/`Date.now()` reads during render.
+  Read persisted/device state in a `useEffect` after mount (see `Calculator.jsx`).
+- **Persisted state:** `localStorage` keys `isfar.settings` (method/madhab), `isfar.recents`,
+  `isfar.theme`.
+- **Offline/PWA:** never hand-edit `dist/sw.js`'s precache — it's generated. Bump
+  `public/sw.js` `const CACHE` (e.g. `isfar-v4` → `v5`) on any cutover so old caches purge.
 
 ## The engine model (`engine.js`)
 
@@ -82,7 +88,9 @@ production** so their edge cases stay reliable; every other code hits the real A
 `isfar.app` is served by **two Cloudflare Workers under one domain via Worker Routes** (not Pages):
 - **`isfar`** — static-asset Worker, GitHub-connected (Cloudflare "Connect to Git" made a Worker,
   not Pages). **Auto-deploys on every push to `Nemant/isfar` `main`** — that *is* the deploy.
-  Serves `isfar.app/*`.
+  Since the Astro cutover it runs a **build command `npm run build`** and serves the **`dist/`**
+  output directory (set in the Worker's Build settings). A failed build keeps the last good deploy
+  live. Serves `isfar.app/*`.
 - **`isfar-flight`** — the `/api/flight` backend (`worker/`). Serves `isfar.app/api/*` (more-specific
   route wins). Holds the AeroDataBox key as a Cloudflare secret; KV cache; per-IP rate limit
   (10 req/10s, free-plan cap); daily `CEILING=1000` upstream bill cap.
@@ -94,15 +102,19 @@ production** so their edge cases stay reliable; every other code hits the real A
 
 ## Verifying changes
 
-Open `index.html`, click a sample chip, watch the console. The blurry horizontal band in
-html-to-image screenshots is a **capture artifact with `backdrop-filter`**, not a real bug —
-confirm layout via DOM/`getBoundingClientRect` or a real pixel screenshot if unsure.
+`npm run dev` for fast iteration; before shipping run `npm run build && npm run preview` and
+drive it with Playwright — click a sample chip, confirm prayers render in both time zones and the
+console is clean. **Always test hydration with populated `localStorage`** (a saved recent/theme/
+settings) — an empty-storage check won't catch SSG/client mismatches. The blurry horizontal band
+in html-to-image screenshots is a **capture artifact with `backdrop-filter`**, not a real bug.
 
 ## Known follow-ups
 
 - ~~Wire a real flight API~~ ✅ done (live `/api/flight` Worker + `lookupRemote`).
-- **Next major work:** Astro port (drop Babel, prerender SEO pages) → see `ROADMAP.md` Phase C.
+- ~~Astro port (drop Babel, prerender SEO pages)~~ ✅ done (Phase C) — one React island, fonts
+  self-hosted, SW precache generated.
+- **Next major work:** Phase D — programmatic per-route SEO pages (`/prayer-times/lhr-to-jed/`),
+  guide content, i18n (`hreflang`, RTL). The Astro foundation makes these cheap.
 - Read true cruise altitude per flight instead of the 38,000 ft default.
 - Worker date resolution is "today UTC + first matching segment"; implement true "next departure ≥ now".
-- ~~Regenerate `og-cover.png` in Newsreader~~ ✅ done; self-host fonts still pending (SEO Phase 1).
 - Optional: live "current/next prayer" highlight already exists via `NextPrayer`.
