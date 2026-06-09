@@ -216,7 +216,7 @@ function Calculator() {
         </TweaksPanel>
 
         <SettingsSheet open={showSettings} onClose={() => setShowSettings(false)}
-                       method={settings.method} madhab={settings.madhab} onChange={setSetting} />
+                       method={settings.method} madhab={settings.madhab} highLat={settings.highLat} onChange={setSetting} />
         <GuideSheet open={showGuide} onClose={() => setShowGuide(false)} />
         <MethodSheet open={showMethod} onClose={() => setShowMethod(false)} />
       </div>
