@@ -61,6 +61,31 @@ const ISFAR_ENGINE = (function () {
     return dipDeg * 4 * latFactor;                  // 4 min per degree of arc
   }
 
+  /* solar declination (deg) for a date — standard approximation. Geometry (ours),
+     used only to decide whether a prayer is an ESTIMATE; the time itself is adhan's. */
+  function solarDeclination(ms) {
+    const d = new Date(ms);
+    const N = (Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()) -
+               Date.UTC(d.getUTCFullYear(), 0, 0)) / 86400000;
+    return 23.44 * Math.sin((360 / 365.24) * (N - 81) * D2R);
+  }
+
+  /* classify a prayer at a position/date: "real" | "portioned" | "substituted".
+     - no day/night cycle (midnight sun / polar night)            -> "substituted"
+     - night exists but the method's twilight angle isn't reached  -> "portioned"  (fajr/isha)
+     - otherwise                                                   -> "real" */
+  function estimateBasisFor(key, lat, ms, params) {
+    const decl = solarDeclination(ms);
+    if (key === "dhuhr" || key === "asr") return "real";            // solar-noon / afternoon: always defined in daylight
+    const noCycle = Math.abs(lat + decl) > 90 || Math.abs(lat - decl) > 90;
+    if (noCycle) return "substituted";                              // affects fajr/isha/maghrib/sunrise
+    if (key === "maghrib") return "real";                          // a sun-disk event; defined since a cycle exists
+    if (key === "isha" && params.ishaInterval > 0) return "real";  // interval-based Isha = Maghrib + minutes
+    const angle = key === "fajr" ? params.fajrAngle : params.ishaAngle;
+    const depth = 90 - Math.abs(lat + decl);                        // sun's max depression below horizon at solar midnight
+    return depth >= angle ? "real" : "portioned";
+  }
+
   const HIGHLAT_RULE = { seventhnight: "SeventhOfTheNight", twilightangle: "TwilightAngle" };
 
   function makeParams(method, madhab, highLat) {
@@ -316,7 +341,8 @@ const ISFAR_ENGINE = (function () {
     return model;
   }
 
-  return { compute, greatCircle };
+  return { compute, greatCircle, _test: { estimateBasisFor, makeParams, solarDeclination } };
 })();
 
 export const { compute, greatCircle } = ISFAR_ENGINE;
+export const ISFAR_TEST = ISFAR_ENGINE._test;
