@@ -42,7 +42,7 @@ function Calculator() {
 
   // prayer-calculation settings — real user settings, persisted on the device
   const [settings, setSettings] = useS(() => {
-    const def = { method: "isna", madhab: "shafi", highLat: "seventhnight" };
+    const def = { method: "isna", madhab: "shafi" };
     try { return Object.assign(def, JSON.parse(localStorage.getItem("isfar.settings") || "{}")); }
     catch (e) { return def; }
   });
@@ -92,9 +92,9 @@ function Calculator() {
   // derive the live-computed model whenever the record or calc settings change
   const data = React.useMemo(() => {
     if (!raw || !raw.found) return raw;
-    try { return compute(raw, { method: settings.method, madhab: settings.madhab, highLat: settings.highLat }); }
+    try { return compute(raw, { method: settings.method, madhab: settings.madhab }); }
     catch (e) { console.error("compute failed", e); return raw; }
-  }, [raw, settings.method, settings.madhab, settings.highLat]);
+  }, [raw, settings.method, settings.madhab]);
 
 
   const resolved = resolveTheme(t.theme);
@@ -166,7 +166,7 @@ function Calculator() {
       setRaw(res);
       if (!res.found) { setView("error"); return; }
       recordRecent(res);
-      let model; try { model = compute(res, { method: settings.method, madhab: settings.madhab, highLat: settings.highLat }); } catch (e) { model = res; }
+      let model; try { model = compute(res, { method: settings.method, madhab: settings.madhab }); } catch (e) { model = res; }
       setView("results");
     })();
   }
@@ -210,7 +210,7 @@ function Calculator() {
         </TweaksPanel>
 
         <SettingsSheet open={showSettings} onClose={() => setShowSettings(false)}
-                       method={settings.method} madhab={settings.madhab} highLat={settings.highLat} onChange={setSetting} />
+                       method={settings.method} madhab={settings.madhab} onChange={setSetting} />
         <GuideSheet open={showGuide} onClose={() => setShowGuide(false)} />
         <MethodSheet open={showMethod} onClose={() => setShowMethod(false)} />
       </div>

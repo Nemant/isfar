@@ -2,7 +2,7 @@
    Isfar — icons + presentational components
    =========================================================================== */
 import React from 'react';
-import { METHODS, GUIDANCE, COLOR, HIGHLAT } from '../lib/data.js';
+import { METHODS, GUIDANCE, COLOR } from '../lib/data.js';
 
 /* ---- Icons (stroke, currentColor) --------------------------------------- */
 const Ic = {
@@ -61,7 +61,7 @@ function Header({ theme, onCycleTheme, onHome, onOpenSettings, onOpenGuide, onOp
 }
 
 /* ---- Settings sheet ----------------------------------------------------- */
-function SettingsSheet({ open, onClose, method, madhab, highLat, onChange }) {
+function SettingsSheet({ open, onClose, method, madhab, onChange }) {
   React.useEffect(() => {
     if (!open) return;
     const onKey = (e) => { if (e.key === "Escape") onClose(); };
@@ -95,14 +95,6 @@ function SettingsSheet({ open, onClose, method, madhab, highLat, onChange }) {
                         aria-pressed={madhab === o.v} onClick={() => onChange("madhab", o.v)}>{o.l}</button>
               ))}
             </div>
-          </div>
-          <div className="set-field">
-            <label htmlFor="set-highlat">Far-north prayers</label>
-            <p className="set-desc">{(HIGHLAT.find(h => h.key === highLat) || HIGHLAT[0]).blurb} Only affects routes that reach latitudes with no true night.</p>
-            <select id="set-highlat" className="set-select" value={highLat}
-                    onChange={(e) => onChange("highLat", e.target.value)}>
-              {HIGHLAT.map((h) => <option key={h.key} value={h.key}>{h.label}</option>)}
-            </select>
           </div>
           <p className="set-foot">Saved on this device. Times update across every flight.</p>
         </div>
