@@ -36,6 +36,9 @@ Operational ids/gotchas live in the `isfar-cloud-infra` memory.
   `window.*`→ES imports, SW precache-from-manifest (`isfar-v18`). *(A first port shipped then
   reverted over theme/iOS-chrome hydration; this re-attempt uses `client:only` to avoid SSR.)*
 - ⏳ **Phase D — SEO build-out** (programmatic route/guide pages, i18n) — now unblocked by C.
+  First content piece already drafted: **far-north methodology blog post** at
+  `docs/blog/2026-06-09-prayer-times-far-north.md` (copy complete incl. animation wishlist +
+  publication checklist; publish when the content hub exists).
 - ⏳ **Follow-ups:** true "next departure ≥ now" date resolution; per-flight cruise altitude.
   (See *Tracked follow-ups*.)
 
@@ -337,6 +340,15 @@ Former `SEO.md` Phases 1–4, now cheap because Astro generates them: precompile
 gone), programmatic per-route pages (`/prayer-times/lhr-to-jed/`), guide content hub, then i18n
 (`hreflang`, RTL) — Arabic/Urdu/Indonesian/Turkish/Malay. Off-page: Search Console + sitemap
 submission, Muslim-travel/Hajj-Umrah community links.
+
+**Content drafted ahead of the hub:**
+- `docs/blog/2026-06-09-prayer-times-far-north.md` — "Praying by a sun that won't set": the
+  high-latitude methodology story (angles → latitude → where each scholarly convention breaks →
+  the 60°N floor + city table → summer-vs-winter per-prayer table → what Isfar does). Credits
+  moonsighting.com; explicitly non-fiqhi. Includes an animation/illustration wishlist (tilted
+  Earth, twilight-angle diagram, shrinking sun-dip, collapsing-night dial, 60th-parallel zoom,
+  Tromsø year wheel — in the app's calm sun-arc visual language) and a publication checklist
+  (re-verify quoted times against the engine, citation depth for the city table, internal links).
 
 ---
 
