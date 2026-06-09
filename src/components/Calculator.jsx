@@ -8,7 +8,7 @@ import { useTweaks, TweaksPanel, TweakSection, TweakSlider, TweakRadio } from '.
 
 /* ===========================================================================
    Isfar — app shell: state machine + theme + tweaks
-   states: landing · loading · results · error · nosunset
+   states: landing · loading · results · error
    =========================================================================== */
 const { useState: useS, useEffect: useE, useRef: useR } = React;
 
@@ -57,7 +57,7 @@ function Calculator() {
   const [showGuide, setShowGuide] = useS(false);
   const [showMethod, setShowMethod] = useS(false);
 
-  const [view, setView] = useS("landing");      // landing|loading|results|error|nosunset
+  const [view, setView] = useS("landing");      // landing|loading|results|error
   const [query, setQuery] = useS("");
   const [date, setDate] = useS("2026-06-06");
   const [err, setErr] = useS(null);              // field-level validation
@@ -322,6 +322,7 @@ function Results({ f, activeKey, selectPrayer, cardRefs, onBack }) {
   const ms = f.midnightSun;
   const msNames = ms ? (ms.names.length <= 1 ? ms.names[0]
     : ms.names.slice(0, -1).join(", ") + " & " + ms.names[ms.names.length - 1]) : "";
+  const msVerb = ms && ms.kind === "polarnight" ? "won’t rise" : "won’t set";
   return (
     <main className="results">
       <NextPrayer prayers={f.prayers} order={[f.from.iata, f.to.iata]} />
@@ -329,7 +330,7 @@ function Results({ f, activeKey, selectPrayer, cardRefs, onBack }) {
       {ms ? (
         <div className="midnight-banner" role="note">
           <Ic.sunrise aria-hidden="true" />
-          <span>The sun won’t set at <b>{ms.city}</b> ({ms.latitude}) — {msNames} {ms.names.length > 1 ? "are" : "is"} estimated.</span>
+          <span>The sun {msVerb} at <b>{ms.city}</b> ({ms.latitude}) — {msNames} {ms.names.length > 1 ? "are" : "is"} estimated.</span>
         </div>
       ) : null}
       <ArcTimeline f={f} activeKey={activeKey} onSelect={selectPrayer} />

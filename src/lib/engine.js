@@ -245,14 +245,17 @@ const ISFAR_ENGINE = (function () {
     }
 
     // 3. AFTER arrival — the next prayers due on the ground at the destination,
-    //    on the arrival local day (keep the first few)
-    const after = [];
+    //    on the arrival local day (keep the first few). Substituted (no-sun-event)
+    //    keys are EXCLUDED here and handled by the midnight-sun block below, so the
+    //    AFTER_CAP slice can never crowd out a real prayer (e.g. a real Asr).
     const inst = instantsAt(to.lat, to.lon, arr, params);
+    const destSub = ORDER.filter(k => estimateBasisFor(k, to.lat, arr, params) === "substituted");
+    const after = [];
     ORDER.forEach(k => {
       const t = inst[k]; if (!t) return;
       const pm = t.getTime();
       const dk = k + "@" + dayKeyOf(pm, to.lon);
-      if (pm > arr && !seen.has(dk)) after.push({ key: k, ms: pm, dk });
+      if (pm > arr && !seen.has(dk) && !destSub.includes(k)) after.push({ key: k, ms: pm, dk });
     });
     after.sort((a, b) => a.ms - b.ms).slice(0, AFTER_CAP).forEach(e => {
       seen.add(e.dk);
@@ -261,27 +264,28 @@ const ISFAR_ENGINE = (function () {
 
     // Midnight-sun / polar-night DESTINATION: the substituted prayers have no real
     // sun event there. Show them as after-arrival ESTIMATES (adhan substitutes a time
-    // via AqrabBalad), and drop any in-flight/after capture of the same key — else the
-    // same prayer would appear twice at different positions. Real before-departure
-    // prayers at the origin are kept (they share keys but have genuine times).
+    // via AqrabBalad), and drop any in-flight capture of the same key — else the same
+    // prayer would appear twice at different positions. Real before-departure prayers
+    // at the origin are kept (they share keys but have genuine times).
     let midnightSun = null;
-    const destSub = ORDER.filter(k => estimateBasisFor(k, to.lat, arr, params) === "substituted");
     if (destSub.length) {
-      const destInst = instantsAt(to.lat, to.lon, arr, params);
       for (let i = entries.length - 1; i >= 0; i--) {
         if (entries[i].status !== "before" && destSub.includes(entries[i].key)) entries.splice(i, 1);
       }
       destSub.forEach(k => {
-        if (!destInst[k]) return;
+        if (!inst[k]) return;
         // roll to the first occurrence at/after arrival so the estimates read as one
         // post-arrival night (Maghrib → Isha → Fajr), not the arrival-date dawn first.
-        let t = destInst[k].getTime();
+        let t = inst[k].getTime();
         while (t < arr) t += 86400000;
         entries.push({ key: k, status: "after", ms: t, lat: to.lat, lon: to.lon });
       });
+      // distinguish midnight sun (no sunset) from polar night (no sunrise) for honest copy
+      const _decl = solarDeclination(arr);
       midnightSun = {
         city: to.city, iata: to.iata,
         latitude: Math.abs(to.lat).toFixed(1) + "° " + (to.lat >= 0 ? "N" : "S"),
+        kind: Math.abs(to.lat + _decl) > 90 ? "midnightsun" : "polarnight",
         names: destSub.map(k => META[k].en)
       };
     }

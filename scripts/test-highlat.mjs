@@ -67,6 +67,21 @@ const OPTS = { method: 'isna', madhab: 'shafi', highLat: 'seventhnight' };
   for (let i = 1; i < dyAfter.length; i++) ok('DY394 after-arrival estimates chronological', dyAfter[i].ms >= dyAfter[i-1].ms);
 }
 
+// --- midnight-sun MORNING arrival: real Dhuhr/Asr after arrival are NOT crowded out by AFTER_CAP ---
+{
+  const morning = {
+    code: 'TEST2', airline: 'Test',
+    depUTC: '2026-06-21T03:30:00Z', arrUTC: '2026-06-21T06:00:00Z',  // arrive Tromsø morning, midnight sun
+    from: { iata: 'OSL', city: 'Oslo',   lat: 60.19, lon: 11.10, tz: 'Europe/Oslo' },
+    to:   { iata: 'TOS', city: 'Tromsø', lat: 69.68, lon: 18.92, tz: 'Europe/Oslo' },
+  };
+  const m = compute(morning, OPTS);
+  const realAfter = m.prayers.filter(p => p.status === 'after' && p.estimated === false).map(p => p.key);
+  ok('midnight-sun morning arrival keeps real Dhuhr after arrival', realAfter.includes('dhuhr'));
+  ok('midnight-sun morning arrival keeps real Asr after arrival (not crowded out)', realAfter.includes('asr'));
+  ok('midnight-sun morning arrival flags polar kind as midnightsun', m.midnightSun && m.midnightSun.kind === 'midnightsun');
+}
+
 // --- Task 3b: estimates are sane (in-flight prayers chronological) ---
 {
   const m = compute(BA48, OPTS);
