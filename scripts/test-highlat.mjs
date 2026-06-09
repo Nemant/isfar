@@ -65,5 +65,14 @@ const OPTS = { method: 'isna', madhab: 'shafi', highLat: 'seventhnight' };
   for (let i = 1; i < infl.length; i++) ok('in-flight prayers chronological', infl[i].ms >= infl[i-1].ms);
 }
 
+// --- Task 8: switching the high-lat rule changes portioned times ---
+{
+  const seven = compute(BA48, { method: 'isna', madhab: 'shafi', highLat: 'seventhnight' });
+  const twi   = compute(BA48, { method: 'isna', madhab: 'shafi', highLat: 'twilightangle' });
+  const iS = seven.prayers.find(p => p.key === 'isha' && p.status === 'inflight');
+  const iT = twi.prayers.find(p => p.key === 'isha' && p.status === 'inflight');
+  ok('twilight-angle changes the portioned Isha time', iS && iT && iS.ms !== iT.ms);
+}
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
