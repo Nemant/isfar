@@ -70,7 +70,7 @@ const STARS = [[96, 52, 1, 0.55], [208, 34, 1.2, 0.62], [332, 66, 1, 0.68], [452
   </svg>
 
   <div class="anim-controls">
-    <button class="anim-btn" type="button" hidden>(replay)</button>
+    <button class="anim-btn replay" type="button">Replay</button>
   </div>
 
   <figcaption>Dawn and dusk are angles: how far the sun sits below the horizon. Isha begins when the last glow dies at your method&rsquo;s angle; Fajr begins when the sky first responds at that same angle before sunrise.</figcaption>
@@ -114,6 +114,14 @@ const STARS = [[96, 52, 1, 0.55], [208, 34, 1.2, 0.62], [332, 66, 1, 0.68], [452
   .meas  { stroke: var(--accent); stroke-width: 1.5; fill: none; }
   .pivot { fill: var(--text-soft); opacity: 0.7; }
   .readout { fill: var(--text-soft); font-family: "Newsreader", serif; font-size: 13px; }
+
+  /* replay: always occupies layout (no card-height jump when it appears or on
+     replay); only its visibility fades with the figure's done state */
+  .replay { visibility: hidden; opacity: 0; transition: opacity 0.5s ease, visibility 0.5s ease; }
+  [data-anim="twilight-angle"].done .replay { visibility: visible; opacity: 1; }
+  @media (prefers-reduced-motion: reduce) {
+    .replay { display: none; }   /* never shown; row stays static from load */
+  }
 </style>
 
 <script>
@@ -153,13 +161,12 @@ const STARS = [[96, 52, 1, 0.55], [208, 34, 1.2, 0.62], [332, 66, 1, 0.68], [452
 
     function play () {
       cancelAnimationFrame(raf);
-      btn.hidden = true;
       fig.classList.remove('done');
       apply(SEGS[0][2]);
       const t0 = performance.now();
       const step = (now) => {
         const t = now - t0;
-        if (t >= 7000) { apply(18); fig.classList.add('done'); btn.hidden = false; return; }
+        if (t >= 7000) { apply(18); fig.classList.add('done'); return; }
         for (const [a, b, f, g] of SEGS) {
           if (t < b) { apply(f + (g - f) * ease((t - a) / (b - a))); break; }
         }
