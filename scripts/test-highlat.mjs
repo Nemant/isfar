@@ -68,6 +68,24 @@ const OPTS = { method: 'isna', madhab: 'shafi', highLat: 'seventhnight' };
   for (let i = 1; i < infl.length; i++) ok('in-flight prayers chronological', infl[i].ms >= infl[i-1].ms);
 }
 
+// --- winter polar night: real before-departure prayers are NOT dropped from `defined` ---
+{
+  const winter = {
+    code: 'TEST', airline: 'Test',
+    depUTC: '2026-12-21T16:00:00Z', arrUTC: '2026-12-21T17:35:00Z',  // after Oslo sunset, into Tromsø polar night
+    from: { iata: 'OSL', city: 'Oslo',    lat: 60.19, lon: 11.10, tz: 'Europe/Oslo' },
+    to:   { iata: 'TOS', city: 'Tromsø',  lat: 69.68, lon: 18.92, tz: 'Europe/Oslo' },
+  };
+  const w = compute(winter, OPTS);
+  ok('winter polar night triggers noSunset', w.noSunset === true);
+  const undefSet = new Set((w.undefinedPrayers || []).map(p => p.key));
+  // a real before-departure prayer whose key is ALSO substituted at the destination must still appear in `defined`
+  ok('winter defined keeps a real prayer sharing a substituted key',
+     (w.defined || []).some(p => undefSet.has(p.key)));
+  ok('winter defined entries are real (no substituted leak)',
+     (w.defined || []).length > 0);
+}
+
 // --- Task 8: switching the high-lat rule changes portioned times ---
 {
   const seven = compute(BA48, { method: 'isna', madhab: 'shafi', highLat: 'seventhnight' });

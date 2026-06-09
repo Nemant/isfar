@@ -334,16 +334,19 @@ const ISFAR_ENGINE = (function () {
     if (undefinedKeys.length) {
       model.noSunset = true;
       model.latitude = Math.abs(to.lat).toFixed(1) + "° " + (to.lat >= 0 ? "N" : "S");
-      // exclude keys that are also shown as destination estimates below — else a
-      // prayer substituted both in-flight and at the destination (e.g. midnight-sun
-      // Maghrib) would appear twice, with two different times.
-      model.defined = prayers.filter(p => p.status !== "after" && !undefinedKeys.includes(p.key)).map(p => ({
+      // Show real (non-substituted) before/aloft prayers here; the substituted ones
+      // are listed as destination estimates below. Filter by estimateBasis, NOT by key:
+      // a winter polar-night flight has REAL before-departure Maghrib/Isha at the origin
+      // whose keys also appear in undefinedKeys — those must still show here.
+      model.defined = prayers.filter(p => p.status !== "after" && p.estimateBasis !== "substituted").map(p => ({
         key: p.key, en: p.en, ar: p.ar,
         time: (p.zones[from.iata] || Object.values(p.zones)[0]).time,
         note: p.status === "before" ? "before departure" : "aloft"
       }));
       model.undefinedPrayers = undefinedKeys.map(k => ({
         key: k, en: META[k].en, ar: META[k].ar,
+        // destT[k] is non-null here: AqrabBalad always substitutes a time for a
+        // polar-circle prayer. The `: null` is a defensive fallback only.
         time: destT[k] ? fmtTZ(destT[k].getTime(), to.tz) : null,
         estimated: true, estimateBasis: "substituted"
       }));
