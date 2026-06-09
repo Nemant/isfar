@@ -24,6 +24,7 @@ const ISFAR_ENGINE = (function () {
   const D2R = Math.PI / 180, R2D = 180 / Math.PI;
   const ORDER = ["fajr", "dhuhr", "asr", "maghrib", "isha"];
   const BEFORE_CAP = 2, AFTER_CAP = 2;
+  const HIGHLAT_FLOOR = 60;  // above this latitude, borrow twilight times from lat 60
 
   function greatCircle(lat1, lon1, lat2, lon2, f) {
     const φ1 = lat1 * D2R, λ1 = lon1 * D2R, φ2 = lat2 * D2R, λ2 = lon2 * D2R;
@@ -61,6 +62,38 @@ const ISFAR_ENGINE = (function () {
     return dipDeg * 4 * latFactor;                  // 4 min per degree of arc
   }
 
+  /* solar declination (deg) for a date — standard approximation. Geometry (ours),
+     used only to decide whether a prayer is an ESTIMATE; the time itself is adhan's. */
+  function solarDeclination(ms) {
+    const d = new Date(ms);
+    const N = (Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()) -
+               Date.UTC(d.getUTCFullYear(), 0, 0)) / 86400000;
+    return 23.44 * Math.sin((360 / 365.24) * (N - 81) * D2R);
+  }
+
+  /* classify a prayer at a position/date: "real" | "portioned" | "substituted".
+     - no day/night cycle (midnight sun / polar night)            -> "substituted"
+     - night exists but the method's twilight angle isn't reached  -> "portioned"  (fajr/isha)
+     - otherwise                                                   -> "real" */
+  function estimateBasisFor(key, lat, ms, params) {
+    const decl = solarDeclination(ms);
+    // Polar night = the sun never rises (|lat-decl| > 90): the day is wholly abnormal. Asr has no
+    // shadow, and even Dhuhr's "midday" sun stays below the horizon — so both are flagged as
+    // estimates there (Dhuhr keeps the exact solar-noon time, flagged for honesty, not relocated).
+    // Whenever the sun does rise — including midnight sun — both are real (the sun is genuinely up).
+    const polarNight = Math.abs(lat - decl) > 90;
+    if (key === "dhuhr") return polarNight ? "substituted" : "real";
+    if (key === "asr")   return polarNight ? "substituted" : "real";
+    const noCycle = Math.abs(lat + decl) > 90 || Math.abs(lat - decl) > 90;
+    if (noCycle) return "substituted";                              // affects fajr/isha/maghrib/sunrise
+    if (key === "maghrib") return "real";                          // a sun-disk event; defined since a cycle exists
+    if (key === "isha" && params.ishaInterval > 0) return "real";  // interval-based Isha = Maghrib + minutes
+    const angle = key === "fajr" ? params.fajrAngle : params.ishaAngle;
+    const depth = 90 - Math.abs(lat + decl);                        // sun's max depression below horizon at solar midnight
+    if (depth >= angle) return "real";
+    return Math.abs(lat) > HIGHLAT_FLOOR ? "substituted" : "portioned";
+  }
+
   function makeParams(method, madhab) {
     const M = adhan.CalculationMethod;
     const map = {
@@ -71,12 +104,26 @@ const ISFAR_ENGINE = (function () {
     };
     const p = (map[method] || M.MuslimWorldLeague)();
     p.madhab = (madhab === "hanafi") ? adhan.Madhab.Hanafi : adhan.Madhab.Shafi;
+    // Base rule = MiddleOfTheNight: it returns the chosen method's REAL twilight angle wherever
+    // the sun actually reaches it (it only caps the rare case of an angle past solar midnight).
+    // Where the sun never reaches the angle, instantsAt swaps in a seventh-of-the-night fallback
+    // (and, above 60°, borrows latitude 60). Using SeventhOfTheNight here as the base was wrong —
+    // it clamps real angle times even at normal latitudes (London June Isha 21:24 vs the real 23:48).
+    p.highLatitudeRule = adhan.HighLatitudeRule.MiddleOfTheNight;
+    return p;
+  }
+
+  /* a clone of the method params using the seventh-of-the-night fallback (for places/dates where
+     the sun never reaches the twilight angle). Preserves the adhan prototype (nightPortions, …). */
+  function seventhParams(params) {
+    const p = Object.assign(Object.create(Object.getPrototypeOf(params)), params);
+    p.highLatitudeRule = adhan.HighLatitudeRule.SeventhOfTheNight;
     return p;
   }
 
   /* prayer instants at a position for the local calendar date implied by the
-     longitude (mean solar offset) around a reference instant */
-  function instantsAt(lat, lon, refMs, params) {
+     longitude (mean solar offset) around a reference instant — raw adhan output */
+  function rawInstants(lat, lon, refMs, params) {
     const localApprox = new Date(refMs + (lon / 15) * 3600000);
     const d = new Date(Date.UTC(localApprox.getUTCFullYear(),
                                 localApprox.getUTCMonth(),
@@ -84,17 +131,41 @@ const ISFAR_ENGINE = (function () {
     const pt = new adhan.PrayerTimes(new adhan.Coordinates(lat, lon), d, params);
     const out = {};
     ORDER.forEach(k => { const v = pt[k]; out[k] = (v && !isNaN(v.getTime())) ? v : null; });
+    out.sunrise = (pt.sunrise && !isNaN(pt.sunrise.getTime())) ? pt.sunrise : null;
     return out;
   }
 
-  /* sunrise instant at a position (when Fajr ends) for the same local date */
+  /* Banded high-latitude policy, per prayer and date (estimateBasisFor decides the case):
+       - "real":       the sun reaches the chosen angle (or the event exists) → the method's own
+                       time stands (MiddleOfTheNight = the real angle wherever it's reachable).
+       - "portioned":  the angle has no moment to mark and we're ≤60° → a seventh of the LOCAL night.
+       - "substituted":no usable local event AND >60° → borrow latitude 60 (twilight without a night,
+                       Maghrib/sunrise without a sunset, Asr in polar night). Dhuhr (solar noon) stays. */
+  function instantsAt(lat, lon, refMs, params) {
+    const out = Object.assign({}, rawInstants(lat, lon, refMs, params));   // real angle where reachable
+    let seventh = null, borrow = null;
+    ORDER.forEach(k => {
+      if (k === "dhuhr") return;
+      const basis = estimateBasisFor(k, lat, refMs, params);
+      if (basis === "real") return;
+      if (basis === "portioned") {                                         // ≤60°: a seventh of the local night
+        seventh = seventh || rawInstants(lat, lon, refMs, seventhParams(params));
+        out[k] = seventh[k];
+      } else {                                                             // substituted: borrow latitude 60
+        borrow = borrow || rawInstants(Math.sign(lat) * HIGHLAT_FLOOR, lon, refMs, seventhParams(params));
+        out[k] = borrow[k];
+      }
+    });
+    if (!out.sunrise && Math.abs(lat) > HIGHLAT_FLOOR) {
+      borrow = borrow || rawInstants(Math.sign(lat) * HIGHLAT_FLOOR, lon, refMs, seventhParams(params));
+      out.sunrise = borrow.sunrise;
+    }
+    return out;
+  }
+
+  /* sunrise instant at a position (when Fajr ends) — follows the same banded policy */
   function sunriseAt(lat, lon, refMs, params) {
-    const localApprox = new Date(refMs + (lon / 15) * 3600000);
-    const d = new Date(Date.UTC(localApprox.getUTCFullYear(),
-                                localApprox.getUTCMonth(),
-                                localApprox.getUTCDate(), 12));
-    const pt = new adhan.PrayerTimes(new adhan.Coordinates(lat, lon), d, params);
-    return (pt.sunrise && !isNaN(pt.sunrise.getTime())) ? pt.sunrise : null;
+    return instantsAt(lat, lon, refMs, params).sunrise;
   }
 
   const dayKeyOf = (ms, lon) => {
@@ -212,20 +283,64 @@ const ISFAR_ENGINE = (function () {
       });
     }
 
-    // 3. AFTER arrival — the next prayers due on the ground at the destination,
-    //    on the arrival local day (keep the first few)
-    const after = [];
+    // 3. AFTER arrival — the next few prayers due on the ground at the destination. For a
+    //    no-cycle destination (midnight sun / polar night) the next prayers are rolled forward
+    //    from latitude-60 estimates; otherwise they are the real arrival-day times. Same count
+    //    either way. The branch below picks based on destNoCycle.
     const inst = instantsAt(to.lat, to.lon, arr, params);
-    ORDER.forEach(k => {
-      const t = inst[k]; if (!t) return;
-      const pm = t.getTime();
-      const dk = k + "@" + dayKeyOf(pm, to.lon);
-      if (pm > arr && !seen.has(dk)) after.push({ key: k, ms: pm, dk });
-    });
-    after.sort((a, b) => a.ms - b.ms).slice(0, AFTER_CAP).forEach(e => {
-      seen.add(e.dk);
-      entries.push({ key: e.key, status: "after", ms: e.ms, lat: to.lat, lon: to.lon });
-    });
+    const _arrDecl = solarDeclination(arr);
+    const destNoCycle = Math.abs(to.lat + _arrDecl) > 90 || Math.abs(to.lat - _arrDecl) > 90;
+    // Only a TRUE no-cycle destination (midnight sun / polar night) gets the special
+    // dedup + roll-forward + banner. An above-60 destination that still has a real night
+    // (e.g. Oslo in summer) borrows latitude-60 twilight times but otherwise flows through
+    // the normal before/in-flight/after placement — and shows no "sun won't set" banner.
+    const destSub = destNoCycle
+      ? ORDER.filter(k => estimateBasisFor(k, to.lat, arr, params) === "substituted")
+      : [];
+    let midnightSun = null;
+    if (destNoCycle) {
+      // Midnight-sun / polar-night DESTINATION: there is no ordinary day/night to set the prayers
+      // against, so every prayer is taken from latitude 60 (Dhuhr is the real solar noon). Prayers
+      // that fall within the flight window are already captured in-flight; here we add only the
+      // NEXT few due after arrival — each rolled to its first occurrence at/after arrival, skipping
+      // any already shown — so the journey reads as one gap-free, capped sequence.
+      const next = [];
+      ORDER.forEach(k => {
+        if (!inst[k]) return;
+        let t = inst[k].getTime();
+        while (t < arr) t += 86400000;
+        const dk = k + "@" + dayKeyOf(t, to.lon);
+        if (!seen.has(dk)) next.push({ key: k, ms: t, dk });
+      });
+      next.sort((a, b) => a.ms - b.ms).slice(0, AFTER_CAP).forEach(e => {
+        seen.add(e.dk);
+        entries.push({ key: e.key, status: "after", ms: e.ms, lat: to.lat, lon: to.lon });
+      });
+      // distinguish midnight sun (no sunset) from polar night (no sunrise) for honest copy.
+      // allEstimated: polar night flags every prayer (Dhuhr/Asr included); midnight sun keeps
+      // Dhuhr/Asr real, so only some are estimated.
+      midnightSun = {
+        city: to.city, iata: to.iata,
+        latitude: Math.abs(to.lat).toFixed(1) + "° " + (to.lat >= 0 ? "N" : "S"),
+        kind: Math.abs(to.lat + _arrDecl) > 90 ? "midnightsun" : "polarnight",
+        allEstimated: ORDER.every(k => estimateBasisFor(k, to.lat, arr, params) !== "real"),
+        names: destSub.map(k => META[k].en)
+      };
+    } else {
+      // Normal destination (incl. above-60 with a real night, e.g. Oslo in summer): the next
+      // prayers due on the ground at the destination, on the arrival local day (keep the first few).
+      const after = [];
+      ORDER.forEach(k => {
+        const t = inst[k]; if (!t) return;
+        const pm = t.getTime();
+        const dk = k + "@" + dayKeyOf(pm, to.lon);
+        if (pm > arr && !seen.has(dk)) after.push({ key: k, ms: pm, dk });
+      });
+      after.sort((a, b) => a.ms - b.ms).slice(0, AFTER_CAP).forEach(e => {
+        seen.add(e.dk);
+        entries.push({ key: e.key, status: "after", ms: e.ms, lat: to.lat, lon: to.lon });
+      });
+    }
 
     // ---- assemble ordered display model -------------------------------------
     entries.sort((a, b) => a.ms - b.ms);
@@ -243,6 +358,8 @@ const ISFAR_ENGINE = (function () {
     const prayers = entries.map((a, i) => {
       running[a.key] = (running[a.key] || 0) + 1;
       const seq = counts[a.key] > 1 ? running[a.key] : 0;   // 0 = unique
+      const _basis = estimateBasisFor(a.key, a.lat, a.ms, params);
+      const _estimated = _basis !== "real";
       // qibla as a CLOCK POSITION off the aircraft's nose (12 = direction of
       // travel) — only meaningful while aloft; on the ground use a normal app
       let qiblaClock = null, qiblaRel = null;
@@ -278,6 +395,7 @@ const ISFAR_ENGINE = (function () {
         t: solarFrac(a.lat, a.lon, ms),
         ms,
         qiblaClock, qiblaRel, sunrise,
+        estimated: _estimated, estimateBasis: _estimated ? _basis : null,
         zones, seq
       };
     });
@@ -289,27 +407,14 @@ const ISFAR_ENGINE = (function () {
       from: Object.assign({}, from),
       to:   Object.assign({}, to),
       cruiseAltFt: raw.cruiseAltFt || 38000,
-      prayers, multiDay
+      prayers, multiDay, midnightSun
     });
-
-    // no-sunset: a prayer type undefined at the destination on arrival day
-    const destT = instantsAt(to.lat, to.lon, arr, params);
-    const undefinedKeys = ORDER.filter(k => !destT[k]);
-    if (undefinedKeys.length) {
-      model.noSunset = true;
-      model.latitude = Math.abs(to.lat).toFixed(1) + "° " + (to.lat >= 0 ? "N" : "S");
-      model.defined = prayers.filter(p => p.status !== "after").map(p => ({
-        key: p.key, en: p.en, ar: p.ar,
-        time: (p.zones[from.iata] || Object.values(p.zones)[0]).time,
-        note: p.status === "before" ? "before departure" : "aloft"
-      }));
-      model.undefinedPrayers = undefinedKeys.map(k => ({ key: k, en: META[k].en, ar: META[k].ar }));
-    }
 
     return model;
   }
 
-  return { compute, greatCircle };
+  return { compute, greatCircle, _test: { estimateBasisFor, makeParams, solarDeclination, instantsAt } };
 })();
 
 export const { compute, greatCircle } = ISFAR_ENGINE;
+export const ISFAR_TEST = ISFAR_ENGINE._test;

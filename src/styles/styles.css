@@ -909,16 +909,6 @@ body {
 .state-card p { margin: 0; font-size: 15px; line-height: 1.6; color: var(--text-soft); max-width: 36ch; }
 .state-card .state-actions { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 300px; margin-top: 6px; }
 
-.nosunset-card {
-  background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
-  padding: 16px; text-align: left; max-width: 360px; width: 100%;
-  display: flex; flex-direction: column; gap: 10px;
-}
-.nosunset-card .ns-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; font-size: 14px; }
-.nosunset-card .ns-row + .ns-row { padding-top: 10px; border-top: 1px solid var(--border-2); }
-.nosunset-card .ns-row .ar { color: var(--text-soft); font-size: 15px; margin-left: 6px; }
-.nosunset-card .ns-row em { font-style: normal; color: var(--text-mute); font-size: 13px; }
-
 /* footer note */
 .foot { margin-top: 22px; text-align: center; font-size: 12px; color: var(--text-mute); line-height: 1.5; }
 .foot .ar { font-size: 14px; display: block; margin-bottom: 6px; color: var(--text-soft); }
@@ -1004,3 +994,27 @@ body {
   .endpoint .code-iata { font-size: 28px; }
   .input { font-size: 26px; }
 }
+
+/* High-latitude estimated prayers — calm, not a warning */
+.prayer-card.estimate { border-style: dashed; opacity: 0.96; }
+.pc-est-pill {
+  font-size: 10.5px; letter-spacing: 0.03em; text-transform: uppercase;
+  padding: 1px 6px; border-radius: 999px; margin-inline-start: 8px;
+  color: var(--text-mute); border: 1px solid var(--border);
+}
+.pc-est-note {
+  display: flex; gap: 8px; align-items: flex-start;
+  font-size: 13px; line-height: 1.45; color: var(--text-mute);
+  padding: 8px 12px; margin-top: 6px;
+}
+.pc-est-note svg { flex: 0 0 auto; width: 15px; height: 15px; margin-top: 2px; opacity: 0.8; }
+
+/* Midnight-sun / polar-night route banner — slim, calm */
+.midnight-banner {
+  display: flex; gap: 8px; align-items: flex-start;
+  font-size: 13px; line-height: 1.45; color: var(--text-mute);
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; padding: 9px 12px; margin: 2px 0;
+}
+.midnight-banner svg { flex: 0 0 auto; width: 16px; height: 16px; margin-top: 1px; opacity: 0.85; }
+.midnight-banner b { color: var(--text); font-weight: 600; }

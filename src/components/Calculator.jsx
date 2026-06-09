@@ -8,7 +8,7 @@ import { useTweaks, TweaksPanel, TweakSection, TweakSlider, TweakRadio } from '.
 
 /* ===========================================================================
    Isfar — app shell: state machine + theme + tweaks
-   states: landing · loading · results · error · nosunset
+   states: landing · loading · results · error
    =========================================================================== */
 const { useState: useS, useEffect: useE, useRef: useR } = React;
 
@@ -57,7 +57,7 @@ function Calculator() {
   const [showGuide, setShowGuide] = useS(false);
   const [showMethod, setShowMethod] = useS(false);
 
-  const [view, setView] = useS("landing");      // landing|loading|results|error|nosunset
+  const [view, setView] = useS("landing");      // landing|loading|results|error
   const [query, setQuery] = useS("");
   const [date, setDate] = useS("2026-06-06");
   const [err, setErr] = useS(null);              // field-level validation
@@ -96,11 +96,6 @@ function Calculator() {
     catch (e) { console.error("compute failed", e); return raw; }
   }, [raw, settings.method, settings.madhab]);
 
-  useE(() => {
-    if (!data || !data.found) return;
-    if (view === "results" && data.noSunset) setView("nosunset");
-    else if (view === "nosunset" && !data.noSunset) setView("results");
-  }, [data]);
 
   const resolved = resolveTheme(t.theme);
 
@@ -172,7 +167,7 @@ function Calculator() {
       if (!res.found) { setView("error"); return; }
       recordRecent(res);
       let model; try { model = compute(res, { method: settings.method, madhab: settings.madhab }); } catch (e) { model = res; }
-      setView(model && model.noSunset ? "nosunset" : "results");
+      setView("results");
     })();
   }
 
@@ -204,7 +199,6 @@ function Calculator() {
                                          cardRefs={cardRefs} onBack={goHome} />}
         {view === "error"    && <ErrorState code={raw && raw.code} kind={raw && raw.error}
                                             onRetry={goHome} />}
-        {view === "nosunset" && <NoSunset f={data} onBack={goHome} />}
 
         <TweaksPanel>
           <TweakSection label="Appearance" />
@@ -325,10 +319,18 @@ function Loading({ query, msg }) {
 
 /* ---- Results ------------------------------------------------------------ */
 function Results({ f, activeKey, selectPrayer, cardRefs, onBack }) {
+  const ms = f.midnightSun;
+  const msVerb = ms && ms.kind === "polarnight" ? "won’t rise" : "won’t set";
   return (
     <main className="results">
       <NextPrayer prayers={f.prayers} order={[f.from.iata, f.to.iata]} />
       <FlightSummary f={f} />
+      {ms ? (
+        <div className="midnight-banner" role="note">
+          <Ic.sunrise aria-hidden="true" />
+          <span>The sun {msVerb} at <b>{ms.city}</b> ({ms.latitude}) — {ms.allEstimated ? "prayer times here are estimated" : "some prayer times here are estimates"}.</span>
+        </div>
+      ) : null}
       <ArcTimeline f={f} activeKey={activeKey} onSelect={selectPrayer} />
       <PrayerList f={f} activeKey={activeKey} cardRefs={cardRefs} />
       <button className="btn" onClick={onBack} style={{ marginTop: 8 }}><Ic.back style={{width:16,height:16}} aria-hidden="true" /> Look up another flight</button>
@@ -356,46 +358,6 @@ function ErrorState({ code, kind, onRetry }) {
       <p>{body}</p>
       <div className="state-actions">
         <button className="btn" onClick={onRetry}><Ic.back style={{width:16,height:16}} aria-hidden="true" /> Try another flight</button>
-      </div>
-      <Foot />
-    </main>
-  );
-}
-
-/* ---- No-sunset edge case ----------------------------------------------- */
-function NoSunset({ f, onBack }) {
-  const undef = f.undefinedPrayers || [];
-  const names = undef.map(p => p.en);
-  const joined = names.length <= 1 ? names.join("")
-    : names.slice(0, -1).join(", ") + " and " + names[names.length - 1];
-  return (
-    <main className="state-card">
-      <div className="state-ic"><Ic.sunrise aria-hidden="true" /></div>
-      <h2 className="display">The sun won’t set on this route</h2>
-      <p>
-        {f.code} flies to <b>{f.to.city}</b> at <b>{f.latitude}</b>. In midsummer the sun stays above the
-        horizon, so <b>{joined}</b> {names.length > 1 ? "have" : "has"} no calculated time here.
-      </p>
-      <div className="nosunset-card">
-        {f.defined.map((p) => (
-          <div className="ns-row" key={p.key}>
-            <span>{p.en} <span className="ar" aria-hidden="true">{p.ar}</span></span>
-            <span className="tnum">{p.time} <em>· {p.note}</em></span>
-          </div>
-        ))}
-        {f.undefinedPrayers.map((p) => (
-          <div className="ns-row" key={p.key}>
-            <span>{p.en} <span className="ar" aria-hidden="true">{p.ar}</span></span>
-            <em>{p.key === "fajr" ? "no true dawn" : "no true sunset"}</em>
-          </div>
-        ))}
-      </div>
-      <p style={{ fontSize: 13.5, color: "var(--text-mute)", maxWidth: "34ch" }}>
-        Scholars differ on high-latitude timings — many follow the nearest moderate latitude or the times
-        of the last place the sun set. Follow the guidance you trust.
-      </p>
-      <div className="state-actions">
-        <button className="btn" onClick={onBack}><Ic.back style={{width:16,height:16}} aria-hidden="true" /> Look up another flight</button>
       </div>
       <Foot />
     </main>

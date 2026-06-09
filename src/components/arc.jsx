@@ -38,11 +38,17 @@ function ArcTimeline({ f, activeKey, onSelect }) {
   }
   const dPath = smooth(curve);
 
-  // in-flight band (spans the aloft prayers)
+  // in-flight band (spans the aloft prayers). If no prayer fell aloft (e.g. a short
+  // polar flight whose prayers are all on the ground before/after), mark the flight
+  // window as the gap between the last before-departure prayer and the first after-arrival one.
   const flightIdx = pts.filter(p => p.pr.status === "inflight").map(p => p.i);
+  const beforeIdx = pts.filter(p => p.pr.status === "before").map(p => p.i);
+  const afterIdx  = pts.filter(p => p.pr.status === "after").map(p => p.i);
   const band = flightIdx.length
     ? { x1: xAt(Math.min(...flightIdx)) - slot / 2, x2: xAt(Math.max(...flightIdx)) + slot / 2 }
-    : null;
+    : (beforeIdx.length && afterIdx.length
+        ? { x1: xAt(Math.max(...beforeIdx)), x2: xAt(Math.min(...afterIdx)) }
+        : null);
 
   // day-break dividers (where the calendar date changes between prayers)
   const breaks = [];

@@ -160,6 +160,8 @@ function MethodSheet({ open, onClose }) {
       d: "A compass is hard to read mid-flight, so we show the direction of the Ka‘bah as a position around a little aircraft — turn that way to face the qibla." },
     { ic: Ic.book, t: "Trusted prayer-time methods",
       d: "The times follow the established calculation authorities — ISNA, Muslim World League, Umm al-Qura and more — not formulas of our own. Choose the one you follow in Settings." },
+    { ic: Ic.sunrise, t: "Far-north flights",
+      d: "Near the poles the summer sky never truly darkens, so the usual dawn and dusk angles have no moment to mark. Across most of the world — Istanbul, New York — your method's normal angle works all year. Only farther north does it run out: there we round down to 60°N — roughly the latitude of Stockholm, St Petersburg, Helsinki and Anchorage, about as far north as big cities go — and mark those prayers as estimates." },
     { ic: Ic.auto, t: "Yours, on your device",
       d: "Look up a flight while you still have signal, and it’s saved to your device — so it stays available offline once you’re in the air. No account needed; the live flight search itself does need a connection." }
   ];
