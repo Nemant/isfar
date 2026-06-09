@@ -38,5 +38,32 @@ const OPTS = { method: 'isna', madhab: 'shafi', highLat: 'seventhnight' };
   ok('60N UmmAlQura Isha real (interval)',estimateBasisFor('isha', 60, ms, uaq) === 'real');
 }
 
+// --- Task 3: model fields + no-sunset path ---
+{
+  const m = compute(BA48, OPTS);
+  const isha = m.prayers.find(p => p.key === 'isha' && p.status === 'inflight');
+  ok('in-flight Isha tagged estimated', isha && isha.estimated === true);
+  ok('in-flight Isha basis portioned', isha && isha.estimateBasis === 'portioned');
+  const dhuhr = m.prayers.find(p => p.key === 'dhuhr');
+  ok('Dhuhr not estimated', dhuhr && dhuhr.estimated === false && dhuhr.estimateBasis === null);
+
+  // a normal mid-latitude flight is unchanged (no estimates)
+  const sv = compute(lookup('SV124'), OPTS);
+  ok('SV124 has no estimated prayers', sv.prayers.every(p => p.estimated === false));
+
+  // DY394 (OSL->TOS, midnight sun) — no-sunset screen still triggers AND now carries times
+  const dy = compute(lookup('DY394'), OPTS);
+  ok('DY394 noSunset still true', dy.noSunset === true);
+  ok('DY394 undefinedPrayers carry a time', (dy.undefinedPrayers || []).every(p => typeof p.time === 'string' && p.time.length));
+  ok('DY394 undefinedPrayers flagged substituted', (dy.undefinedPrayers || []).every(p => p.estimated === true && p.estimateBasis === 'substituted'));
+}
+
+// --- Task 3b: estimates are sane (in-flight prayers chronological) ---
+{
+  const m = compute(BA48, OPTS);
+  const infl = m.prayers.filter(p => p.status === 'inflight');
+  for (let i = 1; i < infl.length; i++) ok('in-flight prayers chronological', infl[i].ms >= infl[i-1].ms);
+}
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

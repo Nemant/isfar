@@ -275,6 +275,8 @@ const ISFAR_ENGINE = (function () {
     const prayers = entries.map((a, i) => {
       running[a.key] = (running[a.key] || 0) + 1;
       const seq = counts[a.key] > 1 ? running[a.key] : 0;   // 0 = unique
+      const _basis = estimateBasisFor(a.key, a.lat, a.ms, params);
+      const _estimated = _basis !== "real";
       // qibla as a CLOCK POSITION off the aircraft's nose (12 = direction of
       // travel) — only meaningful while aloft; on the ground use a normal app
       let qiblaClock = null, qiblaRel = null;
@@ -310,6 +312,7 @@ const ISFAR_ENGINE = (function () {
         t: solarFrac(a.lat, a.lon, ms),
         ms,
         qiblaClock, qiblaRel, sunrise,
+        estimated: _estimated, estimateBasis: _estimated ? _basis : null,
         zones, seq
       };
     });
@@ -324,9 +327,10 @@ const ISFAR_ENGINE = (function () {
       prayers, multiDay
     });
 
-    // no-sunset: a prayer type undefined at the destination on arrival day
+    // no-sunset: at the destination on arrival day, which prayers have no real sun event
+    // (true midnight sun / polar night). adhan now SUBSTITUTES a time (AqrabBalad); we surface it.
     const destT = instantsAt(to.lat, to.lon, arr, params);
-    const undefinedKeys = ORDER.filter(k => !destT[k]);
+    const undefinedKeys = ORDER.filter(k => estimateBasisFor(k, to.lat, arr, params) === "substituted");
     if (undefinedKeys.length) {
       model.noSunset = true;
       model.latitude = Math.abs(to.lat).toFixed(1) + "° " + (to.lat >= 0 ? "N" : "S");
@@ -335,7 +339,11 @@ const ISFAR_ENGINE = (function () {
         time: (p.zones[from.iata] || Object.values(p.zones)[0]).time,
         note: p.status === "before" ? "before departure" : "aloft"
       }));
-      model.undefinedPrayers = undefinedKeys.map(k => ({ key: k, en: META[k].en, ar: META[k].ar }));
+      model.undefinedPrayers = undefinedKeys.map(k => ({
+        key: k, en: META[k].en, ar: META[k].ar,
+        time: destT[k] ? fmtTZ(destT[k].getTime(), to.tz) : null,
+        estimated: true, estimateBasis: "substituted"
+      }));
     }
 
     return model;
