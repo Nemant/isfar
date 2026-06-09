@@ -282,21 +282,20 @@ const ISFAR_ENGINE = (function () {
     let midnightSun = null;
     if (destNoCycle) {
       // Midnight-sun / polar-night DESTINATION: there is no ordinary day/night to set the prayers
-      // against, so every prayer is taken from latitude 60 (Dhuhr is the real solar noon). Show
-      // the next few in order — the same count as a normal arrival — each rolled to its first
-      // occurrence at/after arrival. Drop any in-flight capture of a substituted prayer (it has no
-      // real moment here); real before-departure origin prayers are kept (genuine times).
-      for (let i = entries.length - 1; i >= 0; i--) {
-        if (entries[i].status === "inflight" && destSub.includes(entries[i].key)) entries.splice(i, 1);
-      }
+      // against, so every prayer is taken from latitude 60 (Dhuhr is the real solar noon). Prayers
+      // that fall within the flight window are already captured in-flight; here we add only the
+      // NEXT few due after arrival — each rolled to its first occurrence at/after arrival, skipping
+      // any already shown — so the journey reads as one gap-free, capped sequence.
       const next = [];
       ORDER.forEach(k => {
         if (!inst[k]) return;
         let t = inst[k].getTime();
         while (t < arr) t += 86400000;
-        next.push({ key: k, ms: t });
+        const dk = k + "@" + dayKeyOf(t, to.lon);
+        if (!seen.has(dk)) next.push({ key: k, ms: t, dk });
       });
       next.sort((a, b) => a.ms - b.ms).slice(0, AFTER_CAP).forEach(e => {
+        seen.add(e.dk);
         entries.push({ key: e.key, status: "after", ms: e.ms, lat: to.lat, lon: to.lon });
       });
       // distinguish midnight sun (no sunset) from polar night (no sunrise) for honest copy

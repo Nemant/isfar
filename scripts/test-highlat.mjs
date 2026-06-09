@@ -138,6 +138,11 @@ const OPTS = { method: 'isna', madhab: 'shafi' };
   ok('winter polar night after-arrival prayers are rolled to at/after arrival',
      wAfter.every(p => p.ms >= Date.parse('2026-12-21T17:35:00Z')));
   for (let i = 1; i < wAfter.length; i++) ok('winter after-arrival chronological', wAfter[i].ms >= wAfter[i-1].ms);
+  // a substituted prayer that falls inside the flight window must NOT vanish — it stays in-flight
+  ok('winter polar night keeps the in-flight Isha (not dropped by dedup)',
+     w.prayers.some(p => p.key === 'isha' && p.status === 'inflight'));
+  // no gaps: every distinct prayer key in the journey appears (Isha not skipped between Maghrib and Fajr)
+  ok('winter polar night journey includes an Isha', w.prayers.some(p => p.key === 'isha'));
 }
 
 // --- polar-night MIDDAY arrival: Asr is among the next prayers, as a substituted estimate ---
