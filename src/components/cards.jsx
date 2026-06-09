@@ -61,10 +61,7 @@ function PrayerCard({ pr, active, multiDay, order, refEl }) {
 function EstimateNote({ items }) {
   const est = items.filter(p => p.estimated);
   if (!est.length) return null;
-  const anySub = est.some(p => p.estimateBasis === "substituted");
-  const text = anySub
-    ? "The sun never sets on part of this route, so there's no night to divide — these times are estimated from the nearest latitude that has one. Scholars differ; follow the guidance you trust."
-    : "No true night over the far north on this route, so these prayers have no exact time — estimated by portioning the night. Scholars differ; follow the guidance you trust.";
+  const text = "The far-north summer night is too short — or absent — for the usual twilight angles, so these times are estimated from a settled night at 60°N. Scholars differ; follow the guidance you trust.";
   return (
     <div className="pc-est-note">
       <Ic.info aria-hidden="true" />
