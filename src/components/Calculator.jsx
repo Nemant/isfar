@@ -328,7 +328,7 @@ function Results({ f, activeKey, selectPrayer, cardRefs, onBack }) {
       {ms ? (
         <div className="midnight-banner" role="note">
           <Ic.sunrise aria-hidden="true" />
-          <span>The sun {msVerb} at <b>{ms.city}</b> ({ms.latitude}) — prayer times here are estimated.</span>
+          <span>The sun {msVerb} at <b>{ms.city}</b> ({ms.latitude}) — {ms.allEstimated ? "prayer times here are estimated" : "some prayer times here are estimates"}.</span>
         </div>
       ) : null}
       <ArcTimeline f={f} activeKey={activeKey} onSelect={selectPrayer} />

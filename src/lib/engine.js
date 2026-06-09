@@ -77,11 +77,13 @@ const ISFAR_ENGINE = (function () {
      - otherwise                                                   -> "real" */
   function estimateBasisFor(key, lat, ms, params) {
     const decl = solarDeclination(ms);
-    if (key === "dhuhr") return "real";                             // solar noon: defined even with the sun below the horizon
-    // Asr needs the sun above the horizon to cast a shadow. In polar night (the sun never
-    // rises, |lat-decl| > 90) it has no real moment, so it is taken from latitude 60 like the
-    // twilight prayers; otherwise (including midnight sun, when the sun is up) it is real.
-    if (key === "asr") return Math.abs(lat - decl) > 90 ? "substituted" : "real";
+    // Polar night = the sun never rises (|lat-decl| > 90): the day is wholly abnormal. Asr has no
+    // shadow, and even Dhuhr's "midday" sun stays below the horizon — so both are flagged as
+    // estimates there (Dhuhr keeps the exact solar-noon time, flagged for honesty, not relocated).
+    // Whenever the sun does rise — including midnight sun — both are real (the sun is genuinely up).
+    const polarNight = Math.abs(lat - decl) > 90;
+    if (key === "dhuhr") return polarNight ? "substituted" : "real";
+    if (key === "asr")   return polarNight ? "substituted" : "real";
     const noCycle = Math.abs(lat + decl) > 90 || Math.abs(lat - decl) > 90;
     if (noCycle) return "substituted";                              // affects fajr/isha/maghrib/sunrise
     if (key === "maghrib") return "real";                          // a sun-disk event; defined since a cycle exists
@@ -298,11 +300,14 @@ const ISFAR_ENGINE = (function () {
         seen.add(e.dk);
         entries.push({ key: e.key, status: "after", ms: e.ms, lat: to.lat, lon: to.lon });
       });
-      // distinguish midnight sun (no sunset) from polar night (no sunrise) for honest copy
+      // distinguish midnight sun (no sunset) from polar night (no sunrise) for honest copy.
+      // allEstimated: polar night flags every prayer (Dhuhr/Asr included); midnight sun keeps
+      // Dhuhr/Asr real, so only some are estimated.
       midnightSun = {
         city: to.city, iata: to.iata,
         latitude: Math.abs(to.lat).toFixed(1) + "° " + (to.lat >= 0 ? "N" : "S"),
         kind: Math.abs(to.lat + _arrDecl) > 90 ? "midnightsun" : "polarnight",
+        allEstimated: ORDER.every(k => estimateBasisFor(k, to.lat, arr, params) !== "real"),
         names: destSub.map(k => META[k].en)
       };
     } else {

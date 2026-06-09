@@ -36,12 +36,13 @@ const OPTS = { method: 'isna', madhab: 'shafi' };
   ok('64N June Fajr is substituted (>60)', estimateBasisFor('fajr', 64, sols, isna) === 'substituted');
   ok('64N December Fajr is real (winter night)', estimateBasisFor('fajr', 64, dec, isna) === 'real');
   ok('70N Isha is substituted (no night)', estimateBasisFor('isha', 70, sols, isna) === 'substituted');
-  ok('70N Dhuhr is real (noon always)',    estimateBasisFor('dhuhr', 70, sols, isna) === 'real');
+  ok('70N Dhuhr is real in midnight sun (Jun: sun is up)', estimateBasisFor('dhuhr', 70, sols, isna) === 'real');
   ok('70N Maghrib is substituted',         estimateBasisFor('maghrib', 70, sols, isna) === 'substituted');
-  // Asr is real while the sun rises (incl. midnight sun) but substituted in polar night (no shadow)
+  // Dhuhr & Asr are real while the sun rises (incl. midnight sun) but flagged in polar night:
+  // Asr has no shadow, and Dhuhr's midday sun stays below the horizon (the whole day is abnormal)
   ok('70N Asr is real in midnight sun (Jun)', estimateBasisFor('asr', 70, sols, isna) === 'real');
   ok('70N Asr is substituted in polar night (Dec)', estimateBasisFor('asr', 70, dec, isna) === 'substituted');
-  ok('70N Dhuhr stays real in polar night (Dec)', estimateBasisFor('dhuhr', 70, dec, isna) === 'real');
+  ok('70N Dhuhr is flagged in polar night (Dec)', estimateBasisFor('dhuhr', 70, dec, isna) === 'substituted');
   const uaq = makeParams('ummalqura', 'shafi');                // interval Isha
   ok('60N UmmAlQura Isha real (interval)', estimateBasisFor('isha', 60, sols, uaq) === 'real');
 }
@@ -80,6 +81,7 @@ const OPTS = { method: 'isna', madhab: 'shafi' };
   const dy = compute(lookup('DY394'), OPTS);
   ok('DY394 sets a midnightSun banner', !!(dy.midnightSun && dy.midnightSun.names && dy.midnightSun.names.length));
   ok('DY394 no longer uses the noSunset screen', !dy.noSunset && !dy.undefinedPrayers);
+  ok('DY394 midnight sun is NOT all-estimated (Dhuhr/Asr real, sun is up)', dy.midnightSun.allEstimated === false);
   const dyAfter = dy.prayers.filter(p => p.status === 'after');
   ok('DY394 after-arrival shows the next few prayers (capped, not a whole day)',
      dyAfter.length > 0 && dyAfter.length <= 2);
@@ -125,6 +127,7 @@ const OPTS = { method: 'isna', madhab: 'shafi' };
   };
   const w = compute(winter, OPTS);
   ok('winter polar night sets a midnightSun banner', !!(w.midnightSun && w.midnightSun.names.length));
+  ok('winter polar night is ALL-estimated (Dhuhr/Asr flagged too)', w.midnightSun.allEstimated === true);
   const subSet = new Set(w.midnightSun.names);
   const before = w.prayers.filter(p => p.status === 'before');
   // a REAL before-departure prayer at Oslo whose key is ALSO substituted at the destination must still appear
