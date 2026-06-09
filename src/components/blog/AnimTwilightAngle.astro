@@ -26,6 +26,10 @@ const STARS = [[96, 52, 1, 0.55], [208, 34, 1.2, 0.62], [332, 66, 1, 0.68], [452
       </radialGradient>
     </defs>
 
+    <!-- the sky itself darkens toward night as the sun sinks (so the figure
+         reads as nightfall even on the light theme) -->
+    <rect class="skyfill" x="0" y="0" width="640" height={HY}></rect>
+
     <!-- twilight glow band hugging the horizon from above; dies as the sun sinks -->
     <rect class="band" x="0" y="64" width="640" height="86" fill="url(#tw-glow)"></rect>
 
@@ -37,9 +41,9 @@ const STARS = [[96, 52, 1, 0.55], [208, 34, 1.2, 0.62], [332, 66, 1, 0.68], [452
     <!-- ground -->
     <rect class="ground" x="0" y={HY} width="640" height={380 - HY}></rect>
 
-    <!-- horizon -->
+    <!-- horizon (label sits below the line, clear of the darkening sky) -->
     <line class="hline" x1="0" y1={HY} x2="640" y2={HY}></line>
-    <text class="hlabel" x="8" y={HY - 5}>horizon</text>
+    <text class="hlabel" x="8" y={HY + 12}>horizon</text>
 
     <!-- depth markers: the two method angles -->
     <g class="mark m15">
@@ -83,6 +87,10 @@ const STARS = [[96, 52, 1, 0.55], [208, 34, 1.2, 0.62], [332, 66, 1, 0.68], [452
   .hline  { stroke: var(--border); stroke-width: 1; }
   .hlabel { fill: var(--text-mute); opacity: 0.6; font-size: 9px; }
 
+  /* night falls inside the figure as the sun sinks — a fixed deep indigo so
+     the darkening reads on the light theme too (on dark it just deepens) */
+  .skyfill { fill: oklch(0.26 0.05 286); opacity: calc(var(--k) * 0.85); }
+
   /* twilight band + halo die as the sun sinks (--k = depth / 18°) */
   .band { opacity: calc(1 - var(--k)); }
   .g-isha0   { stop-color: oklch(from var(--sky-isha) l c h / 0); }
@@ -90,7 +98,8 @@ const STARS = [[96, 52, 1, 0.55], [208, 34, 1.2, 0.62], [332, 66, 1, 0.68], [452
   .g-maghrib { stop-color: oklch(from var(--sky-maghrib) l c h / 0.28); }
   .g-dhuhr   { stop-color: oklch(from var(--sky-dhuhr) l c h / 0.4); }
 
-  .star { fill: var(--text-soft); opacity: clamp(0, calc((var(--k) - var(--th, 0.6)) / 0.28), 1); }
+  /* stars are always pale (they only appear over the darkened sky) */
+  .star { fill: oklch(0.95 0.02 250); opacity: clamp(0, calc((var(--k) - var(--th, 0.6)) / 0.28), 1); }
 
   .disc { fill: var(--sky-maghrib);
           filter: drop-shadow(0 0 calc(5px * var(--glow)) oklch(from var(--sky-maghrib) l c h / 0.55)); }

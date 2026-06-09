@@ -129,6 +129,12 @@ const axisTop = CY - R - 14, axisBot = CY + R + 14;
   }
   figure.in .night { opacity: 1; }
 
+  /* Dark theme: --sky-isha (l≈0.54) is LIGHTER than the dark disc, which made
+     the night side read as lit and the sun side as shadowed. Night must
+     genuinely darken, and the sun-facing limb gets a stronger warm wash. */
+  :global(html[data-theme="dark"]) .night { fill: oklch(0.1 0.035 290 / 0.6); }
+  :global(html[data-theme="dark"]) .lit-a { stop-color: oklch(from var(--sky-dhuhr) l c h / 0.26); }
+
   /* spin suggestion: meridian arcs drifting while in view */
   .meridian {
     fill: none; stroke: var(--text-mute); stroke-width: 1;
