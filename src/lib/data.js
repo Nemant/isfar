@@ -194,7 +194,17 @@ const ISFAR_DATA = (function () {
     }
   ];
 
-  return { lookup, lookupRemote, COLOR, META, METHODS, GUIDANCE, SAMPLE: "SV124" };
+  // High-latitude rules for routes with no true night. adhan also offers
+  // MiddleOfTheNight — deliberately omitted: it collapses Isha≈Fajr to ~1 min at
+  // exactly these latitudes (it's adhan's silent default, part of what we fix).
+  const HIGHLAT = [
+    { key: "seventhnight", label: "Last seventh of the night",
+      blurb: "Isha a seventh of the night after sunset; Fajr a seventh before sunrise — using your own night." },
+    { key: "twilightangle", label: "Twilight angle",
+      blurb: "Scale the night by the twilight angle — a tighter window." }
+  ];
+
+  return { lookup, lookupRemote, COLOR, META, METHODS, GUIDANCE, HIGHLAT, SAMPLE: "SV124" };
 })();
 
-export const { lookup, lookupRemote, COLOR, META, METHODS, GUIDANCE, SAMPLE } = ISFAR_DATA;
+export const { lookup, lookupRemote, COLOR, META, METHODS, GUIDANCE, HIGHLAT, SAMPLE } = ISFAR_DATA;

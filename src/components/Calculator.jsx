@@ -42,7 +42,7 @@ function Calculator() {
 
   // prayer-calculation settings — real user settings, persisted on the device
   const [settings, setSettings] = useS(() => {
-    const def = { method: "isna", madhab: "shafi" };
+    const def = { method: "isna", madhab: "shafi", highLat: "seventhnight" };
     try { return Object.assign(def, JSON.parse(localStorage.getItem("isfar.settings") || "{}")); }
     catch (e) { return def; }
   });
@@ -92,9 +92,9 @@ function Calculator() {
   // derive the live-computed model whenever the record or calc settings change
   const data = React.useMemo(() => {
     if (!raw || !raw.found) return raw;
-    try { return compute(raw, { method: settings.method, madhab: settings.madhab }); }
+    try { return compute(raw, { method: settings.method, madhab: settings.madhab, highLat: settings.highLat }); }
     catch (e) { console.error("compute failed", e); return raw; }
-  }, [raw, settings.method, settings.madhab]);
+  }, [raw, settings.method, settings.madhab, settings.highLat]);
 
   useE(() => {
     if (!data || !data.found) return;
@@ -171,7 +171,7 @@ function Calculator() {
       setRaw(res);
       if (!res.found) { setView("error"); return; }
       recordRecent(res);
-      let model; try { model = compute(res, { method: settings.method, madhab: settings.madhab }); } catch (e) { model = res; }
+      let model; try { model = compute(res, { method: settings.method, madhab: settings.madhab, highLat: settings.highLat }); } catch (e) { model = res; }
       setView(model && model.noSunset ? "nosunset" : "results");
     })();
   }
