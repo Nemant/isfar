@@ -77,7 +77,11 @@ const ISFAR_ENGINE = (function () {
      - otherwise                                                   -> "real" */
   function estimateBasisFor(key, lat, ms, params) {
     const decl = solarDeclination(ms);
-    if (key === "dhuhr" || key === "asr") return "real";            // solar-noon / afternoon: always defined in daylight
+    if (key === "dhuhr") return "real";                             // solar noon: defined even with the sun below the horizon
+    // Asr needs the sun above the horizon to cast a shadow. In polar night (the sun never
+    // rises, |lat-decl| > 90) it has no real moment, so it is taken from latitude 60 like the
+    // twilight prayers; otherwise (including midnight sun, when the sun is up) it is real.
+    if (key === "asr") return Math.abs(lat - decl) > 90 ? "substituted" : "real";
     const noCycle = Math.abs(lat + decl) > 90 || Math.abs(lat - decl) > 90;
     if (noCycle) return "substituted";                              // affects fajr/isha/maghrib/sunrise
     if (key === "maghrib") return "real";                          // a sun-disk event; defined since a cycle exists
@@ -123,17 +127,18 @@ const ISFAR_ENGINE = (function () {
   }
 
   /* Banded high-latitude policy. Below the 60° floor the local times stand
-     (SeventhOfTheNight already portions any too-bright night). Above 60° the
-     twilight-dependent prayers with no dependable local event are taken from latitude 60
-     — the furthest north with a settled night — while Dhuhr and Asr (always defined) stay
-     local, and Maghrib/sunrise stay local wherever the sun still crosses the horizon. */
+     (SeventhOfTheNight already portions any too-bright night). Above 60° any prayer with no
+     dependable local event is taken from latitude 60 — the furthest north with a settled
+     night — while Dhuhr (solar noon, always defined) stays local. In practice that borrows the
+     twilight prayers, plus Maghrib/sunrise where the sun never sets and Asr where it never
+     rises (polar night). estimateBasisFor decides, per prayer and date, which case applies. */
   function instantsAt(lat, lon, refMs, params) {
     const local = rawInstants(lat, lon, refMs, params);
     if (Math.abs(lat) <= HIGHLAT_FLOOR) return local;
     const borrow = rawInstants(Math.sign(lat) * HIGHLAT_FLOOR, lon, refMs, params);
     const out = Object.assign({}, local);
     ORDER.forEach(k => {
-      if (k === "dhuhr" || k === "asr") return;
+      if (k === "dhuhr") return;
       if (estimateBasisFor(k, lat, refMs, params) === "substituted") out[k] = borrow[k];
     });
     if (!local.sunrise) out.sunrise = borrow.sunrise;
@@ -260,10 +265,9 @@ const ISFAR_ENGINE = (function () {
       });
     }
 
-    // 3. AFTER arrival — the next prayers due on the ground at the destination,
-    //    on the arrival local day (keep the first few). Substituted (no-sun-event)
-    //    keys are EXCLUDED here and handled by the midnight-sun block below, so the
-    //    AFTER_CAP slice can never crowd out a real prayer (e.g. a real Asr).
+    // 3. AFTER arrival — either the next few prayers due on the ground (normal destination),
+    //    or, when the destination has no ordinary day/night (midnight sun / polar night), one
+    //    complete estimated day in order. The branch below picks based on destNoCycle.
     const inst = instantsAt(to.lat, to.lon, arr, params);
     const _arrDecl = solarDeclination(arr);
     const destNoCycle = Math.abs(to.lat + _arrDecl) > 90 || Math.abs(to.lat - _arrDecl) > 90;
@@ -274,32 +278,19 @@ const ISFAR_ENGINE = (function () {
     const destSub = destNoCycle
       ? ORDER.filter(k => estimateBasisFor(k, to.lat, arr, params) === "substituted")
       : [];
-    const after = [];
-    ORDER.forEach(k => {
-      const t = inst[k]; if (!t) return;
-      const pm = t.getTime();
-      const dk = k + "@" + dayKeyOf(pm, to.lon);
-      if (pm > arr && !seen.has(dk) && !destSub.includes(k)) after.push({ key: k, ms: pm, dk });
-    });
-    after.sort((a, b) => a.ms - b.ms).slice(0, AFTER_CAP).forEach(e => {
-      seen.add(e.dk);
-      entries.push({ key: e.key, status: "after", ms: e.ms, lat: to.lat, lon: to.lon });
-    });
-
-    // Midnight-sun / polar-night DESTINATION: the substituted prayers have no real
-    // sun event there. Show them as after-arrival ESTIMATES (times borrowed from
-    // latitude 60 in instantsAt), and drop any in-flight capture of the same key — else the same
-    // prayer would appear twice at different positions. Real before-departure prayers
-    // at the origin are kept (they share keys but have genuine times).
     let midnightSun = null;
-    if (destSub.length) {
+    if (destNoCycle) {
+      // Midnight-sun / polar-night DESTINATION: there is no ordinary day and night to set the
+      // prayers against, so show ONE complete day — every prayer rolled to its first occurrence
+      // at/after arrival, in order. The twilight prayers (and Asr, in polar night) are borrowed
+      // from latitude 60 by instantsAt; Dhuhr is the real solar noon. Drop any in-flight capture
+      // of a substituted prayer (it has no real moment here); real before-departure origin
+      // prayers are kept (they share keys but have genuine times).
       for (let i = entries.length - 1; i >= 0; i--) {
-        if (entries[i].status !== "before" && destSub.includes(entries[i].key)) entries.splice(i, 1);
+        if (entries[i].status === "inflight" && destSub.includes(entries[i].key)) entries.splice(i, 1);
       }
-      destSub.forEach(k => {
+      ORDER.forEach(k => {
         if (!inst[k]) return;
-        // roll to the first occurrence at/after arrival so the estimates read as one
-        // post-arrival night (Maghrib → Isha → Fajr), not the arrival-date dawn first.
         let t = inst[k].getTime();
         while (t < arr) t += 86400000;
         entries.push({ key: k, status: "after", ms: t, lat: to.lat, lon: to.lon });
@@ -311,6 +302,20 @@ const ISFAR_ENGINE = (function () {
         kind: Math.abs(to.lat + _arrDecl) > 90 ? "midnightsun" : "polarnight",
         names: destSub.map(k => META[k].en)
       };
+    } else {
+      // Normal destination (incl. above-60 with a real night, e.g. Oslo in summer): the next
+      // prayers due on the ground at the destination, on the arrival local day (keep the first few).
+      const after = [];
+      ORDER.forEach(k => {
+        const t = inst[k]; if (!t) return;
+        const pm = t.getTime();
+        const dk = k + "@" + dayKeyOf(pm, to.lon);
+        if (pm > arr && !seen.has(dk)) after.push({ key: k, ms: pm, dk });
+      });
+      after.sort((a, b) => a.ms - b.ms).slice(0, AFTER_CAP).forEach(e => {
+        seen.add(e.dk);
+        entries.push({ key: e.key, status: "after", ms: e.ms, lat: to.lat, lon: to.lon });
+      });
     }
 
     // ---- assemble ordered display model -------------------------------------

@@ -38,6 +38,10 @@ const OPTS = { method: 'isna', madhab: 'shafi' };
   ok('70N Isha is substituted (no night)', estimateBasisFor('isha', 70, sols, isna) === 'substituted');
   ok('70N Dhuhr is real (noon always)',    estimateBasisFor('dhuhr', 70, sols, isna) === 'real');
   ok('70N Maghrib is substituted',         estimateBasisFor('maghrib', 70, sols, isna) === 'substituted');
+  // Asr is real while the sun rises (incl. midnight sun) but substituted in polar night (no shadow)
+  ok('70N Asr is real in midnight sun (Jun)', estimateBasisFor('asr', 70, sols, isna) === 'real');
+  ok('70N Asr is substituted in polar night (Dec)', estimateBasisFor('asr', 70, dec, isna) === 'substituted');
+  ok('70N Dhuhr stays real in polar night (Dec)', estimateBasisFor('dhuhr', 70, dec, isna) === 'real');
   const uaq = makeParams('ummalqura', 'shafi');                // interval Isha
   ok('60N UmmAlQura Isha real (interval)', estimateBasisFor('isha', 60, sols, uaq) === 'real');
 }
@@ -51,7 +55,12 @@ const OPTS = { method: 'isna', madhab: 'shafi' };
   const at60 = instantsAt(60, lon, ref, p);
   ok('69N June Fajr is borrowed from lat 60', at69.fajr && at60.fajr && at69.fajr.getTime() === at60.fajr.getTime());
   ok('69N June Isha is borrowed from lat 60', at69.isha && at60.isha && at69.isha.getTime() === at60.isha.getTime());
-  ok('69N June Asr stays local (differs from 60)', at69.asr && at60.asr && at69.asr.getTime() !== at60.asr.getTime());
+  ok('69N June Asr stays local (sun is up; differs from 60)', at69.asr && at60.asr && at69.asr.getTime() !== at60.asr.getTime());
+  // polar night: Asr has no shadow locally, so it too is borrowed from lat 60
+  const decRef = Date.parse('2026-12-21T12:00:00Z');
+  const d69 = instantsAt(69.68, lon, decRef, p);
+  const d60 = instantsAt(60, lon, decRef, p);
+  ok('69N Dec Asr is borrowed from lat 60 (polar night)', d69.asr && d60.asr && d69.asr.getTime() === d60.asr.getTime());
 }
 
 // --- Task 3: model fields + no-sunset path ---
@@ -72,18 +81,22 @@ const OPTS = { method: 'isna', madhab: 'shafi' };
   ok('DY394 sets a midnightSun banner', !!(dy.midnightSun && dy.midnightSun.names && dy.midnightSun.names.length));
   ok('DY394 no longer uses the noSunset screen', !dy.noSunset && !dy.undefinedPrayers);
   const dyAfter = dy.prayers.filter(p => p.status === 'after');
-  ok('DY394 after-arrival prayers are substituted estimates',
-     dyAfter.length > 0 && dyAfter.every(p => p.estimated === true && p.estimateBasis === 'substituted'));
-  ok('DY394 after-arrival estimates carry times in both zones',
+  ok('DY394 shows a complete after-arrival day (all five present)',
+     ['fajr','dhuhr','asr','maghrib','isha'].every(k => dyAfter.some(p => p.key === k)));
+  ok('DY394 after-arrival twilight prayers are substituted estimates',
+     ['fajr','maghrib','isha'].every(k => { const p = dyAfter.find(x => x.key === k); return p && p.estimated === true && p.estimateBasis === 'substituted'; }));
+  ok('DY394 after-arrival Dhuhr & Asr are real (midnight sun: sun is up)',
+     ['dhuhr','asr'].every(k => { const p = dyAfter.find(x => x.key === k); return p && p.estimated === false; }));
+  ok('DY394 after-arrival prayers carry times in both zones',
      dyAfter.every(p => p.zones && Object.values(p.zones).every(z => typeof z.time === 'string' && z.time.length)));
-  // each substituted prayer appears exactly once (no in-flight + after duplicate)
-  const subCounts = {}; dy.prayers.forEach(p => { if (p.estimateBasis === 'substituted') subCounts[p.key] = (subCounts[p.key] || 0) + 1; });
-  ok('DY394 each substituted key appears once', Object.values(subCounts).every(n => n === 1));
-  // after-arrival estimates are chronological (order fix)
-  for (let i = 1; i < dyAfter.length; i++) ok('DY394 after-arrival estimates chronological', dyAfter[i].ms >= dyAfter[i-1].ms);
+  // each prayer appears exactly once after arrival (no in-flight + after duplicate)
+  const dyAfterCounts = {}; dyAfter.forEach(p => dyAfterCounts[p.key] = (dyAfterCounts[p.key] || 0) + 1);
+  ok('DY394 each prayer appears once after arrival', Object.values(dyAfterCounts).every(n => n === 1));
+  // the complete day is chronological (Fajr -> ... -> Isha)
+  for (let i = 1; i < dyAfter.length; i++) ok('DY394 after-arrival day chronological', dyAfter[i].ms >= dyAfter[i-1].ms);
 }
 
-// --- midnight-sun MORNING arrival: real Dhuhr/Asr after arrival are NOT crowded out by AFTER_CAP ---
+// --- midnight-sun MORNING arrival: the complete after-arrival day includes real Dhuhr/Asr ---
 {
   const morning = {
     code: 'TEST2', airline: 'Test',
@@ -121,6 +134,15 @@ const OPTS = { method: 'isna', madhab: 'shafi' };
   ok('winter keeps a real before-departure prayer sharing a substituted name',
      before.some(p => p.estimated === false && subSet.has(p.en)));
   ok('winter before-departure prayers are real (not estimated)', before.every(p => p.estimated === false));
+  // the destination shows ONE complete day after arrival, in order
+  const wAfter = w.prayers.filter(p => p.status === 'after');
+  ok('winter polar night shows a complete after-arrival day (all five present)',
+     ['fajr','dhuhr','asr','maghrib','isha'].every(k => wAfter.some(p => p.key === k)));
+  ok('winter polar night Asr is a substituted estimate (sun never rises)',
+     (() => { const a = wAfter.find(p => p.key === 'asr'); return a && a.estimated === true && a.estimateBasis === 'substituted'; })());
+  ok('winter polar night Dhuhr is real (solar noon)',
+     (() => { const d = wAfter.find(p => p.key === 'dhuhr'); return d && d.estimated === false; })());
+  for (let i = 1; i < wAfter.length; i++) ok('winter after-arrival day chronological', wAfter[i].ms >= wAfter[i-1].ms);
 }
 
 console.log(`\n${pass} passed, ${fail} failed`);
