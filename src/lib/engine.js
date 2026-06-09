@@ -265,9 +265,10 @@ const ISFAR_ENGINE = (function () {
       });
     }
 
-    // 3. AFTER arrival — either the next few prayers due on the ground (normal destination),
-    //    or, when the destination has no ordinary day/night (midnight sun / polar night), one
-    //    complete estimated day in order. The branch below picks based on destNoCycle.
+    // 3. AFTER arrival — the next few prayers due on the ground at the destination. For a
+    //    no-cycle destination (midnight sun / polar night) the next prayers are rolled forward
+    //    from latitude-60 estimates; otherwise they are the real arrival-day times. Same count
+    //    either way. The branch below picks based on destNoCycle.
     const inst = instantsAt(to.lat, to.lon, arr, params);
     const _arrDecl = solarDeclination(arr);
     const destNoCycle = Math.abs(to.lat + _arrDecl) > 90 || Math.abs(to.lat - _arrDecl) > 90;
@@ -280,20 +281,23 @@ const ISFAR_ENGINE = (function () {
       : [];
     let midnightSun = null;
     if (destNoCycle) {
-      // Midnight-sun / polar-night DESTINATION: there is no ordinary day and night to set the
-      // prayers against, so show ONE complete day — every prayer rolled to its first occurrence
-      // at/after arrival, in order. The twilight prayers (and Asr, in polar night) are borrowed
-      // from latitude 60 by instantsAt; Dhuhr is the real solar noon. Drop any in-flight capture
-      // of a substituted prayer (it has no real moment here); real before-departure origin
-      // prayers are kept (they share keys but have genuine times).
+      // Midnight-sun / polar-night DESTINATION: there is no ordinary day/night to set the prayers
+      // against, so every prayer is taken from latitude 60 (Dhuhr is the real solar noon). Show
+      // the next few in order — the same count as a normal arrival — each rolled to its first
+      // occurrence at/after arrival. Drop any in-flight capture of a substituted prayer (it has no
+      // real moment here); real before-departure origin prayers are kept (genuine times).
       for (let i = entries.length - 1; i >= 0; i--) {
         if (entries[i].status === "inflight" && destSub.includes(entries[i].key)) entries.splice(i, 1);
       }
+      const next = [];
       ORDER.forEach(k => {
         if (!inst[k]) return;
         let t = inst[k].getTime();
         while (t < arr) t += 86400000;
-        entries.push({ key: k, status: "after", ms: t, lat: to.lat, lon: to.lon });
+        next.push({ key: k, ms: t });
+      });
+      next.sort((a, b) => a.ms - b.ms).slice(0, AFTER_CAP).forEach(e => {
+        entries.push({ key: e.key, status: "after", ms: e.ms, lat: to.lat, lon: to.lon });
       });
       // distinguish midnight sun (no sunset) from polar night (no sunrise) for honest copy
       midnightSun = {

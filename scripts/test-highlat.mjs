@@ -81,22 +81,19 @@ const OPTS = { method: 'isna', madhab: 'shafi' };
   ok('DY394 sets a midnightSun banner', !!(dy.midnightSun && dy.midnightSun.names && dy.midnightSun.names.length));
   ok('DY394 no longer uses the noSunset screen', !dy.noSunset && !dy.undefinedPrayers);
   const dyAfter = dy.prayers.filter(p => p.status === 'after');
-  ok('DY394 shows a complete after-arrival day (all five present)',
-     ['fajr','dhuhr','asr','maghrib','isha'].every(k => dyAfter.some(p => p.key === k)));
-  ok('DY394 after-arrival twilight prayers are substituted estimates',
-     ['fajr','maghrib','isha'].every(k => { const p = dyAfter.find(x => x.key === k); return p && p.estimated === true && p.estimateBasis === 'substituted'; }));
-  ok('DY394 after-arrival Dhuhr & Asr are real (midnight sun: sun is up)',
-     ['dhuhr','asr'].every(k => { const p = dyAfter.find(x => x.key === k); return p && p.estimated === false; }));
+  ok('DY394 after-arrival shows the next few prayers (capped, not a whole day)',
+     dyAfter.length > 0 && dyAfter.length <= 2);
+  ok('DY394 after-arrival leads with an estimated Fajr',
+     dyAfter[0] && dyAfter[0].key === 'fajr' && dyAfter[0].estimated === true && dyAfter[0].estimateBasis === 'substituted');
   ok('DY394 after-arrival prayers carry times in both zones',
      dyAfter.every(p => p.zones && Object.values(p.zones).every(z => typeof z.time === 'string' && z.time.length)));
-  // each prayer appears exactly once after arrival (no in-flight + after duplicate)
+  // each prayer appears at most once after arrival, in chronological order
   const dyAfterCounts = {}; dyAfter.forEach(p => dyAfterCounts[p.key] = (dyAfterCounts[p.key] || 0) + 1);
-  ok('DY394 each prayer appears once after arrival', Object.values(dyAfterCounts).every(n => n === 1));
-  // the complete day is chronological (Fajr -> ... -> Isha)
-  for (let i = 1; i < dyAfter.length; i++) ok('DY394 after-arrival day chronological', dyAfter[i].ms >= dyAfter[i-1].ms);
+  ok('DY394 each prayer appears at most once after arrival', Object.values(dyAfterCounts).every(n => n === 1));
+  for (let i = 1; i < dyAfter.length; i++) ok('DY394 after-arrival chronological', dyAfter[i].ms >= dyAfter[i-1].ms);
 }
 
-// --- midnight-sun MORNING arrival: the complete after-arrival day includes real Dhuhr/Asr ---
+// --- midnight-sun MORNING arrival: the next prayers after landing are the real Dhuhr/Asr ---
 {
   const morning = {
     code: 'TEST2', airline: 'Test',
@@ -134,15 +131,27 @@ const OPTS = { method: 'isna', madhab: 'shafi' };
   ok('winter keeps a real before-departure prayer sharing a substituted name',
      before.some(p => p.estimated === false && subSet.has(p.en)));
   ok('winter before-departure prayers are real (not estimated)', before.every(p => p.estimated === false));
-  // the destination shows ONE complete day after arrival, in order
+  // the destination shows the next few prayers after arrival (capped, rolled forward)
   const wAfter = w.prayers.filter(p => p.status === 'after');
-  ok('winter polar night shows a complete after-arrival day (all five present)',
-     ['fajr','dhuhr','asr','maghrib','isha'].every(k => wAfter.some(p => p.key === k)));
-  ok('winter polar night Asr is a substituted estimate (sun never rises)',
-     (() => { const a = wAfter.find(p => p.key === 'asr'); return a && a.estimated === true && a.estimateBasis === 'substituted'; })());
-  ok('winter polar night Dhuhr is real (solar noon)',
-     (() => { const d = wAfter.find(p => p.key === 'dhuhr'); return d && d.estimated === false; })());
-  for (let i = 1; i < wAfter.length; i++) ok('winter after-arrival day chronological', wAfter[i].ms >= wAfter[i-1].ms);
+  ok('winter polar night after-arrival shows the next few prayers (capped)',
+     wAfter.length > 0 && wAfter.length <= 2);
+  ok('winter polar night after-arrival prayers are rolled to at/after arrival',
+     wAfter.every(p => p.ms >= Date.parse('2026-12-21T17:35:00Z')));
+  for (let i = 1; i < wAfter.length; i++) ok('winter after-arrival chronological', wAfter[i].ms >= wAfter[i-1].ms);
+}
+
+// --- polar-night MIDDAY arrival: Asr is among the next prayers, as a substituted estimate ---
+{
+  const middayPolar = {
+    code: 'TEST3', airline: 'Test',
+    depUTC: '2026-12-21T08:30:00Z', arrUTC: '2026-12-21T10:00:00Z',  // arrive Tromsø ~11:00 local, polar night
+    from: { iata: 'OSL', city: 'Oslo',   lat: 60.19, lon: 11.10, tz: 'Europe/Oslo' },
+    to:   { iata: 'TOS', city: 'Tromsø', lat: 69.68, lon: 18.92, tz: 'Europe/Oslo' },
+  };
+  const m = compute(middayPolar, OPTS);
+  const asr = m.prayers.find(p => p.key === 'asr' && p.status === 'after');
+  ok('polar-night midday arrival surfaces Asr as a substituted estimate',
+     asr && asr.estimated === true && asr.estimateBasis === 'substituted');
 }
 
 console.log(`\n${pass} passed, ${fail} failed`);

@@ -320,8 +320,6 @@ function Loading({ query, msg }) {
 /* ---- Results ------------------------------------------------------------ */
 function Results({ f, activeKey, selectPrayer, cardRefs, onBack }) {
   const ms = f.midnightSun;
-  const msNames = ms ? (ms.names.length <= 1 ? ms.names[0]
-    : ms.names.slice(0, -1).join(", ") + " & " + ms.names[ms.names.length - 1]) : "";
   const msVerb = ms && ms.kind === "polarnight" ? "won’t rise" : "won’t set";
   return (
     <main className="results">
@@ -330,7 +328,7 @@ function Results({ f, activeKey, selectPrayer, cardRefs, onBack }) {
       {ms ? (
         <div className="midnight-banner" role="note">
           <Ic.sunrise aria-hidden="true" />
-          <span>The sun {msVerb} at <b>{ms.city}</b> ({ms.latitude}) — {msNames} {ms.names.length > 1 ? "are" : "is"} estimated.</span>
+          <span>The sun {msVerb} at <b>{ms.city}</b> ({ms.latitude}) — prayer times here are estimated.</span>
         </div>
       ) : null}
       <ArcTimeline f={f} activeKey={activeKey} onSelect={selectPrayer} />
