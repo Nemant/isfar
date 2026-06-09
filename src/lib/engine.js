@@ -287,8 +287,8 @@ const ISFAR_ENGINE = (function () {
     });
 
     // Midnight-sun / polar-night DESTINATION: the substituted prayers have no real
-    // sun event there. Show them as after-arrival ESTIMATES (adhan substitutes a time
-    // via AqrabBalad), and drop any in-flight capture of the same key — else the same
+    // sun event there. Show them as after-arrival ESTIMATES (times borrowed from
+    // latitude 60 in instantsAt), and drop any in-flight capture of the same key — else the same
     // prayer would appear twice at different positions. Real before-departure prayers
     // at the origin are kept (they share keys but have genuine times).
     let midnightSun = null;

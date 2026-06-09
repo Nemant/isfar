@@ -61,7 +61,7 @@ function PrayerCard({ pr, active, multiDay, order, refEl }) {
 function EstimateNote({ items }) {
   const est = items.filter(p => p.estimated);
   if (!est.length) return null;
-  const text = "The far-north summer night is too short — or absent — for the usual twilight angles, so these times are estimated from a settled night at 60°N. Scholars differ; follow the guidance you trust.";
+  const text = "The far-north summer night is too short — or absent — for the usual twilight angles, so these times are estimates. Scholars differ; follow the guidance you trust.";
   return (
     <div className="pc-est-note">
       <Ic.info aria-hidden="true" />
