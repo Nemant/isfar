@@ -1004,3 +1004,17 @@ body {
   .endpoint .code-iata { font-size: 28px; }
   .input { font-size: 26px; }
 }
+
+/* High-latitude estimated prayers — calm, not a warning */
+.prayer-card.estimate { border-style: dashed; opacity: 0.96; }
+.pc-est-pill {
+  font-size: 10.5px; letter-spacing: 0.03em; text-transform: uppercase;
+  padding: 1px 6px; border-radius: 999px; margin-inline-start: 8px;
+  color: var(--text-mute); border: 1px solid var(--border);
+}
+.pc-est-note {
+  display: flex; gap: 8px; align-items: flex-start;
+  font-size: 13px; line-height: 1.45; color: var(--text-mute);
+  padding: 8px 12px; margin-top: 6px;
+}
+.pc-est-note svg { flex: 0 0 auto; width: 15px; height: 15px; margin-top: 2px; opacity: 0.8; }

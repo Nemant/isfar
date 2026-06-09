@@ -19,13 +19,14 @@ function PrayerCard({ pr, active, multiDay, order, refEl }) {
   const color = COLOR[pr.key];
   const zs = order.map((iata) => pr.zones[iata]).filter(Boolean);
   return (
-    <article ref={refEl} className={"prayer-card" + (active ? " active" : "")} style={{ "--dot": color }}
-             aria-label={`${pr.en}${pr.qiblaClock ? ", qibla at " + pr.qiblaClock + " o'clock" : ""} — ${zs.map(z => z.iata + " " + z.time).join(", ")}`}>
+    <article ref={refEl} className={"prayer-card" + (active ? " active" : "") + (pr.estimated ? " estimate" : "")} style={{ "--dot": color }}
+             aria-label={`${pr.en}${pr.estimated ? " (estimated)" : ""}${pr.qiblaClock ? ", qibla at " + pr.qiblaClock + " o'clock" : ""} — ${zs.map(z => z.iata + " " + z.time).join(", ")}`}>
       <div className="pc-icon"><Glyph aria-hidden="true" /></div>
       <div className="pc-main">
         <div className="pc-name">
           <span className="en">{pr.en}</span>
           <span className="ar" aria-hidden="true">{pr.ar}</span>
+          {pr.estimated ? <span className="pc-est-pill">estimate</span> : null}
         </div>
         {(pr.qiblaClock || pr.sunrise) ? (
           <div className="pc-meta">
@@ -48,12 +49,27 @@ function PrayerCard({ pr, active, multiDay, order, refEl }) {
         {zs.map((z) => (
           <div className="pc-zone" key={z.iata}>
             <div className="pc-zone-code">{z.iata}</div>
-            <div className="pc-zone-time tnum">{z.time}</div>
+            <div className="pc-zone-time tnum">{pr.estimated ? "~" : ""}{z.time}</div>
             {multiDay ? <div className="pc-zone-date">{z.date}</div> : null}
           </div>
         ))}
       </div>
     </article>
+  );
+}
+
+function EstimateNote({ items }) {
+  const est = items.filter(p => p.estimated);
+  if (!est.length) return null;
+  const anySub = est.some(p => p.estimateBasis === "substituted");
+  const text = anySub
+    ? "The sun never sets on part of this route, so there's no night to divide — these times are estimated from the nearest latitude that has one. Scholars differ; follow the guidance you trust."
+    : "No true night over the far north on this route, so these prayers have no exact time — estimated by portioning the night. Scholars differ; follow the guidance you trust.";
+  return (
+    <div className="pc-est-note">
+      <Ic.info aria-hidden="true" />
+      <span>{text}</span>
+    </div>
   );
 }
 
@@ -81,6 +97,7 @@ function PrayerList({ f, activeKey, cardRefs }) {
                           active={activeKey === pr.id}
                           refEl={(el) => { if (cardRefs) cardRefs.current[pr.id] = el; }} />
             ))}
+            <EstimateNote items={items} />
           </div>
         );
       })}
