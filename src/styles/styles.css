@@ -1018,3 +1018,13 @@ body {
   padding: 8px 12px; margin-top: 6px;
 }
 .pc-est-note svg { flex: 0 0 auto; width: 15px; height: 15px; margin-top: 2px; opacity: 0.8; }
+
+/* Midnight-sun / polar-night route banner — slim, calm */
+.midnight-banner {
+  display: flex; gap: 8px; align-items: flex-start;
+  font-size: 13px; line-height: 1.45; color: var(--text-mute);
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; padding: 9px 12px; margin: 2px 0;
+}
+.midnight-banner svg { flex: 0 0 auto; width: 16px; height: 16px; margin-top: 1px; opacity: 0.85; }
+.midnight-banner b { color: var(--text); font-weight: 600; }

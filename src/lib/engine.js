@@ -259,6 +259,33 @@ const ISFAR_ENGINE = (function () {
       entries.push({ key: e.key, status: "after", ms: e.ms, lat: to.lat, lon: to.lon });
     });
 
+    // Midnight-sun / polar-night DESTINATION: the substituted prayers have no real
+    // sun event there. Show them as after-arrival ESTIMATES (adhan substitutes a time
+    // via AqrabBalad), and drop any in-flight/after capture of the same key — else the
+    // same prayer would appear twice at different positions. Real before-departure
+    // prayers at the origin are kept (they share keys but have genuine times).
+    let midnightSun = null;
+    const destSub = ORDER.filter(k => estimateBasisFor(k, to.lat, arr, params) === "substituted");
+    if (destSub.length) {
+      const destInst = instantsAt(to.lat, to.lon, arr, params);
+      for (let i = entries.length - 1; i >= 0; i--) {
+        if (entries[i].status !== "before" && destSub.includes(entries[i].key)) entries.splice(i, 1);
+      }
+      destSub.forEach(k => {
+        if (!destInst[k]) return;
+        // roll to the first occurrence at/after arrival so the estimates read as one
+        // post-arrival night (Maghrib → Isha → Fajr), not the arrival-date dawn first.
+        let t = destInst[k].getTime();
+        while (t < arr) t += 86400000;
+        entries.push({ key: k, status: "after", ms: t, lat: to.lat, lon: to.lon });
+      });
+      midnightSun = {
+        city: to.city, iata: to.iata,
+        latitude: Math.abs(to.lat).toFixed(1) + "° " + (to.lat >= 0 ? "N" : "S"),
+        names: destSub.map(k => META[k].en)
+      };
+    }
+
     // ---- assemble ordered display model -------------------------------------
     entries.sort((a, b) => a.ms - b.ms);
     const durationMin = Math.round((arr - dep) / 60000);
@@ -324,33 +351,8 @@ const ISFAR_ENGINE = (function () {
       from: Object.assign({}, from),
       to:   Object.assign({}, to),
       cruiseAltFt: raw.cruiseAltFt || 38000,
-      prayers, multiDay
+      prayers, multiDay, midnightSun
     });
-
-    // no-sunset: at the destination on arrival day, which prayers have no real sun event
-    // (true midnight sun / polar night). adhan now SUBSTITUTES a time (AqrabBalad); we surface it.
-    const destT = instantsAt(to.lat, to.lon, arr, params);
-    const undefinedKeys = ORDER.filter(k => estimateBasisFor(k, to.lat, arr, params) === "substituted");
-    if (undefinedKeys.length) {
-      model.noSunset = true;
-      model.latitude = Math.abs(to.lat).toFixed(1) + "° " + (to.lat >= 0 ? "N" : "S");
-      // Show real (non-substituted) before/aloft prayers here; the substituted ones
-      // are listed as destination estimates below. Filter by estimateBasis, NOT by key:
-      // a winter polar-night flight has REAL before-departure Maghrib/Isha at the origin
-      // whose keys also appear in undefinedKeys — those must still show here.
-      model.defined = prayers.filter(p => p.status !== "after" && p.estimateBasis !== "substituted").map(p => ({
-        key: p.key, en: p.en, ar: p.ar,
-        time: (p.zones[from.iata] || Object.values(p.zones)[0]).time,
-        note: p.status === "before" ? "before departure" : "aloft"
-      }));
-      model.undefinedPrayers = undefinedKeys.map(k => ({
-        key: k, en: META[k].en, ar: META[k].ar,
-        // destT[k] is non-null here: AqrabBalad always substitutes a time for a
-        // polar-circle prayer. The `: null` is a defensive fallback only.
-        time: destT[k] ? fmtTZ(destT[k].getTime(), to.tz) : null,
-        estimated: true, estimateBasis: "substituted"
-      }));
-    }
 
     return model;
   }

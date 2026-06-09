@@ -51,14 +51,20 @@ const OPTS = { method: 'isna', madhab: 'shafi', highLat: 'seventhnight' };
   const sv = compute(lookup('SV124'), OPTS);
   ok('SV124 has no estimated prayers', sv.prayers.every(p => p.estimated === false));
 
-  // DY394 (OSL->TOS, midnight sun) — no-sunset screen still triggers AND now carries times
+  // DY394 (OSL->TOS, midnight sun) — folds into normal results: after-arrival estimates + a banner
   const dy = compute(lookup('DY394'), OPTS);
-  ok('DY394 noSunset still true', dy.noSunset === true);
-  ok('DY394 undefinedPrayers carry a time', (dy.undefinedPrayers || []).every(p => typeof p.time === 'string' && p.time.length));
-  ok('DY394 undefinedPrayers flagged substituted', (dy.undefinedPrayers || []).every(p => p.estimated === true && p.estimateBasis === 'substituted'));
-  // no prayer appears in BOTH the defined list and the estimates (no duplicate Maghrib)
-  const defKeys = new Set((dy.defined || []).map(p => p.key));
-  ok('DY394 defined and undefined lists are disjoint', (dy.undefinedPrayers || []).every(p => !defKeys.has(p.key)));
+  ok('DY394 sets a midnightSun banner', !!(dy.midnightSun && dy.midnightSun.names && dy.midnightSun.names.length));
+  ok('DY394 no longer uses the noSunset screen', !dy.noSunset && !dy.undefinedPrayers);
+  const dyAfter = dy.prayers.filter(p => p.status === 'after');
+  ok('DY394 after-arrival prayers are substituted estimates',
+     dyAfter.length > 0 && dyAfter.every(p => p.estimated === true && p.estimateBasis === 'substituted'));
+  ok('DY394 after-arrival estimates carry times in both zones',
+     dyAfter.every(p => p.zones && Object.values(p.zones).every(z => typeof z.time === 'string' && z.time.length)));
+  // each substituted prayer appears exactly once (no in-flight + after duplicate)
+  const subCounts = {}; dy.prayers.forEach(p => { if (p.estimateBasis === 'substituted') subCounts[p.key] = (subCounts[p.key] || 0) + 1; });
+  ok('DY394 each substituted key appears once', Object.values(subCounts).every(n => n === 1));
+  // after-arrival estimates are chronological (order fix)
+  for (let i = 1; i < dyAfter.length; i++) ok('DY394 after-arrival estimates chronological', dyAfter[i].ms >= dyAfter[i-1].ms);
 }
 
 // --- Task 3b: estimates are sane (in-flight prayers chronological) ---
@@ -68,7 +74,7 @@ const OPTS = { method: 'isna', madhab: 'shafi', highLat: 'seventhnight' };
   for (let i = 1; i < infl.length; i++) ok('in-flight prayers chronological', infl[i].ms >= infl[i-1].ms);
 }
 
-// --- winter polar night: real before-departure prayers are NOT dropped from `defined` ---
+// --- winter polar night: real before-departure prayers are kept (not dropped) ---
 {
   const winter = {
     code: 'TEST', airline: 'Test',
@@ -77,13 +83,13 @@ const OPTS = { method: 'isna', madhab: 'shafi', highLat: 'seventhnight' };
     to:   { iata: 'TOS', city: 'Tromsø',  lat: 69.68, lon: 18.92, tz: 'Europe/Oslo' },
   };
   const w = compute(winter, OPTS);
-  ok('winter polar night triggers noSunset', w.noSunset === true);
-  const undefSet = new Set((w.undefinedPrayers || []).map(p => p.key));
-  // a real before-departure prayer whose key is ALSO substituted at the destination must still appear in `defined`
-  ok('winter defined keeps a real prayer sharing a substituted key',
-     (w.defined || []).some(p => undefSet.has(p.key)));
-  ok('winter defined entries are real (no substituted leak)',
-     (w.defined || []).length > 0);
+  ok('winter polar night sets a midnightSun banner', !!(w.midnightSun && w.midnightSun.names.length));
+  const subSet = new Set(w.midnightSun.names);
+  const before = w.prayers.filter(p => p.status === 'before');
+  // a REAL before-departure prayer at Oslo whose key is ALSO substituted at the destination must still appear
+  ok('winter keeps a real before-departure prayer sharing a substituted name',
+     before.some(p => p.estimated === false && subSet.has(p.en)));
+  ok('winter before-departure prayers are real (not estimated)', before.every(p => p.estimated === false));
 }
 
 // --- Task 8: switching the high-lat rule changes portioned times ---
