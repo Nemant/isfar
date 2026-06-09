@@ -1,0 +1,252 @@
+---
+/*
+ * "Two seasons, two failures" — a Tromsø (69.68°N) year wheel, 15° (ISNA) method.
+ * The article's per-prayer table as five concentric rings: solid = real time,
+ * dashed = estimated. Day-of-year → angle, Jan 1 at the top, clockwise; windows
+ * that wrap across Jan 1 are split into two arcs. Engine-verified windows
+ * (zero-based days): Jan 15→15, Mar 20→78, Apr 5→94, May 18→137, Jun 21→171,
+ * Jul 25→206, Sep 7→250, Nov 28→331.
+ */
+const CX = 320, CY = 235, D2R = Math.PI / 180;
+const ang = (d) => (d / 365) * 360;
+const pt = (d, r) => { const a = ang(d) * D2R; return [+(CX + r * Math.sin(a)).toFixed(1), +(CY - r * Math.cos(a)).toFixed(1)]; };
+const arc = (d1, d2, r) => { const [x1, y1] = pt(d1, r), [x2, y2] = pt(d2, r); return `M ${x1} ${y1} A ${r} ${r} 0 ${ang(d2) - ang(d1) > 180 ? 1 : 0} 1 ${x2} ${y2}`; };
+const complement = (est) => {
+  const s = [...est].sort((a, b) => a[0] - b[0]);
+  const out = []; let prev = 0;
+  for (const [a, b] of s) { if (a > prev) out.push([prev, a]); prev = b; }
+  if (prev < 365) out.push([prev, 365]);
+  return out;
+};
+
+const POLAR = [[331, 365], [0, 15]];          // polar night · Nov 28 – Jan 15
+const TWILIGHT = [[94, 250], ...POLAR];       // Apr 5 – Sep 7, plus polar night
+const RINGS = [
+  { name: 'Fajr',    cls: 'fajr',    letter: 'F', r: 88,  est: TWILIGHT },
+  { name: 'Dhuhr',   cls: 'dhuhr',   letter: 'D', r: 104, est: POLAR },
+  { name: 'Asr',     cls: 'asr',     letter: 'A', r: 120, est: POLAR },
+  { name: 'Maghrib', cls: 'maghrib', letter: 'M', r: 136, est: [[137, 206], ...POLAR] },
+  { name: 'Isha',    cls: 'isha',    letter: 'I', r: 152, est: TWILIGHT },
+].map((p) => ({ ...p, real: complement(p.est) }));
+
+const BOUND = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
+const TICKS = BOUND.map((b) => { const [x1, y1] = pt(b, 157), [x2, y2] = pt(b, 162); return { x1, y1, x2, y2 }; });
+const MLAB = [...'JFMAMJJASOND'].map((l, i) => {
+  const [x, y] = pt(BOUND[i] + ((BOUND[i + 1] ?? 365) - BOUND[i]) / 2, 172);
+  return { x, y, l };
+});
+
+const JUNE = 171;                              // static pose = June 21
+const estAt = (w, d) => w.some(([a, b]) => d >= a && d < b);
+const KEYX = [171, 229, 297, 351, 429];
+---
+<figure class="anim" data-anim="year-wheel">
+  <svg viewBox="0 0 640 500" role="img"
+    aria-label="A year wheel for Tromsø at 69.68 degrees north, computed with a 15-degree method: five concentric rings, one per prayer, solid where the prayer has a real computed time and dashed where it must be estimated. Fajr and Isha are estimated from early April to early September and again through the polar night, late November to mid-January. Maghrib is estimated during the midnight sun, mid-May to late July, and the polar night. Asr and Dhuhr are estimated only during the polar night. For most of the year every ring is solid.">
+
+    <text class="corner" x="12" y="20">TROMS&Oslash; &middot; 69.68&deg;N &middot; 15&deg; METHOD</text>
+
+    <g class="months">
+      {TICKS.map((t) => <line class="tick" x1={t.x1} y1={t.y1} x2={t.x2} y2={t.y2}></line>)}
+      {MLAB.map((m) => <text class="mlab" x={m.x} y={m.y} text-anchor="middle" dominant-baseline="middle">{m.l}</text>)}
+    </g>
+
+    {RINGS.map((p, i) => (
+      <g class={`ring r${i + 1} p-${p.cls}`}>
+        {p.real.map(([a, b]) => <path class="seg real" d={arc(a, b, p.r)}></path>)}
+        {p.est.map(([a, b]) => <path class="seg estd" d={arc(a, b, p.r)}></path>)}
+      </g>
+    ))}
+
+    <g class="seasons">
+      <path class="sun-arc" d={arc(137, 206, 164)}></path>
+      <path class="night-arc" d={arc(331, 365, 164)}></path>
+      <path class="night-arc" d={arc(0, 15, 164)}></path>
+      <text class="season-lab" x="320" y="56" text-anchor="middle">polar night &middot; Nov 28 &ndash; Jan 15</text>
+      <text class="season-lab" x="320" y="424" text-anchor="middle">midnight sun &middot; May 18 &ndash; Jul 25</text>
+    </g>
+
+    <g class="ptr" transform={`rotate(${ang(JUNE).toFixed(2)} ${CX} ${CY})`}>
+      <line x1={CX} y1={CY} x2={CX} y2={CY - 158}></line>
+      <circle cx={CX} cy={CY - 158} r="3"></circle>
+    </g>
+
+    <g class="readout" aria-live="polite">
+      <text class="ro-date" x={CX} y="223" text-anchor="middle">21 June</text>
+      {RINGS.map((p, i) => (
+        <g class:list={['chip', `p-${p.cls}`, { est: estAt(p.est, JUNE) }]} data-p={p.cls}>
+          <rect x={267 + i * 22} y="240" width="18" height="16" rx="4"></rect>
+          <text class="tld" x={276 + i * 22} y="236" text-anchor="middle">~</text>
+          <text class="cl" x={276 + i * 22} y="251.5" text-anchor="middle">{p.letter}</text>
+        </g>
+      ))}
+    </g>
+
+    <g class="keybar">
+      {RINGS.map((p, i) => (
+        <g class={`p-${p.cls}`}>
+          <line class="kline solid" x1={KEYX[i]} y1="449" x2={KEYX[i] + 14} y2="449"></line>
+          <text class="kname" x={KEYX[i] + 19} y="452.5">{p.name}</text>
+        </g>
+      ))}
+      <g class="neutral">
+        <line class="kline solid" x1="208" y1="471" x2="226" y2="471"></line>
+        <text class="klab" x="231" y="474">your method&rsquo;s real time</text>
+        <line class="kline dash" x1="364" y1="471" x2="382" y2="471"></line>
+        <text class="klab" x="387" y="474">estimated</text>
+      </g>
+    </g>
+  </svg>
+
+  <div class="anim-controls">
+    <div class="anim-seg" role="group" aria-label="Jump the date pointer to a season">
+      <button class="anim-btn" type="button" data-day="78" aria-pressed="false">March</button>
+      <button class="anim-btn" type="button" data-day="171" aria-pressed="true">June</button>
+      <button class="anim-btn" type="button" data-day="354" aria-pressed="false">December</button>
+    </div>
+  </div>
+
+  <figcaption>A Troms&oslash; year, prayer by prayer, with a 15&deg; method: solid where the sky still gives your method a real time, dashed where Isfar must estimate. Note how much of the year &mdash; even 350&nbsp;km past the Arctic Circle &mdash; is simply ordinary.</figcaption>
+</figure>
+
+<style>
+  svg { width: 100%; height: auto; display: block; }
+
+  .corner { fill: var(--text-mute); font-size: 9px; letter-spacing: 0.08em; opacity: 0.75; }
+
+  .p-fajr    { --c: var(--sky-fajr); }
+  .p-dhuhr   { --c: var(--sky-dhuhr); }
+  .p-asr     { --c: var(--sky-asr); }
+  .p-maghrib { --c: var(--sky-maghrib); }
+  .p-isha    { --c: var(--sky-isha); }
+  .neutral   { --c: var(--text-soft); }
+
+  .seg { fill: none; stroke: var(--c); stroke-width: 7; }
+  .seg.real { opacity: 0.8; }
+  .seg.estd { opacity: 0.3; stroke-dasharray: 2 5; }
+
+  .tick { stroke: var(--text-mute); stroke-width: 1; opacity: 0.35; }
+  .mlab { fill: var(--text-mute); font-size: 9.5px; letter-spacing: 0.08em; }
+
+  .sun-arc   { fill: none; stroke-width: 3; stroke: oklch(from var(--sky-dhuhr) l c h / 0.55); }
+  .night-arc { fill: none; stroke-width: 3; stroke: oklch(from var(--sky-isha) calc(l * 0.92) c h / 0.7); }
+  .season-lab { fill: var(--text-mute); font-size: 9px; letter-spacing: 0.08em; }
+
+  .ptr line { stroke: var(--text-soft); stroke-width: 1; opacity: 0.85; }
+  .ptr circle { fill: var(--text-soft);
+                filter: drop-shadow(0 0 calc(3px * var(--glow)) oklch(from var(--accent) l c h / 0.5)); }
+
+  .ro-date { fill: var(--text-soft); font-family: "Newsreader", serif; font-size: 15px; }
+  .chip rect { fill: oklch(from var(--c) l c h / 0.45); stroke: var(--c); stroke-width: 1;
+               transition: fill 0.4s ease-in-out; }
+  .chip .cl { fill: var(--text); font-size: 9px; }
+  .chip .tld { fill: var(--text-mute); font-size: 9px; opacity: 0; transition: opacity 0.4s ease-in-out; }
+  .chip.est rect { fill: oklch(from var(--c) l c h / 0.07); stroke-dasharray: 2 2; }
+  .chip.est .cl { fill: var(--text-mute); }
+  .chip.est .tld { opacity: 1; }
+
+  .kline { fill: none; stroke: var(--c); stroke-width: 5; }
+  .kline.solid { opacity: 0.8; }
+  .kline.dash { opacity: 0.45; stroke-dasharray: 2 5; }
+  .kname { fill: var(--text-soft); font-size: 10px; }
+  .klab { fill: var(--text-mute); font-size: 9.5px; }
+
+  /* entry: layers hidden once JS arms the figure, then fade in on .in, staggered */
+  .wind:not(.in) :is(.ring, .months, .seasons, .ptr, .readout, .keybar) { opacity: 0; }
+  .in :is(.ring, .months, .seasons, .ptr, .readout, .keybar) { transition: opacity 1.5s ease-in-out; }
+  .in .r1 { transition-delay: 0.05s; }
+  .in .r2 { transition-delay: 0.15s; }
+  .in .r3 { transition-delay: 0.25s; }
+  .in .r4 { transition-delay: 0.35s; }
+  .in .r5 { transition-delay: 0.45s; }
+  .in .months { transition-delay: 0.55s; }
+  .in .seasons { transition-delay: 0.7s; }
+  .in .keybar { transition-delay: 0.8s; }
+  .in .ptr, .in .readout { transition-delay: 0.95s; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .in :is(.ring, .months, .seasons, .ptr, .readout, .keybar),
+    .chip rect, .chip .tld { transition-duration: 0.01s; }
+  }
+</style>
+
+<script>
+  (() => {
+    const fig = document.querySelector('[data-anim="year-wheel"]');
+    if (!fig) return;
+    const svg = fig.querySelector('svg');
+    const ptr = svg.querySelector('.ptr');
+    const ro = svg.querySelector('.readout');
+    const dateEl = svg.querySelector('.ro-date');
+    const chips = [...svg.querySelectorAll('.chip')];
+    const btns = [...fig.querySelectorAll('.anim-btn[data-day]')];
+
+    // same verified windows as the build-time arcs (zero-based day, end-exclusive)
+    const POLAR = [[331, 365], [0, 15]], TWI = [[94, 250], ...POLAR];
+    const EST = { fajr: TWI, dhuhr: POLAR, asr: POLAR, maghrib: [[137, 206], ...POLAR], isha: TWI };
+    const MN = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    const ML = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+
+    let day = 171, shown = -1, raf = 0, userStopped = false, last;
+    function render (d) {
+      ptr.setAttribute('transform', `rotate(${((d / 365) * 360).toFixed(2)} 320 235)`);
+      const di = Math.floor(d) % 365;
+      if (di === shown) return;
+      shown = di;
+      let m = 0, x = di;
+      while (x >= ML[m]) { x -= ML[m]; m++; }
+      dateEl.textContent = `${x + 1} ${MN[m]}`;
+      for (const c of chips) c.classList.toggle('est', EST[c.dataset.p].some(([a, b]) => di >= a && di < b));
+    }
+
+    const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const settle = () => { ro.setAttribute('aria-live', 'polite'); shown = -1; render(day); };
+
+    function goTo (target, btn) {
+      userStopped = true;                       // first interaction kills the auto-sweep for good
+      cancelAnimationFrame(raf);
+      btns.forEach((b) => b.setAttribute('aria-pressed', String(b === btn)));
+      if (reduced) { day = target; settle(); return; }
+      ro.setAttribute('aria-live', 'off');
+      const from = day;
+      let delta = (((target - from) % 365) + 365) % 365;
+      if (delta > 182.5) delta -= 365;          // shortest way round
+      const t0 = performance.now();
+      const step = (now) => {
+        const t = Math.min((now - t0) / 1200, 1);
+        const k = t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2;
+        day = (((from + delta * k) % 365) + 365) % 365;
+        if (t < 1) { render(day); raf = requestAnimationFrame(step); }
+        else { day = target; settle(); }
+      };
+      raf = requestAnimationFrame(step);
+    }
+    btns.forEach((b) => b.addEventListener('click', () => goTo(+b.dataset.day, b)));
+
+    if (reduced) { fig.classList.add('in'); return; }  // keep the static June pose; buttons jump instantly
+
+    // arm: hide the layers, park the pointer at Jan 1, wait for the scroll
+    fig.classList.add('wind');
+    btns.forEach((b) => b.setAttribute('aria-pressed', 'false'));
+    ro.setAttribute('aria-live', 'off');
+    day = 0; render(0);
+
+    const RATE = 365 / 26000;                    // one revolution ≈ 26 s, linear, looping
+    const sweep = (now) => {
+      if (last !== undefined) { day = (day + (now - last) * RATE) % 365; render(day); }
+      last = now;
+      raf = requestAnimationFrame(sweep);
+    };
+
+    const io = new IntersectionObserver((entries) => {
+      for (const e of entries) {
+        if (e.isIntersecting) {
+          fig.classList.add('in');
+          if (!userStopped) raf = requestAnimationFrame(sweep);
+          io.unobserve(fig);
+        }
+      }
+    }, { threshold: 0.35 });
+    io.observe(fig);
+  })();
+</script>

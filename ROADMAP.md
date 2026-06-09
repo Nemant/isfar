@@ -36,9 +36,13 @@ Operational ids/gotchas live in the `isfar-cloud-infra` memory.
   `window.*`→ES imports, SW precache-from-manifest (`isfar-v18`). *(A first port shipped then
   reverted over theme/iOS-chrome hydration; this re-attempt uses `client:only` to avoid SSR.)*
 - ⏳ **Phase D — SEO build-out** (programmatic route/guide pages, i18n) — now unblocked by C.
-  First content piece already drafted: **far-north methodology blog post** at
-  `docs/blog/2026-06-09-prayer-times-far-north.md` (copy complete incl. animation wishlist +
-  publication checklist; publish when the content hub exists).
+  **First guide page SHIPPED 2026-06-09:** the far-north methodology story is live at
+  `/guide/far-north-prayer-times/` (`src/pages/guide/far-north-prayer-times.astro`) with all six
+  wishlist animations (`src/components/blog/Anim*.astro`), a full multi-lens review pass
+  (numbers re-verified via `scripts/verify-blog-times.mjs`), FAQ + BlogPosting JSON-LD, sitemap
+  entry, and two-way internal links (app sheet/banner ↔ guide). Draft + production notes remain
+  at `docs/blog/2026-06-09-prayer-times-far-north.md`. Still to come in D: programmatic route
+  pages, i18n/hreflang.
 - ⏳ **Follow-ups:** true "next departure ≥ now" date resolution; per-flight cruise altitude.
   (See *Tracked follow-ups*.)
 

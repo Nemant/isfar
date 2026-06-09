@@ -1,0 +1,212 @@
+---
+// "The 60° floor" — the round-down made visible on a quiet schematic map.
+// Equirectangular strip: lon −165…+45 → x 16…624, lat 78N (top) … 48N (bottom).
+const X = (lon) => +(16 + (lon + 165) * (608 / 210)).toFixed(1);
+const Y = (lat) => +(30 + (78 - lat) * 11).toFixed(1);
+
+const LAT_LINES = [50, 55, 60, 65, 70, 75].map((l) => ({ l, y: Y(l) }));
+const LON_LINES = [-150, -120, -90, -60, -30, 0, 30].map((l) => X(l));
+const LAT_LABELS = [50, 60, 70].map((l) => ({ t: l + "°", y: Y(l) - 4 }));
+
+const Y60 = Y(60);            // 228
+const ARCTIC_Y = Y(66.56);    // 155.8
+const PAR_X1 = 16, PAR_X2 = 590, PAR_LEN = Math.ceil(PAR_X2 - PAR_X1) + 4;
+
+// Cities on the 60° cluster. Labels alternate above/below with leader lines
+// (the Nordic four sit ~16–21px apart; placements collision-checked).
+const CITIES = [
+  { n: "Anchorage",     x: X(-149.9), y: Y(61.2),  lx: 68,    ly: 218, anchor: "start",  leader: null },
+  { n: "Oslo",          x: X(10.75),  y: Y(59.91), lx: 524.8, ly: 253, anchor: "middle", leader: "M524.8 233 V245" },
+  { n: "Stockholm",     x: X(18.07),  y: Y(59.33), lx: 542,   ly: 217, anchor: "end",    leader: "M545 231.5 L543.2 221" },
+  { n: "Helsinki",      x: X(24.94),  y: Y(60.17), lx: 560,   ly: 207, anchor: "start",  leader: "M565.9 222.5 V210.5" },
+  { n: "St Petersburg", x: X(30.36),  y: Y(59.93), lx: 584,   ly: 253, anchor: "middle", leader: "M582 232.5 L583.6 244.5" },
+];
+
+const TROMSO = { x: X(18.96), y: Y(69.65) };          // 548.6, 121.8
+const DROP = `M${TROMSO.x} 127 V221.5`;               // dashed fall to the parallel
+const DROP_REVEAL = `M${TROMSO.x} 125 V224`;          // mask path, length ≈ 99
+---
+
+<figure class="anim" data-anim="sixty-floor" style={`--par-len:${PAR_LEN}`}>
+  <svg
+    viewBox="0 0 640 400"
+    role="img"
+    aria-label="Schematic map of the far north. The 60th parallel is highlighted, with Anchorage, Oslo, Stockholm, Helsinki and St Petersburg clustered on or near it. Tromsø sits far above, beyond the Arctic Circle; a dashed line drops from Tromsø down its own longitude to a hollow estimate marker on the 60° line, where its prayer times are computed when its sky fails."
+  >
+    <defs>
+      <mask id="sixty-floor-drop-m">
+        <path class="drop-reveal" d={DROP_REVEAL} fill="none" stroke="#fff" stroke-width="5" />
+      </mask>
+    </defs>
+
+    <!-- graticule -->
+    <g class="grat">
+      {LAT_LINES.map(({ y }) => <line x1="16" x2="624" y1={y} y2={y} class="lat" />)}
+      {LON_LINES.map((x) => <line x1={x} x2={x} y1="30" y2="360" class="lon" />)}
+    </g>
+    {LAT_LABELS.map(({ t, y }) => <text class="axis" x="18" y={y}>{t}</text>)}
+
+    <!-- Arctic Circle -->
+    <line class="arctic" x1="16" x2="624" y1={ARCTIC_Y} y2={ARCTIC_Y} />
+    <text class="axis arctic-lbl" x="18" y={ARCTIC_Y - 4}>Arctic Circle</text>
+
+    <!-- THE line: the 60th parallel -->
+    <line class="par" x1={PAR_X1} x2={PAR_X2} y1={Y60} y2={Y60} />
+    <text class="par-lbl" x="596" y={Y60 + 3}>60°N</text>
+
+    <!-- cities of the 60° cluster -->
+    {CITIES.map((c, i) => (
+      <g class={`city c${i}`}>
+        {c.leader && <path class="leader" d={c.leader} />}
+        <circle class="dot" cx={c.x} cy={c.y} r="3" />
+        <text class="city-lbl" x={c.lx} y={c.ly} text-anchor={c.anchor}>{c.n}</text>
+      </g>
+    ))}
+
+    <!-- Tromsø, beyond the circle -->
+    <g class="tromso">
+      <circle class="tromso-dot" cx={TROMSO.x} cy={TROMSO.y} r="3.5" />
+      <text class="city-lbl tromso-lbl" x="557" y="125">Tromsø</text>
+    </g>
+
+    <!-- the round-down: dashed fall to 60° -->
+    <path class="drop" d={DROP} mask="url(#sixty-floor-drop-m)" />
+
+    <!-- the estimate: hollow dashed ring on the parallel -->
+    <g class="est">
+      <circle class="est-ring" cx={TROMSO.x} cy={Y60} r="4" />
+      <path class="leader" d={`M550 234.5 V281`} />
+      <text class="est-lbl" x="550" y="292" text-anchor="middle">when Tromsø’s sky fails,</text>
+      <text class="est-lbl" x="550" y="305" text-anchor="middle">its times are computed here</text>
+    </g>
+  </svg>
+
+  <figcaption>
+    The 60th parallel is where the world’s big northern cities stop — Stockholm, Oslo,
+    St&nbsp;Petersburg, Helsinki, and Anchorage just above. When a calculation has nowhere real to
+    stand further north, Isfar computes it at 60° on your own longitude: a lived sky, not a
+    mathematical sliver.
+  </figcaption>
+</figure>
+
+<style>
+  svg { width: 100%; height: auto; display: block; }
+  svg text { font-size: 9px; }
+
+  /* quiet bones */
+  .lat { stroke: var(--text-mute); stroke-width: 1; opacity: 0.12; }
+  .lon { stroke: var(--text-mute); stroke-width: 1; opacity: 0.07; }
+  .axis {
+    fill: var(--text-mute);
+    opacity: 0.7;
+    letter-spacing: 0.08em;
+  }
+  .arctic {
+    stroke: oklch(from var(--text-mute) l c h / 0.4);
+    stroke-width: 1;
+    stroke-dasharray: 5 5;
+  }
+  .arctic-lbl { opacity: 0.6; }
+  .leader { stroke: oklch(from var(--text-mute) l c h / 0.4); stroke-width: 0.75; fill: none; }
+
+  /* THE line */
+  .par {
+    stroke: var(--accent);
+    stroke-width: 1.75;
+    stroke-linecap: round;
+    filter: drop-shadow(0 0 calc(3px * var(--glow, 1)) oklch(from var(--accent) l c h / 0.5));
+    stroke-dasharray: var(--par-len);
+    stroke-dashoffset: var(--par-len);
+    transition: stroke-dashoffset 2.5s ease-in-out;
+  }
+  .par-lbl {
+    fill: var(--accent);
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    opacity: 0;
+    transition: opacity 0.6s ease-in-out 2.2s;
+  }
+
+  /* cities: staggered fade ~120ms apart after the parallel finishes */
+  .city { opacity: 0; transition: opacity 0.55s ease-in-out; }
+  .c0 { transition-delay: 2.6s; }
+  .c1 { transition-delay: 2.72s; }
+  .c2 { transition-delay: 2.84s; }
+  .c3 { transition-delay: 2.96s; }
+  .c4 { transition-delay: 3.08s; }
+  .dot { fill: var(--text-soft); }
+  .city-lbl { fill: var(--text-mute); }
+
+  /* Tromsø */
+  .tromso { opacity: 0; transition: opacity 0.55s ease-in-out 3.35s; }
+  .tromso-dot {
+    fill: var(--sky-maghrib);
+    filter: drop-shadow(0 0 calc(3px * var(--glow, 1)) oklch(from var(--sky-maghrib) l c h / 0.55));
+  }
+  .tromso-lbl { fill: var(--text-soft); }
+
+  /* the fall to 60°: dashed line revealed top-to-bottom via mask */
+  .drop {
+    stroke: oklch(from var(--sky-maghrib) l c h / 0.6);
+    stroke-width: 1;
+    stroke-dasharray: 3 4;
+    fill: none;
+  }
+  .drop-reveal {
+    stroke-dasharray: 100;
+    stroke-dashoffset: 100;
+    transition: stroke-dashoffset 1.6s ease-in-out 3.9s;
+  }
+
+  /* the estimate ring + serif moment */
+  .est { opacity: 0; transition: opacity 0.8s ease-in-out 5.5s; }
+  .est-ring {
+    fill: none;
+    stroke: oklch(from var(--sky-maghrib) l c h / 0.9);
+    stroke-width: 1.2;
+    stroke-dasharray: 2.2 2.6;
+  }
+  .est-lbl {
+    fill: var(--text-soft);
+    font-family: "Newsreader", serif;
+    font-style: italic;
+    font-size: 10.5px;
+  }
+
+  /* on scroll-in */
+  figure.in .par, figure.in .drop-reveal { stroke-dashoffset: 0; }
+  figure.in .par-lbl, figure.in .city,
+  figure.in .tromso, figure.in .est { opacity: 1; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .par, .drop-reveal { stroke-dashoffset: 0; transition: none; }
+    .par-lbl, .city, .tromso, .est { opacity: 1; transition: none; }
+  }
+</style>
+
+<script>
+  (function () {
+    var fig = document.querySelector('[data-anim="sixty-floor"]');
+    if (!fig) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      fig.classList.add("in"); // CSS above already renders the final state
+      return;
+    }
+    if (!("IntersectionObserver" in window)) {
+      fig.classList.add("in");
+      return;
+    }
+    var io = new IntersectionObserver(
+      function (entries) {
+        for (var i = 0; i < entries.length; i++) {
+          if (entries[i].isIntersecting) {
+            fig.classList.add("in");
+            io.unobserve(fig);
+          }
+        }
+      },
+      { threshold: 0.35 }
+    );
+    io.observe(fig);
+  })();
+</script>

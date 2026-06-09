@@ -1,0 +1,213 @@
+---
+/*
+ * "The shrinking dip" — four June-solstice sun-elevation curves (40/52/60/70°N)
+ * sharing one scale, four suns riding them on the same solar clock.
+ * All geometry is computed here at build time; the client only toggles `.in`.
+ */
+const DELTA = (23.44 * Math.PI) / 180; // solar declination, June 21
+const X0 = 8, XW = 134;                // 24 h → x ∈ [8, 142]
+const HY = 93, PXDEG = 1.15;           // horizon y; 1° ≈ 1.15 px
+const xOf = (t) => X0 + (t / 24) * XW;
+const yOf = (a) => HY - a * PXDEG;
+const Y15 = yOf(-15).toFixed(2), Y18 = yOf(-18).toFixed(2);
+
+const altDeg = (phi, t) => {
+  const H = ((t - 12) * 15 * Math.PI) / 180;
+  const p = (phi * Math.PI) / 180;
+  return (Math.asin(Math.sin(p) * Math.sin(DELTA) + Math.cos(p) * Math.cos(DELTA) * Math.cos(H)) * 180) / Math.PI;
+};
+
+const LATS = [
+  { phi: 40, note: "night 27° deep",    fails: false, aria: "Sun elevation across 24 hours at 40 degrees north on June 21. The sun climbs to 73 degrees at noon and dives 27 degrees below the horizon at midnight, well past the 15 and 18 degree twilight marks." },
+  { phi: 52, note: "never reaches 15°", fails: true,  aria: "Sun elevation at 52 degrees north, same scale. The midnight sun sits less than 15 degrees below the horizon, so neither twilight angle is ever reached." },
+  { phi: 60, note: "barely 7°",         fails: true,  aria: "Sun elevation at 60 degrees north. The sun dips barely 7 degrees below the horizon at midnight; the night is real but shallow." },
+  { phi: 70, note: "never sets",        fails: true,  aria: "Sun elevation at 70 degrees north. The curve never touches the horizon: the midnight sun, no sunset at all." },
+];
+
+const PANELS = LATS.map((L, i) => {
+  // t = 0 h is solar midnight, so the path STARTS at the deepest point —
+  // the reduced-motion / pre-entry rest pose (offset-distance 0%).
+  const pts = [];
+  for (let m = 0; m <= 1440; m += 15) pts.push([xOf(m / 60), yOf(altDeg(L.phi, m / 60))]);
+  const d = "M" + pts.map(([px, py]) => `${px.toFixed(1)} ${py.toFixed(1)}`).join(" L");
+  // cumulative arc length at each hour → keyframe stops that keep the four
+  // suns on the SAME solar clock (offset-distance is length-based, not time-based)
+  let len = 0; const hourly = [0];
+  for (let k = 1; k < pts.length; k++) {
+    len += Math.hypot(pts[k][0] - pts[k - 1][0], pts[k][1] - pts[k - 1][1]);
+    if (k % 4 === 0) hourly.push(len);
+  }
+  const stops = hourly
+    .map((v, h) => `${((h / 24) * 100).toFixed(2)}%{offset-distance:${((v / len) * 100).toFixed(2)}%}`)
+    .join("");
+  const min = altDeg(L.phi, 0);
+  return {
+    ...L, i, d, stops,
+    reach15: min <= -15, reach18: min <= -18,
+    rest: `translate(${pts[0][0].toFixed(1)}px, ${pts[0][1].toFixed(1)}px)`,
+  };
+});
+
+// suns animate only once the figure is `.in`; reduced-motion kills the loop,
+// leaving every sun resting at its midnight depth (offset-distance: 0%).
+const dynCss =
+  PANELS.map((p) => `@keyframes shrdip-s${p.i}{${p.stops}}`).join("") +
+  PANELS.map((p) => `[data-anim="shrinking-dip"].in .p${p.i} .sun{animation:shrdip-s${p.i} 10s linear infinite;}`).join("") +
+  `@media (prefers-reduced-motion: reduce){[data-anim="shrinking-dip"] .sun{animation:none !important;}}`;
+---
+
+<figure class="anim" data-anim="shrinking-dip">
+  <div class="dip-grid">
+    {PANELS.map((p) => (
+      <svg class={`panel p${p.i}`} viewBox="0 0 150 190" role="img" aria-label={p.aria}>
+        {p.i === 0 && (
+          <defs>
+            <linearGradient id="shrdip-grad" gradientUnits="userSpaceOnUse" x1="0" y1="8" x2="0" y2="128">
+              <stop offset="0" style="stop-color:var(--sky-dhuhr)" />
+              <stop offset="0.45" style="stop-color:var(--sky-asr)" />
+              <stop offset="0.72" style="stop-color:var(--sky-maghrib)" />
+              <stop offset="1" style="stop-color:var(--sky-isha)" />
+            </linearGradient>
+          </defs>
+        )}
+        <rect class="below" x={X0} y={HY} width={XW} height="38" />
+        <line class="horizon" x1={X0} y1={HY} x2={X0 + XW} y2={HY} />
+        <line class={"mark" + (p.reach15 ? "" : " unreached")} x1={X0} y1={Y15} x2={X0 + XW} y2={Y15} />
+        <line class={"mark" + (p.reach18 ? "" : " unreached")} x1={X0} y1={Y18} x2={X0 + XW} y2={Y18} />
+        {/* labels sit mid-panel, where the 40°N curve is above the horizon */}
+        {p.i === 0 && <text class="marklab" x="36" y={Number(Y15) - 2}>15°</text>}
+        {p.i === 0 && <text class="marklab" x="36" y={Number(Y18) + 8}>18°</text>}
+        <path class="curve" d={p.d} pathLength="1" />
+        <circle class="sun" r="4" style={`offset-path:path('${p.d}');--rest:${p.rest}`} />
+        <text class="lat" x="75" y="158">{p.phi}°N</text>
+        <text class={"note" + (p.fails ? " warm" : "")} x="75" y="174">{p.note}</text>
+      </svg>
+    ))}
+  </div>
+  <figcaption>
+    The same June midnight, walking north: at 40° the sun dives deep and every angle works;
+    at 52° it stops reaching 15°; at 60° the night is real but shallow; at 70° the sun never
+    sets at all.
+  </figcaption>
+</figure>
+
+<style is:inline set:html={dynCss}></style>
+
+<style>
+  .dip-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+  }
+  @media (max-width: 560px) {
+    .dip-grid { grid-template-columns: repeat(2, 1fr); gap: 14px 12px; }
+  }
+  .panel {
+    width: 100%;
+    height: auto;
+    display: block;
+    font-family: inherit;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity 1.1s ease-in-out, transform 1.1s ease-in-out;
+  }
+  .dip-grid .panel:nth-child(2) { transition-delay: 0.12s; }
+  .dip-grid .panel:nth-child(3) { transition-delay: 0.24s; }
+  .dip-grid .panel:nth-child(4) { transition-delay: 0.36s; }
+  .anim.in .panel { opacity: 1; transform: none; }
+
+  .below {
+    fill: oklch(from var(--sky-isha) l c h / 0.1);
+  }
+  .horizon {
+    stroke: var(--text-mute);
+    stroke-width: 1;
+    opacity: 0.55;
+  }
+  .mark {
+    stroke: var(--text-mute);
+    stroke-width: 1;
+    stroke-dasharray: 3 4;
+    opacity: 0.7;
+  }
+  .mark.unreached { opacity: 0.3; }
+  .marklab {
+    font-size: 8px;
+    letter-spacing: 0.04em;
+    fill: var(--text-mute);
+  }
+  .curve {
+    fill: none;
+    stroke: url(#shrdip-grad);
+    stroke-width: 1.5;
+    stroke-linecap: round;
+    stroke-dasharray: 1;     /* pathLength="1" → unit dash for the draw-in */
+    stroke-dashoffset: 1;
+    transition: stroke-dashoffset 2.6s ease-in-out;
+  }
+  .panel.p0 .curve { transition-delay: 0.2s; }
+  .panel.p1 .curve { transition-delay: 0.45s; }
+  .panel.p2 .curve { transition-delay: 0.7s; }
+  .panel.p3 .curve { transition-delay: 0.95s; }
+  .anim.in .curve { stroke-dashoffset: 0; }
+
+  .sun {
+    fill: var(--sky-dhuhr);
+    filter: drop-shadow(0 0 calc(3px * var(--glow)) var(--sky-dhuhr));
+    offset-distance: 0%;      /* rest pose: solar midnight, the deepest point */
+    offset-rotate: 0deg;
+  }
+  /* no offset-path support → pin each sun at its midnight point statically */
+  @supports not (offset-distance: 0%) {
+    .sun { transform: var(--rest); }
+  }
+
+  .lat {
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-anchor: middle;
+    fill: var(--text-soft);
+  }
+  .note {
+    font-size: 10px;
+    text-anchor: middle;
+    fill: var(--text-mute);
+  }
+  .note.warm {
+    fill: oklch(from var(--sky-maghrib) l c h / 0.8);
+  }
+
+  /* reduced motion: everything already in its most informative state —
+     curves drawn, suns resting at midnight depth (loop is killed above) */
+  @media (prefers-reduced-motion: reduce) {
+    .panel { opacity: 1; transform: none; transition: none; }
+    .curve { stroke-dashoffset: 0; transition: none; }
+  }
+  /* no JS → no .in: still show the finished static figure */
+  @media (scripting: none) {
+    .panel { opacity: 1; transform: none; }
+    .curve { stroke-dashoffset: 0; }
+  }
+</style>
+
+<script>
+  const fig = document.querySelector('[data-anim="shrinking-dip"]');
+  if (fig) {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      fig.classList.add('in');
+    } else {
+      const io = new IntersectionObserver(
+        (entries) => {
+          for (const e of entries) {
+            if (e.isIntersecting) {
+              fig.classList.add('in');
+              io.disconnect();
+            }
+          }
+        },
+        { threshold: 0.35 }
+      );
+      io.observe(fig);
+    }
+  }
+</script>

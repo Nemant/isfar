@@ -1,0 +1,205 @@
+---
+// "The tilted Earth" — side-view schematic for the far-north methodology post.
+// Sun fixed off the right edge; the axis group rotates ±23.4°; the terminator
+// (night half) is fixed by the sun direction and never rotates with the tilt.
+const R = 110, CX = 250, CY = 180;
+const lat = (66.5 * Math.PI) / 180;                      // Arctic Circle
+const capY = +(CY - R * Math.sin(lat)).toFixed(1);       // 79.1
+const capX = +(R * Math.cos(lat)).toFixed(1);            // 43.9
+const capPath = `M ${CX - capX} ${capY} A ${R} ${R} 0 0 1 ${CX + capX} ${capY} Z`;
+const antY = +(CY + R * Math.sin(lat)).toFixed(1);       // 280.9
+const nightPath = `M ${CX} ${CY - R} A ${R} ${R} 0 0 0 ${CX} ${CY + R} Z`;
+const axisTop = CY - R - 14, axisBot = CY + R + 14;
+---
+<figure class="anim" data-anim="tilted-earth" data-season="jun">
+  <svg viewBox="0 0 640 360" role="img"
+    aria-label="Side view of the Earth in June, lit from the right by the sun: the axis tilts 23.4 degrees toward the sun, and the northern polar cap stays entirely on the daylit side of the fixed day-night line.">
+    <defs>
+      <radialGradient id="te-sun">
+        <stop class="sun-a" offset="0"/><stop class="sun-b" offset="0.4"/><stop class="sun-c" offset="1"/>
+      </radialGradient>
+      <linearGradient id="te-lit" x1="1" y1="0" x2="0" y2="0">
+        <stop class="lit-a" offset="0"/><stop class="lit-b" offset="0.55"/>
+      </linearGradient>
+      <clipPath id="te-clip"><circle cx={CX} cy={CY} r={R - 1}/></clipPath>
+    </defs>
+
+    <!-- sun: soft gold glow off the right edge + horizontal rays -->
+    <circle class="sun-halo" cx="648" cy={CY} r="135" fill="url(#te-sun)"/>
+    <line class="ray ray-1" x1="632" y1="134" x2="388" y2="134"/>
+    <line class="ray ray-2" x1="632" y1={CY} x2="388" y2={CY}/>
+    <line class="ray ray-3" x1="632" y1="226" x2="388" y2="226"/>
+    <text class="lbl" x="610" y="116" text-anchor="middle">sun</text>
+
+    <!-- earth disc + lit-side wash (static) -->
+    <circle class="disc" cx={CX} cy={CY} r={R}/>
+    <circle cx={CX} cy={CY} r={R} fill="url(#te-lit)"/>
+
+    <!-- everything carried by the axis rotates together -->
+    <g class="tilt">
+      <g clip-path="url(#te-clip)">
+        <ellipse class="meridian m1" cx={CX} cy={CY} rx="42" ry="107"/>
+        <ellipse class="meridian m2" cx={CX} cy={CY} rx="42" ry="107"/>
+        <ellipse class="meridian m3" cx={CX} cy={CY} rx="42" ry="107"/>
+      </g>
+      <line class="equator" x1={CX - R} y1={CY} x2={CX + R} y2={CY}/>
+      <line class="arctic" x1={CX - capX} y1={capY} x2={CX + capX} y2={capY}/>
+      <line class="antarctic" x1={CX - capX} y1={antY} x2={CX + capX} y2={antY}/>
+      <path class="cap-base" d={capPath}/>
+      <path class="cap-glow cap-jun" d={capPath}/>
+      <path class="cap-glow cap-dec" d={capPath}/>
+      <line class="axis" x1={CX} y1={axisTop} x2={CX} y2={axisBot}/>
+      <text class="n-lbl" x={CX} y={axisTop - 6} text-anchor="middle">N</text>
+      <text class="lbl" x={CX - capX - 8} y={capY - 3} text-anchor="end">Arctic Circle</text>
+    </g>
+
+    <!-- terminator: fixed by the sun direction — never rotates with the tilt -->
+    <path class="night" d={nightPath}/>
+    <circle class="outline" cx={CX} cy={CY} r={R}/>
+
+    <!-- one-line reading, swaps with the season -->
+    <text class="season-line line-jun" x={CX} y="338">the far north never leaves the light</text>
+    <text class="season-line line-dec" x={CX} y="338">the far north never reaches it</text>
+  </svg>
+
+  <div class="anim-controls">
+    <div class="anim-seg" role="group" aria-label="Season">
+      <button type="button" class="anim-btn" data-season="jun" aria-pressed="true">June</button>
+      <button type="button" class="anim-btn" data-season="dec" aria-pressed="false">December</button>
+    </div>
+  </div>
+
+  <figcaption>
+    The Earth leans 23.4°. In June the far north tips into the light and stays there; in
+    December it tips away. Everything that follows — every broken convention — falls out
+    of that lean.
+  </figcaption>
+</figure>
+
+<style>
+  svg { width: 100%; height: auto; display: block; }
+  text { font-family: inherit; }
+
+  /* sun */
+  .sun-a { stop-color: oklch(from var(--sky-dhuhr) l c h / 0.85); }
+  .sun-b { stop-color: oklch(from var(--sky-dhuhr) l c h / 0.28); }
+  .sun-c { stop-color: oklch(from var(--sky-dhuhr) l c h / 0); }
+  .sun-halo { opacity: 0; transition: opacity 2s ease-in-out; }
+  figure.in .sun-halo { opacity: min(1, calc(0.85 * var(--glow))); }
+  .ray {
+    stroke: var(--sky-dhuhr); stroke-width: 1; opacity: 0.25;
+    stroke-dasharray: 244; stroke-dashoffset: 244;
+    transition: stroke-dashoffset 1.9s ease-in-out;
+  }
+  figure.in .ray { stroke-dashoffset: 0; }
+  .ray-1 { transition-delay: 0.2s; }
+  .ray-3 { transition-delay: 0.4s; }
+
+  /* earth */
+  .disc { fill: var(--surface); }
+  .lit-a { stop-color: oklch(from var(--sky-dhuhr) l c h / 0.16); }
+  .lit-b { stop-color: oklch(from var(--sky-dhuhr) l c h / 0); }
+  .outline { fill: none; stroke: var(--text-mute); stroke-width: 1.25; opacity: 0.8; }
+
+  /* tilt group — origin is the disc centre in viewBox units */
+  .tilt {
+    transform-box: view-box; transform-origin: 250px 180px;
+    transform: rotate(0deg); transition: transform 1.4s ease-in-out;
+  }
+  figure.in[data-season="jun"] .tilt { transform: rotate(23.4deg); }
+  figure.in[data-season="dec"] .tilt { transform: rotate(-23.4deg); }
+
+  .axis { stroke: var(--text-mute); stroke-width: 1.25; }
+  .equator { stroke: var(--text-mute); stroke-width: 1; opacity: 0.55; }
+  .arctic { stroke: var(--text-soft); stroke-width: 1; stroke-dasharray: 3 3.5; }
+  .antarctic { stroke: var(--text-mute); stroke-width: 1; stroke-dasharray: 3 3.5; opacity: 0.4; }
+
+  /* polar cap: quiet base + warm/indigo glows crossfading with the season */
+  .cap-base { fill: oklch(from var(--text-mute) l c h / 0.14); }
+  .cap-glow { opacity: 0; filter: blur(4.5px); transition: opacity 1.4s ease-in-out; }
+  .cap-jun { fill: var(--sky-dhuhr); }
+  .cap-dec { fill: oklch(from var(--sky-isha) calc(l + 0.1) c h); }
+  figure.in[data-season="jun"] .cap-jun { opacity: calc(0.5 * var(--glow)); }
+  figure.in[data-season="dec"] .cap-dec { opacity: calc(0.55 * var(--glow)); }
+
+  /* fixed terminator */
+  .night {
+    fill: oklch(from var(--sky-isha) l c h / 0.32);
+    opacity: 0; transition: opacity 1.6s ease-in-out 0.2s;
+  }
+  figure.in .night { opacity: 1; }
+
+  /* spin suggestion: meridian arcs drifting while in view */
+  .meridian {
+    fill: none; stroke: var(--text-mute); stroke-width: 1;
+    transform-box: fill-box; transform-origin: center;
+  }
+  .m1 { transform: translateX(-32px); opacity: 0.12; }
+  .m2 { opacity: 0.18; }
+  .m3 { transform: translateX(32px); opacity: 0.12; }
+  figure.in .m1 { animation: te-drift 14s linear infinite; }
+  figure.in .m2 { animation: te-drift 14s linear -4.7s infinite; }
+  figure.in .m3 { animation: te-drift 14s linear -9.4s infinite; }
+  @keyframes te-drift {
+    from { transform: translateX(-58px); opacity: 0; }
+    12%  { opacity: 0.2; }
+    88%  { opacity: 0.2; }
+    to   { transform: translateX(58px); opacity: 0; }
+  }
+
+  /* labels */
+  .lbl {
+    font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase;
+    fill: var(--text-mute);
+  }
+  .n-lbl { font-size: 11px; fill: var(--text-soft); }
+  .season-line {
+    font-family: "Newsreader", serif; font-style: italic; font-size: 15.5px;
+    fill: var(--text-soft); text-anchor: middle;
+    opacity: 0; transition: opacity 1.4s ease-in-out;
+  }
+  figure.in[data-season="jun"] .line-jun { opacity: 1; }
+  figure.in[data-season="dec"] .line-dec { opacity: 1; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .tilt, .cap-glow, .night, .season-line, .ray, .sun-halo { transition: none; }
+    figure.in .m1, figure.in .m2, figure.in .m3 { animation: none; }
+  }
+</style>
+
+<script>
+  (function () {
+    var fig = document.querySelector('figure[data-anim="tilted-earth"]');
+    if (!fig) return;
+    var svg = fig.querySelector('svg');
+    var btns = fig.querySelectorAll('.anim-btn[data-season]');
+    var labels = {
+      jun: 'Side view of the Earth in June, lit from the right by the sun: the axis tilts 23.4 degrees toward the sun, and the northern polar cap stays entirely on the daylit side of the fixed day-night line.',
+      dec: 'Side view of the Earth in December, lit from the right by the sun: the axis tilts 23.4 degrees away from the sun, and the northern polar cap stays entirely on the night side of the fixed day-night line.'
+    };
+    btns.forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var season = btn.getAttribute('data-season');
+        if (fig.getAttribute('data-season') === season) return;
+        fig.setAttribute('data-season', season);
+        if (svg && labels[season]) svg.setAttribute('aria-label', labels[season]);
+        btns.forEach(function (b) {
+          b.setAttribute('aria-pressed', String(b === btn));
+        });
+      });
+    });
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      fig.classList.add('in'); // final state immediately; toggles stay instant
+      return;
+    }
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) {
+          fig.classList.add('in');
+          io.unobserve(fig);
+        }
+      });
+    }, { threshold: 0.35 });
+    io.observe(fig);
+  })();
+</script>

@@ -161,7 +161,8 @@ function MethodSheet({ open, onClose }) {
     { ic: Ic.book, t: "Trusted prayer-time methods",
       d: "The times follow the established calculation authorities — ISNA, Muslim World League, Umm al-Qura and more — not formulas of our own. Choose the one you follow in Settings." },
     { ic: Ic.sunrise, t: "Far-north flights",
-      d: "Near the poles the summer sky never truly darkens, so the usual dawn and dusk angles have no moment to mark. Across most of the world — Istanbul, New York — your method's normal angle works all year. Only farther north does it run out: there we round down to 60°N — roughly the latitude of Stockholm, St Petersburg, Helsinki and Anchorage, about as far north as big cities go — and mark those prayers as estimates." },
+      d: "Near the poles the summer sky never truly darkens, so the usual dawn and dusk angles have no moment to mark. Across most of the world — Istanbul, New York — your method's normal angle works all year. Only farther north does it run out: there we round down to 60°N — roughly the latitude of Stockholm, St Petersburg, Helsinki and Anchorage, about as far north as big cities go — and mark those prayers as estimates.",
+      link: { href: "/guide/far-north-prayer-times/", label: "Read the full story" } },
     { ic: Ic.auto, t: "Yours, on your device",
       d: "Look up a flight while you still have signal, and it’s saved to your device — so it stays available offline once you’re in the air. No account needed; the live flight search itself does need a connection." }
   ];
@@ -179,7 +180,9 @@ function MethodSheet({ open, onClose }) {
             {points.map((p, i) => (
               <li key={i}>
                 <span className="m-ic"><p.ic aria-hidden="true" /></span>
-                <div><b>{p.t}</b><span>{p.d}</span></div>
+                <div><b>{p.t}</b><span>{p.d}{p.link && (
+                  <> <a className="m-link" href={p.link.href}>{p.link.label} →</a></>
+                )}</span></div>
               </li>
             ))}
           </ul>

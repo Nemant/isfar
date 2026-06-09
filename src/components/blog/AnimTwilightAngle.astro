@@ -1,0 +1,184 @@
+---
+// "Dawn and dusk are angles" — a sun sinks past a flat horizon while a true
+// depression angle is measured from a pivot on the horizon. Scale: 1° ≈ 9px.
+// The pivot sits at the right so the drawn wedge angle EQUALS the labelled
+// depression (vertical drop 9·θ px, horizontal reach 9·θ/tan θ px — exact).
+const PX = 596, R = 120, RL = 146, HY = 150, D2R = Math.PI / 180;
+const dx = (t) => { const m = Math.abs(t); return m < 0.02 ? (9 * 180) / Math.PI : (9 * m) / Math.tan(m * D2R); };
+const TH0 = -1.5;                                 // start: just above the horizon
+const X0 = +(PX - dx(TH0)).toFixed(2), Y0 = HY + TH0 * 9;
+const M15Y = HY + 15 * 9, M18Y = HY + 18 * 9;     // −15° → 285, −18° → 312
+const STARS = [[96, 52, 1, 0.55], [208, 34, 1.2, 0.62], [332, 66, 1, 0.68], [452, 40, 1.5, 0.74], [566, 84, 1, 0.8]];
+---
+<figure class="anim" data-anim="twilight-angle">
+  <svg class="tw" viewBox="0 0 640 380" role="img"
+    aria-label="Diagram of twilight angles: a small sun slides below a flat horizon. An arc at a pivot on the horizon measures its depression angle, counting downward. Dashed marker lines at 15 and 18 degrees below the horizon — labelled ISNA and Muslim World League — light up as the sun passes them, while the twilight glow above the horizon fades out and faint stars appear.">
+    <defs>
+      <linearGradient id="tw-glow" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" class="g-isha0"></stop>
+        <stop offset="0.35" class="g-isha"></stop>
+        <stop offset="0.72" class="g-maghrib"></stop>
+        <stop offset="1" class="g-dhuhr"></stop>
+      </linearGradient>
+      <radialGradient id="tw-halo">
+        <stop offset="0" class="h-in"></stop>
+        <stop offset="1" class="h-out"></stop>
+      </radialGradient>
+    </defs>
+
+    <!-- twilight glow band hugging the horizon from above; dies as the sun sinks -->
+    <rect class="band" x="0" y="64" width="640" height="86" fill="url(#tw-glow)"></rect>
+
+    <!-- stars, faded in as the glow dies -->
+    <g class="stars">
+      {STARS.map(([x, y, r, th]) => <circle class="star" cx={x} cy={y} r={r} style={`--th:${th}`}></circle>)}
+    </g>
+
+    <!-- ground -->
+    <rect class="ground" x="0" y={HY} width="640" height={380 - HY}></rect>
+
+    <!-- horizon -->
+    <line class="hline" x1="0" y1={HY} x2="640" y2={HY}></line>
+    <text class="hlabel" x="8" y={HY - 5}>horizon</text>
+
+    <!-- depth markers: the two method angles -->
+    <g class="mark m15">
+      <line x1="36" y1={M15Y} x2="326" y2={M15Y}></line>
+      <text class="tick" x="8" y={M15Y + 3}>−15°</text>
+      <text class="mname" x="336" y={M15Y + 3}>a 15° method · ISNA</text>
+    </g>
+    <g class="mark m18">
+      <line x1="36" y1={M18Y} x2="326" y2={M18Y}></line>
+      <text class="tick" x="8" y={M18Y + 3}>−18°</text>
+      <text class="mname" x="336" y={M18Y + 3}>an 18° method · MWL</text>
+    </g>
+
+    <!-- the angle, drawn: horizon-plane ray, sun-direction ray, measuring arc -->
+    <g class="angle">
+      <line class="base" x1={PX} y1={HY} x2={PX - RL - 8} y2={HY}></line>
+      <line class="ray" x1={PX} y1={HY} x2={X0} y2={Y0}></line>
+      <path class="meas" d={`M ${PX - R} ${HY} A ${R} ${R} 0 0 0 ${PX - R} ${HY}`}></path>
+      <text class="readout" x={PX - RL} y={HY + 6} text-anchor="middle" dominant-baseline="hanging" aria-hidden="true">0°</text>
+    </g>
+    <circle class="pivot" cx={PX} cy={HY} r="2.5"></circle>
+
+    <!-- the sun -->
+    <g class="sun" transform={`translate(${X0} ${Y0})`}>
+      <circle class="halo" r="26" fill="url(#tw-halo)"></circle>
+      <circle class="disc" r="10"></circle>
+    </g>
+  </svg>
+
+  <div class="anim-controls">
+    <button class="anim-btn" type="button" hidden>(replay)</button>
+  </div>
+
+  <figcaption>Dawn and dusk are angles: how far the sun sits below the horizon. Isha begins when the last glow dies at your method&rsquo;s angle; Fajr begins when the sky first responds at that same angle before sunrise.</figcaption>
+</figure>
+
+<style>
+  .tw { width: 100%; height: auto; display: block; --k: 0; }
+
+  .ground { fill: oklch(from var(--text) l c h / 0.05); }
+  .hline  { stroke: var(--border); stroke-width: 1; }
+  .hlabel { fill: var(--text-mute); opacity: 0.6; font-size: 9px; }
+
+  /* twilight band + halo die as the sun sinks (--k = depth / 18°) */
+  .band { opacity: calc(1 - var(--k)); }
+  .g-isha0   { stop-color: oklch(from var(--sky-isha) l c h / 0); }
+  .g-isha    { stop-color: oklch(from var(--sky-isha) l c h / 0.16); }
+  .g-maghrib { stop-color: oklch(from var(--sky-maghrib) l c h / 0.28); }
+  .g-dhuhr   { stop-color: oklch(from var(--sky-dhuhr) l c h / 0.4); }
+
+  .star { fill: var(--text-soft); opacity: clamp(0, calc((var(--k) - var(--th, 0.6)) / 0.28), 1); }
+
+  .disc { fill: var(--sky-maghrib);
+          filter: drop-shadow(0 0 calc(5px * var(--glow)) oklch(from var(--sky-maghrib) l c h / 0.55)); }
+  .halo { opacity: calc(0.5 * var(--glow) * (1 - 0.6 * var(--k))); }
+  .h-in  { stop-color: oklch(from var(--sky-maghrib) l c h / 0.5); }
+  .h-out { stop-color: oklch(from var(--sky-maghrib) l c h / 0); }
+
+  /* method markers: dim until the sun passes them */
+  .mark       { opacity: 0.35; transition: opacity 0.6s ease; }
+  .mark.lit   { opacity: 1; }
+  .mark line  { stroke: var(--text-mute); stroke-width: 1; stroke-dasharray: 4 5; }
+  .mark text  { fill: var(--text-mute); transition: fill 0.6s ease; }
+  .mark.lit text { fill: var(--text-soft); }
+  .tick  { font-size: 9px; }
+  .mname { font-size: 9.5px; letter-spacing: 0.02em; }
+
+  /* the measured angle: hidden above the horizon, fades in as the sun dips */
+  .angle { opacity: min(calc(var(--k) * 9), 1); }
+  .base  { stroke: var(--text-soft); stroke-width: 1; opacity: 0.55; }
+  .ray   { stroke: var(--text-soft); stroke-width: 1; }
+  .meas  { stroke: var(--accent); stroke-width: 1.5; fill: none; }
+  .pivot { fill: var(--text-soft); opacity: 0.7; }
+  .readout { fill: var(--text-soft); font-family: "Newsreader", serif; font-size: 13px; }
+</style>
+
+<script>
+  (() => {
+    const fig = document.querySelector('[data-anim="twilight-angle"]');
+    if (!fig) return;
+    const svg = fig.querySelector('svg');
+    const $ = (s) => svg.querySelector(s);
+    const sun = $('.sun'), ray = $('.ray'), meas = $('.meas'), readout = $('.readout');
+    const m15 = $('.m15'), m18 = $('.m18');
+    const btn = fig.querySelector('.anim-btn');
+
+    const PX = 596, R = 120, RL = 146, HY = 150, D2R = Math.PI / 180;
+    const dx = (t) => { const m = Math.abs(t); return m < 0.02 ? 9 * 180 / Math.PI : 9 * m / Math.tan(m * D2R); };
+
+    // th = degrees of depression (negative = above the horizon)
+    function apply (th) {
+      const x = PX - dx(th), y = HY + th * 9;
+      sun.setAttribute('transform', `translate(${x.toFixed(2)} ${y.toFixed(2)})`);
+      ray.setAttribute('x2', x.toFixed(2));
+      ray.setAttribute('y2', y.toFixed(2));
+      svg.style.setProperty('--k', Math.min(Math.max(th / 18, 0), 1).toFixed(4));
+      const a = Math.max(th, 0) * D2R;
+      const ex = PX - R * Math.cos(a), ey = HY + R * Math.sin(a);
+      meas.setAttribute('d', `M ${PX - R} ${HY} A ${R} ${R} 0 0 0 ${ex.toFixed(2)} ${ey.toFixed(2)}`);
+      readout.setAttribute('x', (PX - RL * Math.cos(a)).toFixed(2));
+      readout.setAttribute('y', (HY + RL * Math.sin(a) + 6).toFixed(2));
+      readout.textContent = th < 0.5 ? '0°' : `−${Math.round(th)}°`;
+      m15.classList.toggle('lit', th >= 14.99);
+      m18.classList.toggle('lit', th >= 17.99);
+    }
+
+    // ~7s once-through: descend to −15°, hold 600ms, on to −18°, hold 600ms
+    const SEGS = [[0, 4600, -1.5, 15], [4600, 5200, 15, 15], [5200, 6400, 15, 18], [6400, 7000, 18, 18]];
+    const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+    let raf = 0;
+
+    function play () {
+      cancelAnimationFrame(raf);
+      btn.hidden = true;
+      fig.classList.remove('done');
+      apply(SEGS[0][2]);
+      const t0 = performance.now();
+      const step = (now) => {
+        const t = now - t0;
+        if (t >= 7000) { apply(18); fig.classList.add('done'); btn.hidden = false; return; }
+        for (const [a, b, f, g] of SEGS) {
+          if (t < b) { apply(f + (g - f) * ease((t - a) / (b - a))); break; }
+        }
+        raf = requestAnimationFrame(step);
+      };
+      raf = requestAnimationFrame(step);
+    }
+
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      apply(18);                       // final state: sun at −18°, markers lit, glow gone, stars out
+      fig.classList.add('in', 'done'); // replay button stays hidden
+    } else {
+      btn.addEventListener('click', play);
+      const io = new IntersectionObserver((entries) => {
+        for (const e of entries) {
+          if (e.isIntersecting) { fig.classList.add('in'); play(); io.unobserve(fig); }
+        }
+      }, { threshold: 0.35 });
+      io.observe(fig);
+    }
+  })();
+</script>

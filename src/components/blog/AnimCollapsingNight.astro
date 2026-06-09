@@ -1,0 +1,185 @@
+---
+// "The collapsing night" — a 24-hour dial for Stockholm, June 21. Noon at the
+// top, midnight at the bottom, clockwise: angleFromTop(h) = (h−12)/24 × 360°.
+// Verified times: sunset 22:08, sunrise 03:31 (night 5h23m); middle-of-night →
+// Isha & Fajr both 00:50 (192.5°); sevenths → Isha 22:54 (163.5°), Fajr 02:45
+// (221.25°). Static markup is the FINAL June state; JS winds back to an equinox
+// night (18:00→06:00) and lets it creep to the sliver on scroll.
+const CX = 320, CY = 215, R = 150, RB = 139, D2R = Math.PI / 180;
+const pt = (h, r) => { const a = ((h - 12) / 24) * 360 * D2R; return [+(CX + r * Math.sin(a)).toFixed(2), +(CY - r * Math.cos(a)).toFixed(2)]; };
+const arc = (h1, h2) => { const [x1, y1] = pt(h1, RB), [x2, y2] = pt(h2, RB); return `M ${x1} ${y1} A ${RB} ${RB} 0 ${(h2 - h1) * 15 > 180 ? 1 : 0} 1 ${x2} ${y2}`; };
+const SET = 22 + 8 / 60, RISE = 27 + 31 / 60;          // 22:08 → 03:31 next day
+const [sx, sy] = pt(SET, RB), [rx, ry] = pt(RISE, RB); // endpoint dots
+const [slx, sly] = pt(SET, 170), [rlx, rly] = pt(RISE, 170); // their labels
+const TICKS = Array.from({ length: 24 }, (_, i) => {
+  const main = i % 6 === 0, [x1, y1] = pt(i, R), [x2, y2] = pt(i, main ? 141 : 144.5);
+  return { x1, y1, x2, y2, main };
+});
+---
+<figure class="anim settled" data-anim="collapsing-night" data-rule="sevenths">
+  <svg viewBox="0 0 640 470" role="img"
+    aria-label="A 24-hour dial for Stockholm on June 21, noon at the top and midnight at the bottom. The night — sunset 22:08 to sunrise 03:31 — is a thin arc at the bottom of the dial. Markers show where each convention places Isha and Fajr: a 15-degree twilight angle never occurs at all; the middle of the night puts Isha and Fajr both at 00:50, the same minute; sevenths of the night gives Isha 22:54 and Fajr 02:45.">
+
+    <text class="corner" x="12" y="20">STOCKHOLM &middot; JUNE 21</text>
+
+    <!-- dial rim + 24 hour ticks -->
+    <circle class="rim" cx={CX} cy={CY} r={R}></circle>
+    <g class="ticks">
+      {TICKS.map((t) => <line class:list={["tick", { main: t.main }]} x1={t.x1} y1={t.y1} x2={t.x2} y2={t.y2}></line>)}
+    </g>
+    <text class="hour" x={CX} y="51" text-anchor="middle">noon</text>
+    <text class="hour" x={CX} y="382" text-anchor="middle">midnight</text>
+    <text class="hour" x="490" y="218.5" text-anchor="start">18:00</text>
+    <text class="hour" x="150" y="218.5" text-anchor="end">06:00</text>
+
+    <!-- day and night ring bands (JS rewrites d during the entry creep) -->
+    <path class="day" d={arc(RISE, SET + 24)}></path>
+    <path class="night" d={arc(SET, RISE)}></path>
+
+    <!-- sunset / sunrise endpoints -->
+    <circle class="dot-set" cx={sx} cy={sy} r="4.5"></circle>
+    <circle class="dot-rise" cx={rx} cy={ry} r="4.5"></circle>
+    <text class="endlab" x={slx} y={sly} text-anchor="start">sunset <tspan class="num">22:08</tspan></text>
+    <text class="endlab" x={rlx} y={rly} text-anchor="end">sunrise <tspan class="num">03:31</tspan></text>
+
+    <!-- rule markers: a dot at the band's top, rotated to its hour-angle -->
+    <g class="mk mk-isha"><circle class="dot isha" cx={CX} cy={CY - RB} r="4.5"></circle></g>
+    <g class="mk mk-fajr"><circle class="dot fajr" cx={CX} cy={CY - RB} r="4.5"></circle></g>
+
+    <!-- centre readout, one group per rule -->
+    <g class="ct ct-angle">
+      <text x={CX} y="208" text-anchor="middle">The sun never reaches 15&deg; below.</text>
+      <text x={CX} y="228" text-anchor="middle">There is no instant to mark.</text>
+    </g>
+    <g class="ct ct-middle">
+      <text x={CX} y="208" text-anchor="middle">Fajr <tspan class="num">00:50</tspan> &middot; Isha <tspan class="num">00:50</tspan></text>
+      <text x={CX} y="228" text-anchor="middle">&mdash; the same minute.</text>
+    </g>
+    <g class="ct ct-sevenths">
+      <text x={CX} y="208" text-anchor="middle">Isha <tspan class="num">22:54</tspan> &middot; Fajr <tspan class="num">02:45</tspan></text>
+      <text x={CX} y="228" text-anchor="middle">&mdash; a night you can pray.</text>
+    </g>
+  </svg>
+
+  <div class="anim-controls">
+    <div class="anim-seg" role="group" aria-label="High-latitude convention">
+      <button class="anim-btn" type="button" data-rule="angle" aria-pressed="false">Your angle (15&deg;)</button>
+      <button class="anim-btn" type="button" data-rule="middle" aria-pressed="false">Middle of night</button>
+      <button class="anim-btn" type="button" data-rule="sevenths" aria-pressed="true">Sevenths of night</button>
+    </div>
+  </div>
+
+  <figcaption>Stockholm, June 21 &mdash; the night squeezed to five hours. The chosen angle has vanished; the middle of the night answers with Isha and Fajr in the same minute; a seventh of the night still yields a humane schedule.</figcaption>
+</figure>
+
+<style>
+  svg { width: 100%; height: auto; display: block; }
+
+  .corner { fill: var(--text-mute); font-size: 9px; letter-spacing: 0.08em; opacity: 0.75; }
+
+  .rim  { fill: none; stroke: var(--border); stroke-width: 1; }
+  .tick { stroke: var(--text-mute); stroke-width: 1; opacity: 0.3; }
+  .tick.main { opacity: 0.55; }
+  .hour { fill: var(--text-mute); font-size: 9px; letter-spacing: 0.08em; }
+
+  .day   { fill: none; stroke: oklch(from var(--sky-dhuhr) l c h / 0.30); stroke-width: 9; stroke-linecap: round; }
+  .night { fill: none; stroke: oklch(from var(--sky-isha)  l c h / 0.30); stroke-width: 9; stroke-linecap: round; }
+
+  .dot-set  { fill: var(--sky-maghrib);
+              filter: drop-shadow(0 0 calc(4px * var(--glow)) oklch(from var(--sky-maghrib) l c h / 0.55)); }
+  .dot-rise { fill: var(--sky-dhuhr);
+              filter: drop-shadow(0 0 calc(4px * var(--glow)) oklch(from var(--sky-dhuhr) l c h / 0.55)); }
+  .endlab { fill: var(--text-mute); font-size: 9.5px; opacity: 0;
+            transition: opacity 0.9s ease-in-out; }
+  .endlab .num { font-size: 10.5px; }
+  .settled .endlab { opacity: 1; }
+
+  /* rule markers rotate about the dial centre; base pose = sevenths (default) */
+  .mk { transform-box: view-box; transform-origin: 320px 215px; opacity: 0;
+        transition: transform 0.9s ease-in-out, opacity 0.9s ease-in-out; }
+  .mk .dot { stroke: var(--bg-mid); stroke-width: 0.75; }
+  .isha { fill: var(--sky-isha);
+          filter: drop-shadow(0 0 calc(4px * var(--glow)) oklch(from var(--sky-isha) l c h / 0.6)); }
+  .fajr { fill: var(--sky-fajr);
+          filter: drop-shadow(0 0 calc(4px * var(--glow)) oklch(from var(--sky-fajr) l c h / 0.6)); }
+  .mk-isha { transform: rotate(163.5deg); }
+  .mk-fajr { transform: rotate(221.25deg); }
+  /* middle of the night: both at 00:50 — ±0.41° ≈ 2px apart so the overlap reads */
+  [data-rule="middle"] .mk-isha { transform: rotate(192.09deg); }
+  [data-rule="middle"] .mk-fajr { transform: rotate(192.91deg); }
+  .anim.settled .mk { opacity: 1; }
+  [data-anim][data-rule="angle"] .mk { opacity: 0; }   /* after .settled: wins */
+
+  .ct { opacity: 0; transition: opacity 0.9s ease-in-out; }
+  .ct text { fill: var(--text-soft); font-size: 11.5px; }
+  .num { font-family: "Newsreader", serif; font-size: 13px; }
+  .settled[data-rule="angle"]    .ct-angle,
+  .settled[data-rule="middle"]   .ct-middle,
+  .settled[data-rule="sevenths"] .ct-sevenths { opacity: 1; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .mk, .ct, .endlab { transition-duration: 0.01s; }
+  }
+</style>
+
+<script>
+  (() => {
+    const fig = document.querySelector('[data-anim="collapsing-night"]');
+    if (!fig) return;
+    const svg = fig.querySelector('svg');
+    const night = svg.querySelector('.night'), day = svg.querySelector('.day');
+    const dotSet = svg.querySelector('.dot-set'), dotRise = svg.querySelector('.dot-rise');
+
+    const CX = 320, CY = 215, RB = 139, D2R = Math.PI / 180;
+    const pt = (h, r) => { const a = ((h - 12) / 24) * 360 * D2R; return [CX + r * Math.sin(a), CY - r * Math.cos(a)]; };
+    const arc = (h1, h2) => {
+      const [x1, y1] = pt(h1, RB), [x2, y2] = pt(h2, RB);
+      return `M ${x1.toFixed(2)} ${y1.toFixed(2)} A ${RB} ${RB} 0 ${(h2 - h1) * 15 > 180 ? 1 : 0} 1 ${x2.toFixed(2)} ${y2.toFixed(2)}`;
+    };
+    const SET = 22 + 8 / 60, RISE = 27 + 31 / 60;
+
+    // s = sunset hour, r = sunrise hour (continuous, next morning > 24)
+    function apply (s, r) {
+      night.setAttribute('d', arc(s, r));
+      day.setAttribute('d', arc(r, s + 24));
+      const [ax, ay] = pt(s, RB), [bx, by] = pt(r, RB);
+      dotSet.setAttribute('cx', ax.toFixed(2));  dotSet.setAttribute('cy', ay.toFixed(2));
+      dotRise.setAttribute('cx', bx.toFixed(2)); dotRise.setAttribute('cy', by.toFixed(2));
+    }
+
+    // segmented control: switch convention markers + centre text
+    const btns = [...fig.querySelectorAll('.anim-btn[data-rule]')];
+    btns.forEach((b) => b.addEventListener('click', () => {
+      fig.dataset.rule = b.dataset.rule;
+      btns.forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    }));
+
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      fig.classList.add('in');         // markup already holds the final state
+      return;
+    }
+
+    // wind back to an equinox night (18:00 → 06:00) and wait for the scroll
+    fig.classList.remove('settled');
+    apply(18, 30);
+    const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+
+    function play () {
+      const t0 = performance.now();
+      const step = (now) => {
+        const t = Math.min((now - t0) / 3500, 1), k = ease(t);
+        apply(18 + (SET - 18) * k, 30 + (RISE - 30) * k);
+        if (t < 1) requestAnimationFrame(step);
+        else fig.classList.add('settled');   // sevenths markers + readout fade in
+      };
+      requestAnimationFrame(step);
+    }
+
+    const io = new IntersectionObserver((entries) => {
+      for (const e of entries) {
+        if (e.isIntersecting) { fig.classList.add('in'); play(); io.unobserve(fig); }
+      }
+    }, { threshold: 0.35 });
+    io.observe(fig);
+  })();
+</script>

@@ -2,7 +2,12 @@
 
 *How Isfar finds prayer times where the night disappears — and why we round the far north down to 60°.*
 
-> **Status:** draft — copy ready, awaiting the Phase D content hub for publication.
+> **Status:** PUBLISHED 2026-06-09 — live at `https://isfar.app/guide/far-north-prayer-times/`
+> (source: `src/pages/guide/far-north-prayer-times.astro`, with all six wishlist animations as
+> `src/components/blog/Anim*.astro`). **The page is the canonical copy** — it carries the full
+> review pass (line edits, taqdīr paragraph, FAQ block, internal links). This file keeps the
+> narrative draft + production notes; the factual corrections below have been mirrored here so
+> nothing in this file is quotably wrong.
 > **Credit:** the latitude-and-season framing that anchors our approach is owed to
 > [moonsighting.com's "How we calculate"](https://moonsighting.com/how-we.html) by Khalid Shaukat.
 > All times in this post are computed with [adhan-js](https://github.com/batoulapps/adhan-js),
@@ -38,7 +43,7 @@ Prayer times aren't arbitrary clock times. Each one is pinned to something the s
 | Prayer | The sun's moment |
 |---|---|
 | **Fajr** | First light of dawn — the sky begins to glow while the sun is still well below the horizon |
-| **Dhuhr** | Solar noon — the sun's highest point, as it crosses your meridian |
+| **Dhuhr** | Just past solar noon — the sun crests your meridian and begins to lean west |
 | **Asr** | Mid-afternoon — when a shadow reaches a set proportion of its object |
 | **Maghrib** | Sunset — the sun's disk slips below the horizon |
 | **Isha** | Nightfall — the last twilight fades and the sky is truly dark |
@@ -75,11 +80,11 @@ never quite dies.
 Watch what happens to a June night as you move north, using real computed times:
 
 **London (51.5°N), June 21, with a 15° method.** It still works — barely. True dark arrives at
-**00:47** and first light returns at **01:20**. Isha and Fajr both exist, separated by a window of
-thirty-three minutes.
+**00:49** and first light returns at **01:16**. Isha and Fajr both exist, separated by a window of
+twenty-seven minutes.
 
 **London, same night, with an 18° method.** The sun never reaches 18° below the horizon at all.
-Ask the math anyway and Fajr and Isha both land on **00:04 — the same minute**. The angle a
+Ask the math anyway and Fajr and Isha both land on **01:02 — the same minute**. The angle a
 traveller chose in good faith has, for a few weeks of the year, stopped describing anything real.
 
 **Stockholm (59.3°N), June 21.** Now even 15° is unreachable. The night between sunset (22:08
@@ -88,7 +93,7 @@ dark" to point to.
 
 And it keeps going. Cross the Arctic Circle (66.5°N) and in midsummer the sun stops *setting*
 altogether — the midnight sun. In Tromsø, Norway, it stays above the horizon from mid-May to late
-July. No sunset means no Maghrib moment, no night, no dawn. Four of the five prayers have lost
+July. No sunset means no Maghrib moment, no night, no dawn. Three of the five prayers have lost
 their sun-marks; only the noon and afternoon prayers still have a sky to point at.
 
 ## The scholarly toolkit — and where each tool breaks
@@ -102,12 +107,13 @@ what follows is engineering.)
 existing at ~48°N in midsummer, 15° at ~52°N. You cannot compute a time from an angle the sun
 never reaches.
 
-**Middle of the night.** When the angle fails, put Fajr and Isha at the midpoint of the night.
-Simple — but at exactly the latitudes that need it, the midpoint is the *same instant* for both.
-Stockholm, June 21: Fajr **00:49**, Isha **00:50**. One minute apart, in the small hours. This is
-the silent default in much prayer software, and it's why far-north times often look absurd.
+**Middle of the night.** When the angle fails, treat the night's midpoint as a boundary — Isha
+must arrive by it, Fajr won't begin before it. Simple — but at exactly the latitudes that need
+the rule, both times get pinned to that same instant. Stockholm, June 21: Fajr **00:50**, Isha
+**00:50** — the same minute, in the small hours. This is the silent default in much prayer
+software, and it's why far-north timetables so often collapse into a single strange minute.
 
-**A seventh of the night** (*sabʿu l-layl* — the convention moonsighting.com favors for these
+**A seventh of the night** (*subʿ al-layl* — the convention moonsighting.com favors for these
 latitudes). Divide the actual night, sunset to sunrise, into sevenths: Isha falls after the first
 seventh, Fajr begins at the last. At Stockholm in June this produces a humane, prayable schedule:
 Maghrib 22:08, **Isha 22:54**, **Fajr 02:45**, sunrise 03:31. It uses *your own* sky, scales with
@@ -133,7 +139,7 @@ were at **latitude 60°N** (at your own longitude). Not the nearest valid latitu
 deliberate floor. Two reasons, and they point at the same line on the map.
 
 **The astronomical reason.** 60° is about the furthest north that keeps a dependable night all
-year round. Its midsummer night is short but real — almost five hours, enough for the
+year round. Its midsummer night is short but real — just over five hours, enough for the
 seventh-of-the-night convention to produce sensible, stable, *prayable* times every single day of
 the year. Go higher and the guarantee dissolves; stop at 60° and the borrowed night never gets
 more extreme than Helsinki's.
@@ -152,10 +158,10 @@ on that line:
 *(Population figures are metro-area approximations; Muslim community sizes are order-of-magnitude
 estimates assembled from national statistics and community sources — treat them as such.)*
 
-Five real cities, half a degree apart, each with an established Muslim community that faces these
-skies every June — and almost nothing million-scale beyond them. (Honesty requires the footnote:
-mid-size Russian Arctic cities exist — Murmansk, Arkhangelsk, Yakutsk — but the drop past the
-60° cluster is an order of magnitude.) Anchoring the fallback at 60° means the borrowed times are
+Five cities, strung within a degree or two of the line, each with an established Muslim community
+that faces these skies every June — and almost nothing million-scale beyond them. (Mid-size
+cities do exist further north — Murmansk, Arkhangelsk, Yakutsk — but nothing on the scale of
+this cluster.) Anchoring the fallback at 60° means the borrowed times are
 the *lived* times of Stockholm, Oslo, St Petersburg and Helsinki — not an abstract sliver-night at
 a mathematical boundary. And for the traveller who does continue to Tromsø, where the world's
 northernmost mosques actually hold these debates as a matter of daily life, the estimate they
@@ -193,9 +199,10 @@ So the full picture, for Tromsø across one year, prayer by prayer:
 *\*Dhuhr's solar-noon instant is always defined — in polar night we keep its exact time but flag
 it, because calling it "midday" when the sun never rose would overstate what we know.*
 
-Note the first row. For most of the year, even Tromsø — 350 km past the Arctic Circle — has
+Note the first row. For four to five months of the year, depending on your angle — late winter
+into spring, and again through autumn — even Tromsø, 350 km past the Arctic Circle, has
 perfectly ordinary prayer times, and Isfar computes them with your chosen method, no fallbacks,
-no estimates. The machinery below only wakes when the sky actually fails.
+no estimates. The machinery below only wakes when the sky stops offering its usual signs.
 
 ## What Isfar actually does
 
@@ -204,11 +211,13 @@ position along your flight path**:
 
 1. **Wherever the sun reaches your method's angle — use it.** Your chosen authority's real times,
    untouched. This covers almost every flight, and even the far north for most of the year.
-2. **Where the angle is out of reach but a night exists — divide that night by sevenths.** Your
-   own local night, the moonsighting.com convention. The result is marked as an estimate.
-3. **Where even that fails — compute at 60°N**, your longitude, and divide *its* night by
-   sevenths. Marked as an estimate, with a banner telling you why ("the sun won't set at Tromsø
-   tonight…").
+2. **Where the angle is out of reach, up to 60° — divide your own night by sevenths.** Your
+   local night, sunset to sunrise, portioned following the old juristic convention
+   moonsighting.com recommends. The result is marked as an estimate.
+3. **Beyond 60°, or where no night survives at all — compute at 60°N**, your longitude, as if
+   you stood there: your method's real angle wherever that borrowed sky reaches it, never
+   straying more than a seventh of the borrowed night from its sunset or sunrise. Marked as an
+   estimate, with a banner telling you why ("the sun won't set at Tromsø tonight…").
 
 The switch between rule 1 and rule 2 isn't a line of latitude — it's *your angle meeting your
 sky*. Choose an 18° method and the fallback engages further south than your neighbour's 15°;
@@ -222,9 +231,10 @@ calculates from is the one outside your window.
 
 A worked example, the day we kept testing: **Oslo → Tromsø, December 21st**, landing in polar
 night. Before departure, Oslo's real Asr (13:04) and Maghrib (15:08). Isha arrives mid-flight,
-where the night below the aircraft is still real. After landing: Fajr ~06:25 and Dhuhr ~11:43 —
-both carrying the `~`, both anchored to a 60°N night, under a banner that says the sun will not
-rise tomorrow in Tromsø, and that's why.
+where the night below the aircraft is still real. After landing: Fajr ~06:25, borrowed from
+latitude 60° — where a 15° dawn still exists even in late December — and Dhuhr ~11:43, Tromsø's
+own solar noon, flagged because the sun beneath it never rises. Both carry the `~`, under a
+banner that says the sun will not rise tomorrow in Tromsø, and that's why.
 
 ## Standing on others' work
 
@@ -250,13 +260,15 @@ Safe travels. *سفر مبارك*
 ## Production notes (not for publication)
 
 ### Numbers — provenance
-Every time quoted above was computed with adhan-js 4.4.3 during the 2026-06-09 engineering
-session (see `scripts/test-highlat.mjs` and the session transcript). London June: 15° → Isha
-00:47/Fajr 01:20 BST (33-min window); 18° → both 00:04 UTC (collapsed). Stockholm June:
-MiddleOfTheNight → 22:49/22:50 UTC (collapsed); SeventhOfTheNight → Isha 20:54/Fajr 00:45 UTC.
-Tromsø Dec borrowed-60: Fajr 06:25 / Maghrib 14:38 / Isha 16:59 CET. Tromsø midnight sun
-≈ May 18 – Jul 25; polar night ≈ Nov 27 – Jan 15. Re-verify against the engine before publishing
-(dates shift the minutes slightly; the story doesn't change).
+Every time quoted above was re-verified with adhan-js 4.4.3 at publication (2026-06-09) via
+`scripts/verify-blog-times.mjs` (run it any time). London June: 15° → Isha 00:49/Fajr 01:16 BST
+(27-min window); 18° → both 01:02 BST = 00:02 UTC (collapsed). Stockholm June:
+MiddleOfTheNight → both 22:50 UTC, half a second apart (collapsed); SeventhOfTheNight → Isha
+20:54/Fajr 00:45 UTC. Tromsø Dec borrowed-60: Fajr 06:25 / Maghrib 14:38 / Isha 16:59 CET
+(these are the real 15° angle times at lat 60 — the seventh clamp doesn't bind in winter).
+Tromsø midnight sun ≈ May 18 – Jul 25; polar night ≈ Nov 28 – Jan 15. Tromsø has all-five-real
+days only ~41% of the year with a 15° method (engine classification) — hence "four to five
+months". BA48 now renders: Maghrib real, Isha ~portioned, Fajr ~substituted, 2nd Dhuhr real.
 
 City-table figures are deliberately hedged (metro approximations; community estimates from
 national statistics + community sources). Before publishing, decide whether to cite specific
@@ -284,9 +296,13 @@ sources per row or keep the "rough estimate" framing with the italic disclaimer.
    dashed-border estimate styling) so the post and the app feel like one object.
 
 ### Publication checklist
-- [ ] Phase D content hub exists (Astro route, e.g. `/guide/far-north-prayer-times/`)
-- [ ] Re-verify all quoted times against the current engine
-- [ ] Decide citation depth for the city table
-- [ ] Build at least animations #2 and #3 (the angle + the shrinking dip) — the rest can ship later
-- [ ] Internal links: methodology blurb in "How Isfar works" ↔ this post; DY394 sample chip as live demo
+- [x] Phase D content hub exists — `/guide/far-north-prayer-times/` (`src/pages/guide/…`)
+- [x] Re-verify all quoted times against the current engine (`scripts/verify-blog-times.mjs`;
+      several were corrected — see provenance above)
+- [x] Decide citation depth for the city table — kept the "rough estimate" framing with the
+      italic disclaimer; texture moved from cells into prose
+- [x] Built ALL SIX animations (`src/components/blog/Anim*.astro`)
+- [x] Internal links: "How Isfar works" sheet → guide; midnight-sun banner → guide; guide →
+      app (Settings anchor + DY394 CTA)
 - [ ] hreflang/i18n pass once translations exist (Phase D)
+- [ ] Optional: dedicated OG image cut from the shrinking-dip figure (currently reuses og-cover)
