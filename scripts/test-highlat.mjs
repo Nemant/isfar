@@ -14,7 +14,7 @@ const BA48 = {
   to:   { iata: 'LHR', city: 'London',  lat: 51.4706, lon: -0.461941, tz: 'Europe/London' },
 };
 
-const OPTS = { method: 'isna', madhab: 'shafi', highLat: 'seventhnight' };
+const OPTS = { method: 'isna', madhab: 'shafi' };
 
 // --- Task 1: prayers no longer vanish ---
 {
@@ -27,15 +27,31 @@ const OPTS = { method: 'isna', madhab: 'shafi', highLat: 'seventhnight' };
 // --- Task 2: detection gate ---
 {
   const { estimateBasisFor, makeParams } = ISFAR_TEST;
-  const isna = makeParams('isna', 'shafi', 'seventhnight');   // fajr/isha angle 15
-  const ms = Date.parse('2026-06-21T12:00:00Z');               // solstice
-  ok('45N Isha is real (15deg reached)',  estimateBasisFor('isha', 45, ms, isna) === 'real');
-  ok('60N Isha is portioned',             estimateBasisFor('isha', 60, ms, isna) === 'portioned');
-  ok('70N Isha is substituted (no night)',estimateBasisFor('isha', 70, ms, isna) === 'substituted');
-  ok('70N Dhuhr is real (noon always)',   estimateBasisFor('dhuhr', 70, ms, isna) === 'real');
-  ok('70N Maghrib is substituted',        estimateBasisFor('maghrib', 70, ms, isna) === 'substituted');
-  const uaq = makeParams('ummalqura', 'shafi', 'seventhnight'); // interval Isha
-  ok('60N UmmAlQura Isha real (interval)',estimateBasisFor('isha', 60, ms, uaq) === 'real');
+  const isna = makeParams('isna', 'shafi');                    // fajr/isha angle 15
+  const sols = Date.parse('2026-06-21T12:00:00Z');             // June solstice
+  const dec  = Date.parse('2026-12-21T12:00:00Z');             // December solstice
+  ok('45N Isha is real (15deg reached)',   estimateBasisFor('isha', 45, sols, isna) === 'real');
+  ok('60N Isha is portioned (<=60 floor)', estimateBasisFor('isha', 60, sols, isna) === 'portioned');
+  ok('60.19N June Fajr is substituted (>60)', estimateBasisFor('fajr', 60.19, sols, isna) === 'substituted');
+  ok('64N June Fajr is substituted (>60)', estimateBasisFor('fajr', 64, sols, isna) === 'substituted');
+  ok('64N December Fajr is real (winter night)', estimateBasisFor('fajr', 64, dec, isna) === 'real');
+  ok('70N Isha is substituted (no night)', estimateBasisFor('isha', 70, sols, isna) === 'substituted');
+  ok('70N Dhuhr is real (noon always)',    estimateBasisFor('dhuhr', 70, sols, isna) === 'real');
+  ok('70N Maghrib is substituted',         estimateBasisFor('maghrib', 70, sols, isna) === 'substituted');
+  const uaq = makeParams('ummalqura', 'shafi');                // interval Isha
+  ok('60N UmmAlQura Isha real (interval)', estimateBasisFor('isha', 60, sols, uaq) === 'real');
+}
+
+// --- latitude-60 borrow: above 60 the twilight prayers come from lat 60, Asr stays local ---
+{
+  const { instantsAt, makeParams } = ISFAR_TEST;
+  const p = makeParams('isna', 'shafi');
+  const lon = 18.92, ref = Date.parse('2026-06-21T12:00:00Z');
+  const at69 = instantsAt(69.68, lon, ref, p);
+  const at60 = instantsAt(60, lon, ref, p);
+  ok('69N June Fajr is borrowed from lat 60', at69.fajr && at60.fajr && at69.fajr.getTime() === at60.fajr.getTime());
+  ok('69N June Isha is borrowed from lat 60', at69.isha && at60.isha && at69.isha.getTime() === at60.isha.getTime());
+  ok('69N June Asr stays local (differs from 60)', at69.asr && at60.asr && at69.asr.getTime() !== at60.asr.getTime());
 }
 
 // --- Task 3: model fields + no-sunset path ---
@@ -105,15 +121,6 @@ const OPTS = { method: 'isna', madhab: 'shafi', highLat: 'seventhnight' };
   ok('winter keeps a real before-departure prayer sharing a substituted name',
      before.some(p => p.estimated === false && subSet.has(p.en)));
   ok('winter before-departure prayers are real (not estimated)', before.every(p => p.estimated === false));
-}
-
-// --- Task 8: switching the high-lat rule changes portioned times ---
-{
-  const seven = compute(BA48, { method: 'isna', madhab: 'shafi', highLat: 'seventhnight' });
-  const twi   = compute(BA48, { method: 'isna', madhab: 'shafi', highLat: 'twilightangle' });
-  const iS = seven.prayers.find(p => p.key === 'isha' && p.status === 'inflight');
-  const iT = twi.prayers.find(p => p.key === 'isha' && p.status === 'inflight');
-  ok('twilight-angle changes the portioned Isha time', iS && iT && iS.ms !== iT.ms);
 }
 
 console.log(`\n${pass} passed, ${fail} failed`);
