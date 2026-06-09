@@ -374,7 +374,7 @@ function NoSunset({ f, onBack }) {
       <h2 className="display">The sun won’t set on this route</h2>
       <p>
         {f.code} flies to <b>{f.to.city}</b> at <b>{f.latitude}</b>. In midsummer the sun stays above the
-        horizon, so <b>{joined}</b> {names.length > 1 ? "have" : "has"} no calculated time here.
+        horizon, so <b>{joined}</b> {names.length > 1 ? "have" : "has"} no exact time — the value{names.length > 1 ? "s" : ""} below {names.length > 1 ? "are" : "is"} an estimate.
       </p>
       <div className="nosunset-card">
         {f.defined.map((p) => (
@@ -385,8 +385,8 @@ function NoSunset({ f, onBack }) {
         ))}
         {f.undefinedPrayers.map((p) => (
           <div className="ns-row" key={p.key}>
-            <span>{p.en} <span className="ar" aria-hidden="true">{p.ar}</span></span>
-            <em>{p.key === "fajr" ? "no true dawn" : "no true sunset"}</em>
+            <span>{p.en} <span className="ar" aria-hidden="true">{p.ar}</span> <span className="pc-est-pill">estimate</span></span>
+            <span className="tnum">{p.time ? "~" + p.time : (p.key === "fajr" ? "no true dawn" : "no true sunset")} <em>· {f.to.iata}</em></span>
           </div>
         ))}
       </div>
