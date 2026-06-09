@@ -29,30 +29,53 @@ entirely, with **no explanation**. The DY394 "no true sunset" destination screen
   high-latitude method (mirrors the existing calc-method picker).
 - **Scope:** **unified** — one engine mechanism feeds both the **in-flight list** (BA48-class) and
   the **destination no-sunset screen** (DY394).
-- **Three-option menu** (Middle-of-the-night deliberately **excluded** — it collapses to ~1 min at
-  exactly these latitudes and is adhan's silent default, which is part of what we're fixing):
-  1. **Nearest latitude (45°)** — *default*
-  2. **Last seventh of the night**
-  3. **Twilight-angle (1/60 of night)**
+- **Default = "Last seventh of the night" (location-relative).** It divides the traveller's *own*
+  sunset→sunrise night, so Isha sits ~1/7 after their real sunset and Fajr ~1/7 before their real
+  sunrise. This is honest to where they actually are (e.g. a UK summer night), rather than
+  substituting a foreign latitude. (See the Manchester rationale below.)
+- **Three-option menu** (Middle-of-the-night deliberately **excluded** — it collapses Isha≈Fajr to
+  ~1 min at exactly these latitudes and is adhan's silent default, which is part of what we're
+  fixing):
+  1. **Last seventh of the night** — *default*; portions your own night
+  2. **Nearest latitude (47°)** — substitute the nearest latitude with a real night (aqrab al-bilād)
+  3. **Twilight-angle (1/60 of night)** — tighter portioning
+- **Nearest-latitude reference = 47°** (not 45°). 47° is the *least-aggressive* (most northern)
+  reference that still keeps **Isha before midnight with a ~2.5h Isha→Fajr gap even on the
+  solstice** (the worst case). Higher (48°+) tips Isha past midnight and collapses toward the
+  twilight threshold (~48.6°N); lower (45°) is needlessly generous/southern.
 
-## Why "Nearest latitude (45°)" and not adhan's built-ins
+## Rationale — why "last seventh" default + 47° substitute
 
-adhan ships polar handling (`PolarCircleResolution.AqrabBalad` = nearest place, `AqrabYaum` =
-nearest day) and `HighLatitudeRule` (Middle/Seventh/TwilightAngle). **All of adhan's built-ins
-collapse near the solstice** because their "nearest" is the *strict* nearest (lands at the boundary
-latitude/day). Measured at 67°N, 9 Jun:
+**The Manchester insight.** A natural objection is "people live at 53°N (Manchester) with a real
+night — why substitute a latitude at all?" But Manchester in deep summer has *no* astronomical
+Isha/Fajr either: the sun only reaches ~13.6° below the horizon at solar midnight (London 15.6°,
+Edinburgh 11.1°) — short of the 17–18° needed. Its *night* (sunset→sunrise) is short-but-present,
+its *twilight* never deepens enough. So the honest fix where a night exists is to **portion that
+real night** — "last seventh" puts Isha ~1/7 after the actual sunset, Fajr ~1/7 before the actual
+sunrise (Manchester 9 Jun: Isha 22:36, Fajr 03:41 against a real 21:36→04:41 night). This is more
+grounded than borrowing a foreign latitude, so it's the default.
 
-| Approach | Isha | Fajr | Isha→Fajr |
+**Why a substitute latitude is still needed — and why 47°.** "Last seventh" needs a night to
+divide. At **true midnight sun** (~66°N+, sun never sets) there is none, so we must substitute the
+nearest latitude that *does* have a real night (aqrab al-bilād). adhan's own built-ins all collapse
+here — `PolarCircleResolution.AqrabBalad`/`AqrabYaum` and `HighLatitudeRule` land at the *strict*
+boundary (~48.6°N), which near the solstice has a near-zero night:
+
+| Approach (67°N apex, 9 Jun) | Isha | Fajr | Isha→Fajr |
 |---|---|---|---|
-| adhan `AqrabBalad` (nearest place) | 03:43 | 03:49 | **0h06** ⚠️ |
-| adhan `MiddleOfTheNight` (default) | — | — | null (no night) |
-| **Nearest latitude 45° (ours)** | 01:47 | 05:28 | **3h41** ✅ |
+| adhan `AqrabBalad` (strict nearest place) | 03:43 | 03:49 | **0h06** ⚠️ |
+| adhan `MiddleOfTheNight` / portioning | — | — | null (no night) |
+| **Nearest latitude 47° (ours)** | 02:12 | 04:59 | **2h47** ✅ (UTC) |
 
-At 60°N (night, no twilight): Middle-of-night → 1-min gap; **Last-1/7 → 3h49**; Twilight-angle →
-2h14; **Nearest-45 → 3h41**. So nearest-45 tracks the most prayable portioning opinion *and* is the
-only approach that survives true midnight sun. We compute it by calling **adhan at a substitute 45°
-coordinate** (same longitude/date) — the prayer math stays 100% adhan's; we only choose the
-coordinate. This satisfies the golden rule (no hand-rolled prayer math).
+So we substitute a *fixed* 47° (same longitude/date) — far enough south to avoid the collapse, near
+enough to stay faithful to "nearest place." Latitude sweep at the **solstice** (worst case) fixes
+the value: 48.5°→1h09 gap, 48°→1h47 (Isha past midnight), **47°→2h31 (Isha 23:46, before
+midnight)**, 46°→3h03, 45°→3h30. 47° is the most-northern reference that keeps Isha before midnight
+with a real gap even on 21 Jun.
+
+In all cases the prayer math stays 100% adhan's — for portioning we set adhan's `HighLatitudeRule`;
+for the substitute we call adhan's `PrayerTimes` at the 47° coordinate. We only ever choose the
+*rule* or the *coordinate*, never compute a prayer time ourselves (golden rule).
 
 ## Engine design (`engine.js`)
 
@@ -78,12 +101,16 @@ adhan returning null with `PolarCircleResolution.Unresolved`.
 
 ### Estimate helper
 `estimatePrayer(lat, lon, refMs, key, rule, params) → { ms, basis }`:
-- **`nearest` (default):** build adhan params, call `PrayerTimes` at **(sign(lat)·45, lon)** for the
-  date implied by `refMs`/longitude; read the key. Always defined.
-- **`seventhnight` / `twilightangle`:** set `params.highLatitudeRule` to the adhan rule. If a night
-  exists → use adhan's result. If **no night** (midnight sun) → fall back to `nearest`.
-- Returns the time **and** the `basis` actually used (so the UI can say "nearest latitude" even when
-  a portioning option silently fell back).
+- **`seventhnight` (default) / `twilightangle`:** set `params.highLatitudeRule` to the adhan rule
+  (`SeventhOfTheNight` / `TwilightAngle`). If a real night exists at the position → use adhan's
+  result, `basis = rule`. If **there is no night at all** (true midnight sun, detected via
+  `PolarCircleResolution.Unresolved` → null sunset/sunrise) → **fall back to `nearest`**.
+- **`nearest`:** call adhan's `PrayerTimes` at **(sign(lat)·47, lon)** for the date implied by
+  `refMs`/longitude; read the key. Always defined. `basis = "nearest"`.
+- Returns the time **and** the `basis` *actually used* — so a portioning choice that had to fall
+  back is reported honestly as `"nearest"`, and the UI note can say so (see Presentation). Fallback
+  is **per-prayer**: on one flight Isha (at a latitude with a night) can be `seventhnight` while
+  Fajr (at the midnight-sun apex) is `nearest`.
 
 ### compute() integration
 - The prayer model entry gains two **additive** fields: `estimated: boolean` and
@@ -95,28 +122,37 @@ adhan returning null with `PolarCircleResolution.Unresolved`.
   chronological order.
 - **Destination (no-sunset / DY394):** the existing `undefinedKeys` path produces `estimated`
   entries (using `to` position on arrival day) instead of "no time" markers.
-- `opts.highLat` (default `"nearest"`) selects the rule; threaded from settings.
+- `opts.highLat` (default `"seventhnight"`) selects the rule; threaded from settings.
 
 ## Settings (`data.js` + `components.jsx`)
-- `data.js`: add `HIGHLAT` (default `"nearest"`):
-  - `{key:"nearest", label:"Nearest latitude", blurb:"Use the times of the nearest latitude with a normal night (45°). Calm, always available."}`
-  - `{key:"seventhnight", label:"Last seventh of the night", blurb:"Place Isha/Fajr in the last/first seventh of the night."}`
-  - `{key:"twilightangle", label:"Twilight angle", blurb:"Scale the night by the twilight angle (a tighter window)."}`
-- Persist in the existing `isfar.settings` object as `highLat` (alongside `method`/`madhab`).
-- `components.jsx` `SettingsSheet`: new control with the same pattern as the method picker; a short
-  caption: "Used only when a route reaches latitudes with no true night."
-- `Calculator.jsx`: thread `settings.highLat` into `compute(...)`; re-compute on change like
-  method/madhab.
+- `data.js`: add `HIGHLAT` (ordered; default `"seventhnight"`):
+  - `{key:"seventhnight", label:"Last seventh of the night", blurb:"Divide your own night — Isha a seventh after sunset, Fajr a seventh before sunrise."}`
+  - `{key:"nearest", label:"Nearest latitude (47°)", blurb:"Borrow the times of the nearest latitude with a real night."}`
+  - `{key:"twilightangle", label:"Twilight angle", blurb:"Scale the night by the twilight angle — a tighter window."}`
+- Persist in the existing `isfar.settings` object as `highLat` (alongside `method`/`madhab`);
+  back-compat: a missing `highLat` reads as `"seventhnight"`.
+- `components.jsx` `SettingsSheet`: a third control **"Far-north prayers"** — a labelled `<select>`
+  (same pattern as the Calculation-method picker) listing the three `HIGHLAT` options, with a
+  caption below that shows the **selected option's blurb** plus the line: *"Only affects routes that
+  reach latitudes with no true night."*
+- `Calculator.jsx`: thread `settings.highLat` into `compute(...)`; re-compute on change exactly like
+  method/madhab (instant, persisted).
 
 ## Presentation (`cards.jsx`, `styles.css`, `Calculator.jsx`)
 - **Estimated prayer card:** same dual-zone layout, visually distinct — an **"estimate" tag**, a
   softer/dashed accent, time prefixed `~`.
 - **Teaching note** rendered once where estimates appear (in-flight section and the no-sunset
-  screen):
-  > *No true night over the far north on this route, so Isha & Fajr have no exact time. Shown as
-  > estimates (nearest latitude). Scholars differ — follow the guidance you trust.*
-  The method name reflects the actual `estimateBasis`. A subtle link/affordance points to the
-  Settings control.
+  screen). Copy is **driven by the actual `estimateBasis`** so it never claims a method it couldn't
+  use:
+  - portioning used (`seventhnight`/`twilightangle`):
+    > *No true night over the far north on this route, so Isha & Fajr have no exact time. Estimated
+    > by the last seventh of the night. Scholars differ — follow the guidance you trust.*
+  - fell back to / chose `nearest`:
+    > *The sun never sets on this stretch, so there's no night to divide. Estimated using the
+    > nearest latitude with a real night (47°N). Scholars differ — follow the guidance you trust.*
+  - If both bases appear on one flight, the note states the primary rule and adds a clause that the
+    nearest-latitude was used where there was no night. A subtle affordance points to the
+    **Far-north prayers** setting.
 - **DY394 no-sunset screen:** reuse the estimate cards (with times) in place of blank "no true
   sunset" rows, keeping its existing scholarly paragraph.
 
@@ -137,10 +173,12 @@ adhan returning null with `PolarCircleResolution.Unresolved`.
 
 ## Verification
 - **Engine (Node harness):** BA48 (SEA→LHR) now yields an estimated **Isha & Fajr** between Maghrib
-  and Dhuhr; DY394 destination shows estimated Fajr/Maghrib/Isha. For each high-lat option, assert a
-  prayable Isha→Fajr gap (nearest-45 ≈ 3h41; seventh ≈ 3h49; twilight ≈ 2h14) and that a true
-  midnight-sun point still returns a time (portioning options fall back to nearest, `estimateBasis`
-  reflects it). Assert a normal mid-latitude flight is **unchanged** (no `estimated` entries).
+  and Dhuhr; DY394 destination shows estimated Fajr/Maghrib/Isha. Assert, per high-lat option, a
+  prayable Isha→Fajr gap (default `seventhnight` of a real night ≈ 3–5h; `nearest`-47 ≈ 2.5–3h;
+  `twilightangle` tighter). Assert a **true midnight-sun** point still returns a time with
+  `estimateBasis==="nearest"` even when `seventhnight`/`twilightangle` is selected (fallback), and
+  that `estimated`/`estimateBasis` are set correctly per prayer. Assert a normal mid-latitude flight
+  is **unchanged** (no `estimated` entries; identical prayer model to before this change).
 - **UI (Playwright on preview):** BA48 renders the estimate cards + note; switching the Settings
   high-latitude option re-renders the times; DY394 shows estimates; a normal flight (SV124) is
   visually unchanged.
