@@ -104,12 +104,19 @@ const ISFAR_ENGINE = (function () {
     };
     const p = (map[method] || M.MuslimWorldLeague)();
     p.madhab = (madhab === "hanafi") ? adhan.Madhab.Hanafi : adhan.Madhab.Shafi;
-    // High-latitude policy: portion the local night by sevenths when the chosen method's
-    // twilight angle has no moment to mark — SeventhOfTheNight is a no-op wherever the
-    // angle still resolves, so it is safe to set everywhere. Above 60° we borrow latitude
-    // 60's twilight times in instantsAt. adhan's AqrabBalad is intentionally NOT used: it
-    // slides to the nearest valid latitude (can be a sliver of a night); a fixed 60° floor
-    // is steadier and is the rule we explain to users.
+    // Base rule = MiddleOfTheNight: it returns the chosen method's REAL twilight angle wherever
+    // the sun actually reaches it (it only caps the rare case of an angle past solar midnight).
+    // Where the sun never reaches the angle, instantsAt swaps in a seventh-of-the-night fallback
+    // (and, above 60°, borrows latitude 60). Using SeventhOfTheNight here as the base was wrong —
+    // it clamps real angle times even at normal latitudes (London June Isha 21:24 vs the real 23:48).
+    p.highLatitudeRule = adhan.HighLatitudeRule.MiddleOfTheNight;
+    return p;
+  }
+
+  /* a clone of the method params using the seventh-of-the-night fallback (for places/dates where
+     the sun never reaches the twilight angle). Preserves the adhan prototype (nightPortions, …). */
+  function seventhParams(params) {
+    const p = Object.assign(Object.create(Object.getPrototypeOf(params)), params);
     p.highLatitudeRule = adhan.HighLatitudeRule.SeventhOfTheNight;
     return p;
   }
@@ -128,22 +135,31 @@ const ISFAR_ENGINE = (function () {
     return out;
   }
 
-  /* Banded high-latitude policy. Below the 60° floor the local times stand
-     (SeventhOfTheNight already portions any too-bright night). Above 60° any prayer with no
-     dependable local event is taken from latitude 60 — the furthest north with a settled
-     night — while Dhuhr (solar noon, always defined) stays local. In practice that borrows the
-     twilight prayers, plus Maghrib/sunrise where the sun never sets and Asr where it never
-     rises (polar night). estimateBasisFor decides, per prayer and date, which case applies. */
+  /* Banded high-latitude policy, per prayer and date (estimateBasisFor decides the case):
+       - "real":       the sun reaches the chosen angle (or the event exists) → the method's own
+                       time stands (MiddleOfTheNight = the real angle wherever it's reachable).
+       - "portioned":  the angle has no moment to mark and we're ≤60° → a seventh of the LOCAL night.
+       - "substituted":no usable local event AND >60° → borrow latitude 60 (twilight without a night,
+                       Maghrib/sunrise without a sunset, Asr in polar night). Dhuhr (solar noon) stays. */
   function instantsAt(lat, lon, refMs, params) {
-    const local = rawInstants(lat, lon, refMs, params);
-    if (Math.abs(lat) <= HIGHLAT_FLOOR) return local;
-    const borrow = rawInstants(Math.sign(lat) * HIGHLAT_FLOOR, lon, refMs, params);
-    const out = Object.assign({}, local);
+    const out = Object.assign({}, rawInstants(lat, lon, refMs, params));   // real angle where reachable
+    let seventh = null, borrow = null;
     ORDER.forEach(k => {
       if (k === "dhuhr") return;
-      if (estimateBasisFor(k, lat, refMs, params) === "substituted") out[k] = borrow[k];
+      const basis = estimateBasisFor(k, lat, refMs, params);
+      if (basis === "real") return;
+      if (basis === "portioned") {                                         // ≤60°: a seventh of the local night
+        seventh = seventh || rawInstants(lat, lon, refMs, seventhParams(params));
+        out[k] = seventh[k];
+      } else {                                                             // substituted: borrow latitude 60
+        borrow = borrow || rawInstants(Math.sign(lat) * HIGHLAT_FLOOR, lon, refMs, seventhParams(params));
+        out[k] = borrow[k];
+      }
     });
-    if (!local.sunrise) out.sunrise = borrow.sunrise;
+    if (!out.sunrise && Math.abs(lat) > HIGHLAT_FLOOR) {
+      borrow = borrow || rawInstants(Math.sign(lat) * HIGHLAT_FLOOR, lon, refMs, seventhParams(params));
+      out.sunrise = borrow.sunrise;
+    }
     return out;
   }
 
