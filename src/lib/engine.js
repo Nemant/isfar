@@ -61,7 +61,9 @@ const ISFAR_ENGINE = (function () {
     return dipDeg * 4 * latFactor;                  // 4 min per degree of arc
   }
 
-  function makeParams(method, madhab) {
+  const HIGHLAT_RULE = { seventhnight: "SeventhOfTheNight", twilightangle: "TwilightAngle" };
+
+  function makeParams(method, madhab, highLat) {
     const M = adhan.CalculationMethod;
     const map = {
       mwl: M.MuslimWorldLeague, isna: M.NorthAmerica, moonsighting: M.MoonsightingCommittee,
@@ -71,6 +73,11 @@ const ISFAR_ENGINE = (function () {
     };
     const p = (map[method] || M.MuslimWorldLeague)();
     p.madhab = (madhab === "hanafi") ? adhan.Madhab.Hanafi : adhan.Madhab.Shafi;
+    // High-latitude handling: portion the local night (default last-seventh); and when there is no
+    // local day/night cycle at all, substitute the nearest latitude that has one. Both are adhan's
+    // own recognized rules — we choose the rule, never compute a time.
+    p.highLatitudeRule = adhan.HighLatitudeRule[HIGHLAT_RULE[highLat] || "SeventhOfTheNight"];
+    p.polarCircleResolution = adhan.PolarCircleResolution.AqrabBalad;
     return p;
   }
 
@@ -171,7 +178,7 @@ const ISFAR_ENGINE = (function () {
 
   function compute(raw, opts) {
     opts = opts || {};
-    const params = makeParams(opts.method || "mwl", opts.madhab || "shafi");
+    const params = makeParams(opts.method || "mwl", opts.madhab || "shafi", opts.highLat || "seventhnight");
     const dep = Date.parse(raw.depUTC), arr = Date.parse(raw.arrUTC);
     const from = raw.from, to = raw.to;
     const entries = [];        // { key, status, ms, lat, lon }
