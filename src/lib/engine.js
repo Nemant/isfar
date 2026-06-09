@@ -334,7 +334,10 @@ const ISFAR_ENGINE = (function () {
     if (undefinedKeys.length) {
       model.noSunset = true;
       model.latitude = Math.abs(to.lat).toFixed(1) + "° " + (to.lat >= 0 ? "N" : "S");
-      model.defined = prayers.filter(p => p.status !== "after").map(p => ({
+      // exclude keys that are also shown as destination estimates below — else a
+      // prayer substituted both in-flight and at the destination (e.g. midnight-sun
+      // Maghrib) would appear twice, with two different times.
+      model.defined = prayers.filter(p => p.status !== "after" && !undefinedKeys.includes(p.key)).map(p => ({
         key: p.key, en: p.en, ar: p.ar,
         time: (p.zones[from.iata] || Object.values(p.zones)[0]).time,
         note: p.status === "before" ? "before departure" : "aloft"

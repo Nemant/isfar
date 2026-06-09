@@ -56,6 +56,9 @@ const OPTS = { method: 'isna', madhab: 'shafi', highLat: 'seventhnight' };
   ok('DY394 noSunset still true', dy.noSunset === true);
   ok('DY394 undefinedPrayers carry a time', (dy.undefinedPrayers || []).every(p => typeof p.time === 'string' && p.time.length));
   ok('DY394 undefinedPrayers flagged substituted', (dy.undefinedPrayers || []).every(p => p.estimated === true && p.estimateBasis === 'substituted'));
+  // no prayer appears in BOTH the defined list and the estimates (no duplicate Maghrib)
+  const defKeys = new Set((dy.defined || []).map(p => p.key));
+  ok('DY394 defined and undefined lists are disjoint', (dy.undefinedPrayers || []).every(p => !defKeys.has(p.key)));
 }
 
 // --- Task 3b: estimates are sane (in-flight prayers chronological) ---
