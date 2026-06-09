@@ -1,7 +1,7 @@
 # High-latitude fallback prayer times — design
 
 **Date:** 2026-06-09
-**Status:** design in progress — further discussion pending before the implementation plan.
+**Status:** approved — proceeding to implementation plan.
 **Origin:** A user looked up **BA48 SEA→LHR** (overnight eastbound) and saw the in-flight sequence
 go **Maghrib → Dhuhr** with no Isha/Fajr between. Investigation confirmed it is *correct* (the route
 arcs to ~67°N near the June solstice, where Isha/Fajr have no astronomical time), but the app drops
@@ -143,12 +143,18 @@ Prayer entries gain two **additive** fields: `estimated: boolean` and
 - Polar night (winter flights) — handled automatically by the same machinery; no special UI.
 - Other calc-method changes; Asr/Maghrib altitude logic; Worker / API changes.
 
-## Open for further discussion (before the plan)
-- Exact in-flight anchoring/insertion of substituted (no-night) prayers.
-- Whether to surface "Middle of the night" at all (currently omitted).
-- The estimate visual treatment (how loud vs. subtle) and final note copy.
-- Whether DY394 keeps its standalone screen or folds into the normal results list now that it has
-  real times.
+## Resolved decisions (were open; now locked)
+- **In-flight insertion of substituted prayers:** explicit insertion (like the destination path),
+  not the moving-instant crossing detector. Anchor: the substituted instant if it lands in
+  `[dep, arr]`, else the midpoint of the gap between its bracketing prayers; placed in chronological
+  order.
+- **"Middle of the night":** not surfaced (omitted).
+- **Visual treatment:** calm/subtle, matching the app ethos — a small "estimate" pill + `~` prefix +
+  a soft dashed accent; never a loud warning.
+- **DY394:** keeps its standalone "the sun won't set" screen, but its rows now show the **estimated
+  times** (reusing the estimate card) instead of blank "no time"; the existing scholarly paragraph
+  stays. (Not folded into the normal results list.)
+- **Note copy:** the two `estimateBasis`-driven variants in Presentation are final for v1.
 
 ## Verification
 - **Engine (Node harness):** BA48 (SEA→LHR) yields estimated **Isha & Fajr** (`portioned`) between
