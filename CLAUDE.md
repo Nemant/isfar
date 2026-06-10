@@ -51,7 +51,7 @@ build time, not load order.
 | `worker/` | The `isfar-flight` Cloudflare Worker (`/api/flight`): AeroDataBox lookup, `Intl`-derived tz/date, KV cache, daily ceiling. `CONTRACT.md` freezes the response shape (= the `data.js` record). Standalone — **not** ported into Astro. |
 | `wrangler.toml` (root) | Config for the **`isfar`** static-asset Worker: assets-only, `[assets] directory="./dist"`. Read by `npx wrangler deploy` after the build. (Separate from `worker/wrangler.toml`.) |
 | `scripts/gen-sw-precache.mjs` | Runs after `astro build`; rewrites `dist/sw.js`'s `CORE` list from the build output (hashed asset names never hand-maintained). Fails loudly if its marker is missing. |
-| `src/components/Calculator.jsx` | Default-exported island root: `App` state machine + `Landing`/`Loading`/`Results`/`ErrorState`. `Results` renders one banner per `skyNotes` entry. Landing has two lookup modes (flight number / route, quiet link toggle, persisted `isfar.lookupMode`); date defaults to today with a `Today` reset chip; the PWA install nudge (`beforeinstallprompt` capture / iOS sheet, shown once) sits above `Results`. |
+| `src/components/Calculator.jsx` | Default-exported island root: `App` state machine + `Landing`/`Loading`/`Results`/`ErrorState`. `Results` renders one banner per `skyNotes` entry. Landing has two lookup modes (flight number / route, top segmented `.mode-seg` switch, persisted `isfar.lookupMode`); date defaults to today with a `Today` reset chip; every view change scrolls to top; the PWA install nudge (`beforeinstallprompt` capture / iOS sheet, shown each session until installed, ✕ = session dismiss) sits above `Results`. |
 | `src/components/tweaks-panel.jsx` | Tweaks shell (theme, accent warmth). Dev `__edit_mode_*` postMessage host bridge removed. |
 | `src/components/components.jsx` | Icons (`Ic`), `Header`, sheets (`SettingsSheet`, `GuideSheet`, `MethodSheet`), `FlightSummary`, `TzBanner`, `PlaneQibla`, `NextPrayer`. |
 | `src/components/arc.jsx` | `ArcTimeline` — sun-elevation curve, prayer dots, in-flight band, day-break dividers. |
@@ -72,8 +72,10 @@ build time, not load order.
   browser (the island isn't server-rendered), so there's no hydration mismatch to guard against.
 - Tweak defaults live in `Calculator.jsx` inside `/*EDITMODE-START*/ … /*EDITMODE-END*/`.
 - Persisted state: `localStorage` keys `isfar.settings` (method/madhab), `isfar.theme`
-  (`light|dark|auto`), `isfar.recents` (v2: full records — see `recents.js`), `isfar.lookupMode`,
-  and `isfar.installNudge`. `navigator.storage.persist()` is requested on first save.
+  (`light|dark|auto`), `isfar.recents` (v2: full records — see `recents.js`), and
+  `isfar.lookupMode`. `navigator.storage.persist()` is requested on first save. (The old
+  `isfar.installNudge` "shown once" flag is gone — the nudge now shows each session until
+  installed — and is actively removed from devices that have it.)
 - **SW cache rule:** the offline fallback must NOT `ignoreSearch` for `/api/*` (query carries the
   flight identity — ignoring it can return the wrong flight). Everything else keeps `ignoreSearch`.
 - **iOS mobile chrome (don't regress).** The page runs edge-to-edge under iOS Safari's

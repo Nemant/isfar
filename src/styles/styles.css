@@ -479,17 +479,21 @@ body {
 }
 .input.combo::placeholder { letter-spacing: 0; text-transform: none; }
 
-/* Native date field: iOS Safari gives <input type="date"> a fixed intrinsic
-   width and ignores width:100%, which overflowed the column and pushed the
-   "date picker beyond the screen". Resetting the appearance lets it size to its
-   container; the OS picker still opens natively on tap. */
-.input[type="date"] {
+/* Native date/time fields: iOS Safari gives them a fixed intrinsic width and
+   ignores width:100%, which overflowed the column and pushed the "date picker
+   beyond the screen" (time inputs hit the same bug, rendering as a misshapen
+   slab). Resetting the appearance lets them size to their container; the OS
+   picker still opens natively on tap. */
+.input[type="date"], .input[type="time"] {
   -webkit-appearance: none;
   appearance: none;
   min-width: 0;
 }
-.input[type="date"]::-webkit-date-and-time-value { text-align: left; margin: 0; }
-.input[type="date"]::-webkit-calendar-picker-indicator {
+/* min-height keeps an EMPTY iOS time input from collapsing its value area */
+.input[type="date"]::-webkit-date-and-time-value,
+.input[type="time"]::-webkit-date-and-time-value { text-align: left; margin: 0; min-height: 1.25em; }
+.input[type="date"]::-webkit-calendar-picker-indicator,
+.input[type="time"]::-webkit-calendar-picker-indicator {
   margin-left: auto; opacity: .55; cursor: pointer;
 }
 
@@ -536,13 +540,8 @@ body {
 }
 .btn-ghost:hover { color: var(--text); transform: translateY(-1px); }
 
-.mode-link {
-  appearance: none; background: none; border: 0; padding: 2px 0; cursor: pointer;
-  font: inherit; font-size: 13.5px; color: var(--text-soft); text-align: center;
-  text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--border);
-  margin: -8px 0;
-}
-.mode-link:hover { color: var(--accent); text-decoration-color: var(--accent); }
+/* flight-number vs route switch — same segmented control as the Asr setting */
+.mode-seg { margin-bottom: -4px; }
 .route-times { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .field > label em, .label-row label em { font-style: normal; font-weight: 500; color: var(--text-mute); }
 .duration-line { font-size: 13px; color: var(--text-soft); text-align: center; font-variant-numeric: tabular-nums; }

@@ -147,6 +147,10 @@ function Calculator() {
     document.documentElement.setAttribute("data-theme", resolved);
   }, [resolved]);
 
+  // Each screen starts at the top — without this, results inherit however far
+  // down the landing form the user had scrolled to press the button.
+  useE(() => { window.scrollTo(0, 0); }, [view]);
+
   // apply warmth to the theme container
   const rootStyle = { "--warmth": t.warmth };
 
@@ -196,13 +200,13 @@ function Calculator() {
   }
 
   // PWA install nudge — captured native prompt (Chrome/Android) or iOS steps;
-  // shown once on the results screen, never when already running standalone
+  // on every results screen until installed (never when already standalone);
+  // the ✕ only rests it for this session — saving offline is the app's point
   const [installEvt, setInstallEvt] = useS(null);
-  const [nudgeGone, setNudgeGone] = useS(() => {
-    try { return localStorage.getItem("isfar.installNudge") === "done"; } catch (e) { return true; }
-  });
+  const [nudgeGone, setNudgeGone] = useS(false);
   const [showIOSHelp, setShowIOSHelp] = useS(false);
   useE(() => {
+    try { localStorage.removeItem("isfar.installNudge"); } catch (e) {} // pre-v21 "shown once" flag
     const onPrompt = (e) => { e.preventDefault(); setInstallEvt(e); };
     const onInstalled = () => dismissNudge();
     window.addEventListener("beforeinstallprompt", onPrompt);
@@ -212,10 +216,7 @@ function Calculator() {
       window.removeEventListener("appinstalled", onInstalled);
     };
   }, []);
-  function dismissNudge() {
-    setNudgeGone(true);
-    try { localStorage.setItem("isfar.installNudge", "done"); } catch (e) {}
-  }
+  function dismissNudge() { setNudgeGone(true); }
   const standalone = (typeof window !== "undefined") &&
     ((window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) || window.navigator.standalone === true);
   const isIOS = (typeof navigator !== "undefined") && /iPad|iPhone|iPod/.test(navigator.userAgent);
@@ -315,6 +316,13 @@ function Landing({ query, setQuery, date, setDate, err, onSubmit, recents, onCle
 
       <div className="horizon" aria-hidden="true"></div>
 
+      <div className="set-seg mode-seg" role="group" aria-label="Look up by">
+        {[{ v: "flight", l: "Flight number" }, { v: "route", l: "Route" }].map((o) => (
+          <button key={o.v} type="button" className={"set-opt" + (mode === o.v ? " active" : "")}
+                  aria-pressed={mode === o.v} onClick={() => onSwitchMode(o.v)}>{o.l}</button>
+        ))}
+      </div>
+
       {mode === "flight" ? (
         <form className="form" onSubmit={(e) => { e.preventDefault(); onSubmit(); }}>
           <div className="field">
@@ -350,11 +358,6 @@ function Landing({ query, setQuery, date, setDate, err, onSubmit, recents, onCle
       ) : (
         <RouteForm date={date} setDate={setDate} todayISO={todayISO} onSubmitRecord={onSubmitRecord} />
       )}
-
-      <button type="button" className="mode-link"
-              onClick={() => onSwitchMode(mode === "flight" ? "route" : "flight")}>
-        {mode === "flight" ? "No flight number? Enter your route instead" : "Have a flight number? Use it instead"}
-      </button>
 
       <div className="form form-tail">
         {recents && recents.length ? (
