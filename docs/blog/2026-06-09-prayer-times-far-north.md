@@ -91,7 +91,8 @@ traveller chose in good faith has, for a few weeks of the year, stopped describi
 local) and sunrise (03:31) never gets properly dark at all. There is simply no instant of "true
 dark" to point to.
 
-And it keeps going. Cross the Arctic Circle (66.5°N) and in midsummer the sun stops *setting*
+And it keeps going. Cross the Arctic Circle (66.5°N — the line Rovaniemi in Finnish Lapland sits
+on) and in midsummer the sun stops *setting*
 altogether — the midnight sun. In Tromsø, Norway, it stays above the horizon from mid-May to late
 July. No sunset means no Maghrib moment, no night, no dawn. Three of the five prayers have lost
 their sun-marks; only the noon and afternoon prayers still have a sky to point at.
@@ -104,8 +105,8 @@ each one breaks somewhere specific. (Details of the juristic reasoning belong to
 what follows is engineering.)
 
 **Use the chosen angle, always.** Breaks first. As London-in-June showed, an 18° angle stops
-existing at ~48°N in midsummer, 15° at ~52°N. You cannot compute a time from an angle the sun
-never reaches.
+existing at ~48°N (Vienna) in midsummer, 15° at ~52°N (Birmingham). You cannot compute a time
+from an angle the sun never reaches.
 
 **Middle of the night.** When the angle fails, treat the night's midpoint as a boundary — Isha
 must arrive by it, Fajr won't begin before it. Simple — but at exactly the latitudes that need
@@ -174,8 +175,8 @@ break different prayers.**
 
 Summer is the night-killer. Below the Arctic Circle, the *days* are long but normal — the sun
 rises and sets — so Dhuhr, Asr and Maghrib are all real. It's the twilight prayers, Fajr and Isha,
-that fail first, starting around 48–55°N depending on your angle. Cross the circle and Maghrib
-finally goes too.
+that fail first, starting around 48–55°N — Vienna to Kazan — depending on your angle. Cross the
+circle and Maghrib finally goes too.
 
 Winter is the opposite — and gentler, for longer. A short, dark December day at Stockholm or
 Helsinki is *perfect* for prayer times: the sun rises, sets, and plunges deep below the horizon.

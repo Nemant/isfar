@@ -18,10 +18,10 @@ const altDeg = (phi, t) => {
 };
 
 const LATS = [
-  { phi: 40, note: "night 27° deep",    fails: false, aria: "Sun elevation across 24 hours at 40 degrees north on June 21. The sun climbs to 73 degrees at noon and dives 27 degrees below the horizon at midnight, well past the 15 and 18 degree twilight marks." },
-  { phi: 52, note: "never reaches 15°", fails: true,  aria: "Sun elevation at 52 degrees north, same scale. The midnight sun sits less than 15 degrees below the horizon, so neither twilight angle is ever reached." },
-  { phi: 60, note: "barely 7°",         fails: true,  aria: "Sun elevation at 60 degrees north. The sun dips barely 7 degrees below the horizon at midnight; the night is real but shallow." },
-  { phi: 70, note: "never sets",        fails: true,  aria: "Sun elevation at 70 degrees north. The curve never touches the horizon: the midnight sun, no sunset at all." },
+  { phi: 40, city: "Ankara",     note: "night 27° deep",    fails: false, aria: "Sun elevation across 24 hours at 40 degrees north — Ankara's latitude — on June 21. The sun climbs to 73 degrees at noon and dives 27 degrees below the horizon at midnight, well past the 15 and 18 degree twilight marks." },
+  { phi: 52, city: "Birmingham", note: "never reaches 15°", fails: true,  aria: "Sun elevation at 52 degrees north — Birmingham — same scale. The midnight sun sits less than 15 degrees below the horizon, so neither twilight angle is ever reached." },
+  { phi: 60, city: "Helsinki",   note: "barely 7°",         fails: true,  aria: "Sun elevation at 60 degrees north — Helsinki. The sun dips barely 7 degrees below the horizon at midnight; the night is real but shallow." },
+  { phi: 70, city: "Tromsø",     note: "never sets",        fails: true,  aria: "Sun elevation at 70 degrees north — Tromsø. The curve never touches the horizon: the midnight sun, no sunset at all." },
 ];
 
 const PANELS = LATS.map((L, i) => {
@@ -78,29 +78,28 @@ const dynCss =
         {p.i === 0 && <text class="marklab" x="36" y={Number(Y15) - 2}>15°</text>}
         {p.i === 0 && <text class="marklab" x="36" y={Number(Y18) + 8}>18°</text>}
         <path class="curve" d={p.d} pathLength="1" />
-        <circle class="sun" r="4" style={`offset-path:path('${p.d}');--rest:${p.rest}`} />
-        <text class="lat" x="75" y="158">{p.phi}°N</text>
+        <circle class="sun" r="2.8" style={`offset-path:path('${p.d}');--rest:${p.rest}`} />
+        <text class="lat" x="75" y="158">{p.phi}°N · {p.city}</text>
         <text class={"note" + (p.fails ? " warm" : "")} x="75" y="174">{p.note}</text>
       </svg>
     ))}
   </div>
   <figcaption>
-    The same June midnight, walking north: at 40° the sun dives deep and every angle works;
-    at 52° it stops reaching 15°; at 60° the night is real but shallow; at 70° the sun never
-    sets at all.
+    The same June midnight, walking north: at 40° (Ankara) the sun dives deep and every angle
+    works; at 52° (Birmingham) it stops reaching 15°; at 60° (Helsinki) the night is real but
+    shallow; at 70° (Tromsø) the sun never sets at all.
   </figcaption>
 </figure>
 
 <style is:inline set:html={dynCss}></style>
 
 <style>
+  /* two larger panels per row at every width; the in-SVG strokes/type below
+     are tuned down so the bigger scale stays thin and calm */
   .dip-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 10px;
-  }
-  @media (max-width: 560px) {
-    .dip-grid { grid-template-columns: repeat(2, 1fr); gap: 14px 12px; }
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px 12px;
   }
   .panel {
     width: 100%;
@@ -121,25 +120,25 @@ const dynCss =
   }
   .horizon {
     stroke: var(--text-mute);
-    stroke-width: 1;
+    stroke-width: 0.7;
     opacity: 0.55;
   }
   .mark {
     stroke: var(--text-mute);
-    stroke-width: 1;
-    stroke-dasharray: 3 4;
+    stroke-width: 0.7;
+    stroke-dasharray: 2 3;
     opacity: 0.7;
   }
   .mark.unreached { opacity: 0.3; }
   .marklab {
-    font-size: 8px;
+    font-size: 7px;
     letter-spacing: 0.04em;
     fill: var(--text-mute);
   }
   .curve {
     fill: none;
     stroke: url(#shrdip-grad);
-    stroke-width: 1.5;
+    stroke-width: 1.1;
     stroke-linecap: round;
     stroke-dasharray: 1;     /* pathLength="1" → unit dash for the draw-in */
     stroke-dashoffset: 1;
@@ -153,7 +152,7 @@ const dynCss =
 
   .sun {
     fill: var(--sky-dhuhr);
-    filter: drop-shadow(0 0 calc(3px * var(--glow)) var(--sky-dhuhr));
+    filter: drop-shadow(0 0 calc(2px * var(--glow)) var(--sky-dhuhr));
     offset-distance: 0%;      /* rest pose: solar midnight, the deepest point */
     offset-rotate: 0deg;
   }
@@ -163,13 +162,13 @@ const dynCss =
   }
 
   .lat {
-    font-size: 10px;
-    letter-spacing: 0.08em;
+    font-size: 8px;
+    letter-spacing: 0.06em;
     text-anchor: middle;
     fill: var(--text-soft);
   }
   .note {
-    font-size: 10px;
+    font-size: 8px;
     text-anchor: middle;
     fill: var(--text-mute);
   }
