@@ -32,7 +32,7 @@ const RINGS = [
 const BOUND = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
 const TICKS = BOUND.map((b) => { const [x1, y1] = pt(b, 157), [x2, y2] = pt(b, 162); return { x1, y1, x2, y2 }; });
 const MLAB = [...'JFMAMJJASOND'].map((l, i) => {
-  const [x, y] = pt(BOUND[i] + ((BOUND[i + 1] ?? 365) - BOUND[i]) / 2, 174);
+  const [x, y] = pt(BOUND[i] + ((BOUND[i + 1] ?? 365) - BOUND[i]) / 2, 176);
   return { x, y, l };
 });
 
@@ -41,10 +41,10 @@ const estAt = (w, d) => w.some(([a, b]) => d >= a && d < b);
 const KEYX = [171, 229, 297, 351, 429];
 ---
 <figure class="anim" data-anim="year-wheel">
-  <svg viewBox="40 6 560 486" role="img"
+  <svg viewBox="40 26 560 458" role="img"
     aria-label="A year wheel for Tromsø at 69.68 degrees north, computed with a 15-degree method: five concentric rings, one per prayer, solid where the prayer has a real computed time and dashed where it must be estimated. Fajr and Isha are estimated from early April to early September and again through the polar night, late November to mid-January. Maghrib is estimated during the midnight sun, mid-May to late July, and the polar night. Asr and Dhuhr are estimated only during the polar night. For most of the year every ring is solid.">
 
-    <text class="corner" x="48" y="24">TROMS&Oslash; &middot; 69.68&deg;N &middot; 15&deg; METHOD</text>
+    <text class="corner" x="48" y="64">TROMS&Oslash; &middot; 69.68&deg;N &middot; 15&deg; METHOD</text>
 
     <g class="months">
       {TICKS.map((t) => <line class="tick" x1={t.x1} y1={t.y1} x2={t.x2} y2={t.y2}></line>)}
@@ -62,7 +62,7 @@ const KEYX = [171, 229, 297, 351, 429];
       <path class="sun-arc" d={arc(137, 206, 164)}></path>
       <path class="night-arc" d={arc(331, 365, 164)}></path>
       <path class="night-arc" d={arc(0, 15, 164)}></path>
-      <text class="season-lab" x="320" y="56" text-anchor="middle">polar night &middot; Nov 28 &ndash; Jan 15</text>
+      <text class="season-lab" x="320" y="50" text-anchor="middle">polar night &middot; Nov 28 &ndash; Jan 15</text>
       <text class="season-lab" x="320" y="424" text-anchor="middle">midnight sun &middot; May 18 &ndash; Jul 25</text>
     </g>
 
@@ -90,10 +90,10 @@ const KEYX = [171, 229, 297, 351, 429];
         </g>
       ))}
       <g class="neutral">
-        <line class="kline solid" x1="208" y1="471" x2="226" y2="471"></line>
-        <text class="klab" x="231" y="474">your method&rsquo;s real time</text>
-        <line class="kline dash" x1="364" y1="471" x2="382" y2="471"></line>
-        <text class="klab" x="387" y="474">estimated</text>
+        <line class="kline solid" x1="196" y1="471" x2="214" y2="471"></line>
+        <text class="klab" x="219" y="474.5">your method&rsquo;s real time</text>
+        <line class="kline dash" x1="374" y1="471" x2="392" y2="471"></line>
+        <text class="klab" x="397" y="474.5">estimated</text>
       </g>
     </g>
   </svg>
@@ -112,7 +112,7 @@ const KEYX = [171, 229, 297, 351, 429];
 <style>
   svg { width: 100%; height: auto; display: block; }
 
-  .corner { fill: var(--text-mute); font-size: 10px; letter-spacing: 0.08em; opacity: 0.75; }
+  .corner { fill: var(--text-mute); font-size: 11px; letter-spacing: 0.08em; opacity: 0.75; }
 
   .p-fajr    { --c: var(--sky-fajr); }
   .p-dhuhr   { --c: var(--sky-dhuhr); }
@@ -126,21 +126,21 @@ const KEYX = [171, 229, 297, 351, 429];
   .seg.estd { opacity: 0.3; stroke-dasharray: 2 5; }
 
   .tick { stroke: var(--text-mute); stroke-width: 1; opacity: 0.35; }
-  .mlab { fill: var(--text-mute); font-size: 11.5px; letter-spacing: 0.08em; }
+  .mlab { fill: var(--text-mute); font-size: 13px; letter-spacing: 0.08em; }
 
   .sun-arc   { fill: none; stroke-width: 3; stroke: oklch(from var(--sky-dhuhr) l c h / 0.55); }
   .night-arc { fill: none; stroke-width: 3; stroke: oklch(from var(--sky-isha) calc(l * 0.92) c h / 0.7); }
-  .season-lab { fill: var(--text-mute); font-size: 10.5px; letter-spacing: 0.08em; }
+  .season-lab { fill: var(--text-mute); font-size: 12px; letter-spacing: 0.08em; }
 
   .ptr line { stroke: var(--text-soft); stroke-width: 1; opacity: 0.85; }
   .ptr circle { fill: var(--text-soft);
                 filter: drop-shadow(0 0 calc(3px * var(--glow)) oklch(from var(--accent) l c h / 0.5)); }
 
-  .ro-date { fill: var(--text-soft); font-family: "Newsreader", serif; font-size: 16.5px; }
+  .ro-date { fill: var(--text-soft); font-family: "Newsreader", serif; font-size: 18px; }
   .chip rect { fill: oklch(from var(--c) l c h / 0.45); stroke: var(--c); stroke-width: 1;
                transition: fill 0.4s ease-in-out; }
-  .chip .cl { fill: var(--text); font-size: 10px; }
-  .chip .tld { fill: var(--text-mute); font-size: 10px; opacity: 0; transition: opacity 0.4s ease-in-out; }
+  .chip .cl { fill: var(--text); font-size: 11.5px; }
+  .chip .tld { fill: var(--text-mute); font-size: 11.5px; opacity: 0; transition: opacity 0.4s ease-in-out; }
   .chip.est rect { fill: oklch(from var(--c) l c h / 0.07); stroke-dasharray: 2 2; }
   .chip.est .cl { fill: var(--text-mute); }
   .chip.est .tld { opacity: 1; }
@@ -148,8 +148,8 @@ const KEYX = [171, 229, 297, 351, 429];
   .kline { fill: none; stroke: var(--c); stroke-width: 5; }
   .kline.solid { opacity: 0.8; }
   .kline.dash { opacity: 0.45; stroke-dasharray: 2 5; }
-  .kname { fill: var(--text-soft); font-size: 11.5px; }
-  .klab { fill: var(--text-mute); font-size: 11px; }
+  .kname { fill: var(--text-soft); font-size: 13px; }
+  .klab { fill: var(--text-mute); font-size: 12.5px; }
 
   /* entry: layers hidden once JS arms the figure, then fade in on .in, staggered */
   .wind:not(.in) :is(.ring, .months, .seasons, .ptr, .readout, .keybar) { opacity: 0; }

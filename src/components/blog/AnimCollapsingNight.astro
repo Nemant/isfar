@@ -17,20 +17,21 @@ const TICKS = Array.from({ length: 24 }, (_, i) => {
 });
 ---
 <figure class="anim settled" data-anim="collapsing-night" data-rule="sevenths">
-  <svg viewBox="60 28 520 380" role="img"
+  <svg viewBox="100 36 390 368" role="img"
     aria-label="A 24-hour dial for Stockholm on June 21, noon at the top and midnight at the bottom. The night — sunset 22:08 to sunrise 03:31 — is a thin arc at the bottom of the dial. Markers show where each convention places Isha and Fajr: a 15-degree twilight angle never occurs at all; the middle of the night puts Isha and Fajr both at 00:50, the same minute; sevenths of the night gives Isha 22:54 and Fajr 02:45.">
 
-    <text class="corner" x="70" y="46">STOCKHOLM &middot; JUNE 21</text>
+    <text class="corner" x="108" y="54">STOCKHOLM &middot; JUNE 21</text>
 
     <!-- dial rim + 24 hour ticks -->
     <circle class="rim" cx={CX} cy={CY} r={R}></circle>
     <g class="ticks">
       {TICKS.map((t) => <line class:list={["tick", { main: t.main }]} x1={t.x1} y1={t.y1} x2={t.x2} y2={t.y2}></line>)}
     </g>
-    <text class="hour" x={CX} y="51" text-anchor="middle">noon</text>
-    <text class="hour" x={CX} y="382" text-anchor="middle">midnight</text>
-    <text class="hour" x="490" y="218.5" text-anchor="start">18:00</text>
-    <text class="hour" x="150" y="218.5" text-anchor="end">06:00</text>
+    <!-- hour labels sit INSIDE the rim so the dial can fill the frame -->
+    <text class="hour" x={CX} y="103" text-anchor="middle">noon</text>
+    <text class="hour" x={CX} y="338" text-anchor="middle">midnight</text>
+    <text class="hour" x="442" y="246" text-anchor="end">18:00</text>
+    <text class="hour" x="198" y="246" text-anchor="start">06:00</text>
 
     <!-- day and night ring bands (JS rewrites d during the entry creep) -->
     <path class="day" d={arc(RISE, SET + 24)}></path>
@@ -111,8 +112,8 @@ const TICKS = Array.from({ length: 24 }, (_, i) => {
   [data-anim][data-rule="angle"] .mk { opacity: 0; }   /* after .settled: wins */
 
   .ct { opacity: 0; transition: opacity 0.9s ease-in-out; }
-  .ct text { fill: var(--text-soft); font-size: 13px; }
-  .num { font-family: "Newsreader", serif; font-size: 14.5px; }
+  .ct text { fill: var(--text-soft); font-size: 12.5px; }
+  .num { font-family: "Newsreader", serif; font-size: 14px; }
   .settled[data-rule="angle"]    .ct-angle,
   .settled[data-rule="middle"]   .ct-middle,
   .settled[data-rule="sevenths"] .ct-sevenths { opacity: 1; }
