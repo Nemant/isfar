@@ -193,6 +193,46 @@ function MethodSheet({ open, onClose }) {
   );
 }
 
+/* ---- PWA install nudge (post-results, shown once) ----------------------- */
+function InstallNudge({ onInstall, onDismiss }) {
+  return (
+    <div className="install-nudge" role="note">
+      <Ic.plane aria-hidden="true" />
+      <span>Save Isfar to your home screen — saved flights work offline.</span>
+      <button type="button" className="nudge-act" onClick={onInstall}>Add</button>
+      <button type="button" className="iconbtn nudge-x" onClick={onDismiss} aria-label="Dismiss"><Ic.close aria-hidden="true" /></button>
+    </div>
+  );
+}
+
+function IOSInstallSheet({ open, onClose }) {
+  React.useEffect(() => {
+    if (!open) return;
+    const onKey = (e) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
+  if (!open) return null;
+  return (
+    <div className="settings-backdrop" onClick={onClose}>
+      <div className="settings-sheet" role="dialog" aria-modal="true" aria-label="Add to Home Screen"
+           onClick={(e) => e.stopPropagation()}>
+        <div className="settings-head">
+          <h2>Add to Home Screen</h2>
+          <button className="iconbtn" onClick={onClose} aria-label="Close"><Ic.close aria-hidden="true" /></button>
+        </div>
+        <div className="settings-body">
+          <ol className="ios-steps">
+            <li>Tap the <b>Share</b> button in Safari’s toolbar.</li>
+            <li>Scroll and choose <b>Add to Home Screen</b>.</li>
+            <li>Tap <b>Add</b> — Isfar opens like an app, and saved flights work offline.</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ---- Flight summary ----------------------------------------------------- */
 function FlightSummary({ f }) {
   const dur = `${Math.floor(f.durationMin/60)}h ${String(f.durationMin%60).padStart(2,"0")}m`;
@@ -327,4 +367,4 @@ function NextPrayer({ prayers, order }) {
 
 /* ---- Timezone switch removed — cards now show both zones equally -------- */
 
-export { Ic, PRAYER_GLYPH, Header, SettingsSheet, GuideSheet, MethodSheet, FlightSummary, TzBanner, QiblaCompass, PlaneQibla, NextPrayer, cardinalOf };
+export { Ic, PRAYER_GLYPH, Header, SettingsSheet, GuideSheet, MethodSheet, FlightSummary, TzBanner, QiblaCompass, PlaneQibla, NextPrayer, cardinalOf, InstallNudge, IOSInstallSheet };

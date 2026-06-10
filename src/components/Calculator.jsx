@@ -3,7 +3,7 @@ import { lookupRemote } from '../lib/data.js';
 import { upsertRecent, recentLabel } from '../lib/recents.js';
 import { exportImage } from '../lib/export-card.js';
 import { compute } from '../lib/engine.js';
-import { Header, SettingsSheet, GuideSheet, MethodSheet, FlightSummary, NextPrayer, Ic } from './components.jsx';
+import { Header, SettingsSheet, GuideSheet, MethodSheet, FlightSummary, NextPrayer, Ic, InstallNudge, IOSInstallSheet } from './components.jsx';
 import { ArcTimeline } from './arc.jsx';
 import { PrayerList } from './cards.jsx';
 import { useTweaks, TweaksPanel, TweakSection, TweakSlider, TweakRadio } from './tweaks-panel.jsx';
@@ -195,6 +195,42 @@ function Calculator() {
     })();
   }
 
+  // PWA install nudge — captured native prompt (Chrome/Android) or iOS steps;
+  // shown once on the results screen, never when already running standalone
+  const [installEvt, setInstallEvt] = useS(null);
+  const [nudgeGone, setNudgeGone] = useS(() => {
+    try { return localStorage.getItem("isfar.installNudge") === "done"; } catch (e) { return true; }
+  });
+  const [showIOSHelp, setShowIOSHelp] = useS(false);
+  useE(() => {
+    const onPrompt = (e) => { e.preventDefault(); setInstallEvt(e); };
+    const onInstalled = () => dismissNudge();
+    window.addEventListener("beforeinstallprompt", onPrompt);
+    window.addEventListener("appinstalled", onInstalled);
+    return () => {
+      window.removeEventListener("beforeinstallprompt", onPrompt);
+      window.removeEventListener("appinstalled", onInstalled);
+    };
+  }, []);
+  function dismissNudge() {
+    setNudgeGone(true);
+    try { localStorage.setItem("isfar.installNudge", "done"); } catch (e) {}
+  }
+  const standalone = (typeof window !== "undefined") &&
+    ((window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) || window.navigator.standalone === true);
+  const isIOS = (typeof navigator !== "undefined") && /iPad|iPhone|iPod/.test(navigator.userAgent);
+  const canNudge = !nudgeGone && !standalone && (!!installEvt || isIOS);
+  async function installApp() {
+    if (installEvt) {
+      installEvt.prompt();
+      const { outcome } = await installEvt.userChoice;
+      if (outcome === "accepted") dismissNudge();
+      setInstallEvt(null);
+    } else {
+      setShowIOSHelp(true);
+    }
+  }
+
   // a route record is already resolved locally — same calm loading dwell, no lookup
   function submitRecord(rec) {
     setQuery(rec.code); setView("loading"); setLoadMsg(0);
@@ -235,6 +271,7 @@ function Calculator() {
                                           mode={mode} onSwitchMode={switchMode}
                                           onSubmitRecord={submitRecord} />}
         {view === "loading"  && <Loading query={query} msg={LOAD_MSGS[loadMsg]} />}
+        {view === "results" && canNudge ? <InstallNudge onInstall={installApp} onDismiss={dismissNudge} /> : null}
         {view === "results"  && <Results f={data} settings={settings} activeKey={activeKey} selectPrayer={selectPrayer}
                                          cardRefs={cardRefs} onBack={goHome} />}
         {view === "error"    && <ErrorState code={raw && raw.code} kind={raw && raw.error}
@@ -253,6 +290,7 @@ function Calculator() {
                        method={settings.method} madhab={settings.madhab} onChange={setSetting} />
         <GuideSheet open={showGuide} onClose={() => setShowGuide(false)} />
         <MethodSheet open={showMethod} onClose={() => setShowMethod(false)} />
+        <IOSInstallSheet open={showIOSHelp} onClose={() => setShowIOSHelp(false)} />
       </div>
     </div>
   );

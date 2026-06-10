@@ -698,6 +698,22 @@ body {
 }
 .saved-note svg { width: 14px; height: 14px; flex-shrink: 0; color: var(--accent); }
 .results-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 8px; }
+.install-nudge {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 14px; border: 1px solid var(--border); border-radius: 14px;
+  background: var(--surface); font-size: 13.5px; color: var(--text-soft);
+}
+.install-nudge > svg { width: 16px; height: 16px; flex-shrink: 0; color: var(--accent); }
+.install-nudge span { flex: 1; }
+.nudge-act {
+  appearance: none; border: 1px solid var(--border); border-radius: 999px;
+  background: var(--surface-2); color: var(--text); font: inherit; font-size: 13px;
+  font-weight: 600; padding: 6px 14px; cursor: pointer;
+}
+.nudge-act:hover { border-color: var(--accent); color: var(--accent); }
+.nudge-x { width: 30px; height: 30px; }
+.ios-steps { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 10px; font-size: 14.5px; color: var(--text-soft); }
+.ios-steps b { color: var(--text); }
 .method { display: flex; flex-direction: column; gap: 14px; margin-top: 10px; }
 .method-head { display: flex; flex-direction: column; gap: 12px; }
 .method-head .eyebrow { margin: 0; }
