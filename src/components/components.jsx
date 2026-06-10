@@ -199,7 +199,9 @@ function FlightSummary({ f }) {
     <section className="summary" aria-label="Flight summary">
       <div className="toprow">
         <div className="flightno">
-          <b>{f.code}</b><span>{f.airline}</span>
+          {f.routeMode
+            ? <><b>Your route</b><span>times as entered</span></>
+            : <><b>{f.code}</b><span>{f.airline}</span></>}
         </div>
         <div className="date">{f.date}</div>
       </div>

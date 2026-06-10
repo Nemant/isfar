@@ -6,6 +6,7 @@ import { Header, SettingsSheet, GuideSheet, MethodSheet, FlightSummary, NextPray
 import { ArcTimeline } from './arc.jsx';
 import { PrayerList } from './cards.jsx';
 import { useTweaks, TweaksPanel, TweakSection, TweakSlider, TweakRadio } from './tweaks-panel.jsx';
+import { RouteForm } from './route-form.jsx';
 
 /* ===========================================================================
    Isfar — app shell: state machine + theme + tweaks
@@ -67,6 +68,15 @@ function Calculator() {
   const [view, setView] = useS("landing");      // landing|loading|results|error
   const [query, setQuery] = useS("");
   const [date, setDate] = useS(todayISO());
+  // lookup mode: by flight number, or by route + itinerary times
+  const [mode, setMode] = useS(() => {
+    try { return localStorage.getItem("isfar.lookupMode") === "route" ? "route" : "flight"; }
+    catch (e) { return "flight"; }
+  });
+  function switchMode(m) {
+    setMode(m); setErr(null);
+    try { localStorage.setItem("isfar.lookupMode", m); } catch (e) {}
+  }
   const [err, setErr] = useS(null);              // field-level validation
   const [raw, setRaw] = useS(null);              // matched flight record
   const [loadMsg, setLoadMsg] = useS(0);
@@ -184,6 +194,19 @@ function Calculator() {
     })();
   }
 
+  // a route record is already resolved locally — same calm loading dwell, no lookup
+  function submitRecord(rec) {
+    setQuery(rec.code); setView("loading"); setLoadMsg(0);
+    let i = 0;
+    const msgInt = setInterval(() => { i = Math.min(i + 1, LOAD_MSGS.length - 1); setLoadMsg(i); }, 620);
+    const token = {}; loadTimer.current = token;
+    setTimeout(() => {
+      clearInterval(msgInt);
+      if (loadTimer.current !== token) return;
+      setRaw(rec); recordRecent(rec); setView("results");
+    }, 1200);
+  }
+
   function selectPrayer(key) {
     setActiveKey(key);
     const el = cardRefs.current[key];
@@ -207,7 +230,9 @@ function Calculator() {
         {view === "landing"  && <Landing query={query} setQuery={setQuery} date={date} setDate={setDate}
                                           err={err} onSubmit={submit}
                                           recents={recents} onClearRecents={clearRecents}
-                                          onOpenRecent={openRecent} />}
+                                          onOpenRecent={openRecent}
+                                          mode={mode} onSwitchMode={switchMode}
+                                          onSubmitRecord={submitRecord} />}
         {view === "loading"  && <Loading query={query} msg={LOAD_MSGS[loadMsg]} />}
         {view === "results"  && <Results f={data} activeKey={activeKey} selectPrayer={selectPrayer}
                                          cardRefs={cardRefs} onBack={goHome} />}
@@ -233,9 +258,10 @@ function Calculator() {
 }
 
 /* ---- Landing ------------------------------------------------------------ */
-function Landing({ query, setQuery, date, setDate, err, onSubmit, recents, onClearRecents, onOpenRecent }) {
+function Landing({ query, setQuery, date, setDate, err, onSubmit, recents, onClearRecents, onOpenRecent,
+                   mode, onSwitchMode, onSubmitRecord }) {
   const inputRef = useR(null);
-  useE(() => { if (inputRef.current) inputRef.current.focus({ preventScroll: true }); }, []);
+  useE(() => { if (mode === "flight" && inputRef.current) inputRef.current.focus({ preventScroll: true }); }, [mode]);
   const examples = [
     { code: "SV124", label: "London → Jeddah" },
     { code: "QF10", label: "London → Perth · 9 prayers" },
@@ -250,37 +276,48 @@ function Landing({ query, setQuery, date, setDate, err, onSubmit, recents, onCle
 
       <div className="horizon" aria-hidden="true"></div>
 
-      <form className="form" onSubmit={(e) => { e.preventDefault(); onSubmit(); }}>
-        <div className="field">
-          <label htmlFor="flight">Flight number</label>
-          <div className="input-wrap">
-            <input id="flight" ref={inputRef} className="input" type="text" inputMode="text"
-                   autoComplete="off" autoCapitalize="characters" spellCheck="false"
-                   placeholder="SV124" value={query}
-                   aria-invalid={!!err} aria-describedby={err ? "flight-err" : "flight-help"}
-                   onChange={(e) => setQuery(e.target.value)} />
+      {mode === "flight" ? (
+        <form className="form" onSubmit={(e) => { e.preventDefault(); onSubmit(); }}>
+          <div className="field">
+            <label htmlFor="flight">Flight number</label>
+            <div className="input-wrap">
+              <input id="flight" ref={inputRef} className="input" type="text" inputMode="text"
+                     autoComplete="off" autoCapitalize="characters" spellCheck="false"
+                     placeholder="SV124" value={query}
+                     aria-invalid={!!err} aria-describedby={err ? "flight-err" : "flight-help"}
+                     onChange={(e) => setQuery(e.target.value)} />
+            </div>
+            {err
+              ? <div className="field-error" id="flight-err"><Ic.alert style={{width:15,height:15}} aria-hidden="true" />{err}</div>
+              : null}
           </div>
-          {err
-            ? <div className="field-error" id="flight-err"><Ic.alert style={{width:15,height:15}} aria-hidden="true" />{err}</div>
-            : null}
-        </div>
 
-        <div className="field">
-          <div className="label-row">
-            <label htmlFor="date">Date of travel</label>
-            {date !== todayISO() ? (
-              <button type="button" className="today-btn" onClick={() => setDate(todayISO())}>Today</button>
-            ) : null}
+          <div className="field">
+            <div className="label-row">
+              <label htmlFor="date">Date of travel</label>
+              {date !== todayISO() ? (
+                <button type="button" className="today-btn" onClick={() => setDate(todayISO())}>Today</button>
+              ) : null}
+            </div>
+            <input id="date" className="input compact" type="date" value={date}
+                   onChange={(e) => setDate(e.target.value)} />
           </div>
-          <input id="date" className="input compact" type="date" value={date}
-                 onChange={(e) => setDate(e.target.value)} />
-        </div>
 
-        <button className="btn" type="submit">
-          Find my prayer times <Ic.arrow aria-hidden="true" />
-        </button>
-        <div className="offline-note"><Ic.plane aria-hidden="true" /> Look up once — your flights then work offline</div>
+          <button className="btn" type="submit">
+            Find my prayer times <Ic.arrow aria-hidden="true" />
+          </button>
+          <div className="offline-note"><Ic.plane aria-hidden="true" /> Look up once — your flights then work offline</div>
+        </form>
+      ) : (
+        <RouteForm date={date} setDate={setDate} todayISO={todayISO} onSubmitRecord={onSubmitRecord} />
+      )}
 
+      <button type="button" className="mode-link"
+              onClick={() => onSwitchMode(mode === "flight" ? "route" : "flight")}>
+        {mode === "flight" ? "No flight number? Enter your route instead" : "Have a flight number? Use it instead"}
+      </button>
+
+      <div className="form form-tail">
         {recents && recents.length ? (
           <div className="recents">
             <div className="recents-head">
@@ -308,7 +345,7 @@ function Landing({ query, setQuery, date, setDate, err, onSubmit, recents, onCle
             </button>
           ))}
         </div>
-      </form>
+      </div>
 
       <Foot />
     </main>
