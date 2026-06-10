@@ -7,6 +7,7 @@
     "dev": "astro dev",
     "build": "astro build && node scripts/gen-sw-precache.mjs",
     "preview": "astro preview",
+    "test": "vitest run tests",
     "astro": "astro"
   },
   "dependencies": {
@@ -15,5 +16,8 @@
     "astro": "4.16.18",
     "react": "18.3.1",
     "react-dom": "18.3.1"
+  },
+  "devDependencies": {
+    "vitest": "^4.1.8"
   }
 }
