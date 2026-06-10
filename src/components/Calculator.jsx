@@ -1,5 +1,6 @@
 import React from 'react';
 import { lookupRemote } from '../lib/data.js';
+import { upsertRecent, recentLabel } from '../lib/recents.js';
 import { compute } from '../lib/engine.js';
 import { Header, SettingsSheet, GuideSheet, MethodSheet, FlightSummary, NextPrayer, Ic } from './components.jsx';
 import { ArcTimeline } from './arc.jsx';
@@ -73,16 +74,22 @@ function Calculator() {
     catch (e) { return []; }
   });
   function recordRecent(rec) {
-    const item = {
-      code: rec.code, airline: rec.airline,
-      fromIata: rec.from.iata, fromCity: rec.from.city,
-      toIata: rec.to.iata, toCity: rec.to.city, ts: Date.now()
-    };
     setRecents((prev) => {
-      const next = [item, ...prev.filter((r) => r.code !== item.code)].slice(0, 6);
+      const next = upsertRecent(prev, rec);
       try { localStorage.setItem("isfar.recents", JSON.stringify(next)); } catch (e) {}
       return next;
     });
+    // ask the browser not to evict our storage — the whole point of saving
+    try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch (e) {}
+  }
+  // tap a saved flight: full record stored → instant, zero network (airplane
+  // mode); legacy code-only entries fall back to the normal lookup
+  function openRecent(r) {
+    if (r.rec && r.rec.found) {
+      setErr(null); setQuery(r.code || ""); setRaw(r.rec); setView("results");
+      return;
+    }
+    submit(r.code);
   }
   function clearRecents() {
     setRecents([]);
@@ -193,7 +200,8 @@ function Calculator() {
 
         {view === "landing"  && <Landing query={query} setQuery={setQuery} date={date} setDate={setDate}
                                           err={err} onSubmit={submit}
-                                          recents={recents} onClearRecents={clearRecents} />}
+                                          recents={recents} onClearRecents={clearRecents}
+                                          onOpenRecent={openRecent} />}
         {view === "loading"  && <Loading query={query} msg={LOAD_MSGS[loadMsg]} />}
         {view === "results"  && <Results f={data} activeKey={activeKey} selectPrayer={selectPrayer}
                                          cardRefs={cardRefs} onBack={goHome} />}
@@ -219,7 +227,7 @@ function Calculator() {
 }
 
 /* ---- Landing ------------------------------------------------------------ */
-function Landing({ query, setQuery, date, setDate, err, onSubmit, recents, onClearRecents }) {
+function Landing({ query, setQuery, date, setDate, err, onSubmit, recents, onClearRecents, onOpenRecent }) {
   const inputRef = useR(null);
   useE(() => { if (inputRef.current) inputRef.current.focus({ preventScroll: true }); }, []);
   const examples = [
@@ -265,15 +273,15 @@ function Landing({ query, setQuery, date, setDate, err, onSubmit, recents, onCle
         {recents && recents.length ? (
           <div className="recents">
             <div className="recents-head">
-              <span>Recent flights <em>· saved on this device</em></span>
+              <span>Saved flights <em>· work offline</em></span>
               <button type="button" className="recents-clear" onClick={onClearRecents}>Clear</button>
             </div>
             <div className="recents-list">
               {recents.map((r) => (
-                <button type="button" key={r.code} className="recent"
-                        onClick={() => onSubmit(r.code)}>
+                <button type="button" key={(r.code || "") + (r.dateISO || "")} className="recent"
+                        onClick={() => onOpenRecent(r)}>
                   <span className="recent-code">{r.code}</span>
-                  <span className="recent-route">{r.fromIata} → {r.toIata}</span>
+                  <span className="recent-route">{recentLabel(r)}</span>
                 </button>
               ))}
             </div>
@@ -323,6 +331,7 @@ function Results({ f, activeKey, selectPrayer, cardRefs, onBack }) {
     <main className="results">
       <NextPrayer prayers={f.prayers} order={[f.from.iata, f.to.iata]} />
       <FlightSummary f={f} />
+      <div className="saved-note" role="note"><Ic.auto aria-hidden="true" /> Saved on this device — available offline</div>
       {(f.skyNotes || []).map((n) => (
         <div className="midnight-banner" role="note" key={n.place}>
           <Ic.sunrise aria-hidden="true" />
