@@ -1,8 +1,10 @@
 /* The 3-rule high-latitude policy, tested at the daySchedule level.
    Rule 1: the method's real angle wherever the sky reaches it (any latitude).
-   Rule 2: angle unreachable, |lat| ≤ 60 → 1/7 of the LOCAL night.
-   Rule 3: angle unreachable, |lat| > 60 (or no day/night cycle at all) → the
-           whole night cluster (maghrib, isha, fajr, sunrise) from the 60° sky. */
+   Rule 2: angle unreachable but the sun still rises and sets — ANY latitude →
+           1/7 of the LOCAL night (Isha after the real sunset, Fajr before the
+           real sunrise, by construction).
+   Rule 3: no day/night cycle at all (midnight sun / polar night) → the whole
+           night cluster (maghrib, isha, fajr, sunrise) from the 60° sky. */
 import { describe, it, expect } from 'vitest';
 import { ISFAR_TEST } from '../src/lib/engine.js';
 import { angleReachable, rawPT, validMs } from './helpers.js';
@@ -32,7 +34,7 @@ describe('rule 1 — real angle at the true position', () => {
   });
 });
 
-describe('rule 2 — 1/7 of the local night (≤60°, angle unreachable)', () => {
+describe('rule 2 — 1/7 of the local night (any latitude with a cycle)', () => {
   it('London June: fajr+isha portioned, flagged, sun events real', () => {
     const s = sched(51.47, -0.45, '2026-06-06T12:00:00Z');
     expect(s.fajr.source).toBe('seventh');
@@ -41,24 +43,44 @@ describe('rule 2 — 1/7 of the local night (≤60°, angle unreachable)', () =>
     expect(s.maghrib.source).toBe('method');
     expect(s.maghrib.estimated).toBe(false);
   });
+
+  it('64°N June (the audited band): LOCAL sevenths, sun events real — never a daylight Maghrib', () => {
+    const s = sched(64.0, 18.0, '2026-06-21T12:00:00Z');
+    expect(s.fajr.source).toBe('seventh');
+    expect(s.isha.source).toBe('seventh');
+    expect(s.maghrib.source).toBe('method');
+    expect(s.maghrib.estimated).toBe(false);
+    expect(s.sunrise.estimated).toBe(false);
+    // the coherence the 60° cluster could not give: true to the visible sky
+    expect(s.isha.ms).toBeGreaterThan(s.maghrib.ms);       // never before the real sunset
+    expect(s.fajr.ms).toBeLessThan(s.sunrise.ms);          // never after the real sunrise
+  });
+
+  it('Akureyri 65.66°N at solstice (37-min night, the worst airport case): coherent and prayable', () => {
+    const s = sched(65.659, -18.072, '2026-06-21T12:00:00Z');
+    expect(s.kind).toBe('normal');
+    expect(s.isha.source).toBe('seventh');
+    expect(s.isha.ms).toBeGreaterThan(s.maghrib.ms);
+    expect(s.fajr.ms).toBeLessThan(s.sunrise.ms);
+  });
 });
 
-describe('rule 3 — 60° floor borrows the whole night cluster (>60°)', () => {
-  it('64°N June: fajr/isha/maghrib/sunrise from 60°, dhuhr/asr local real', () => {
-    const s = sched(64.0, 18.0, '2026-06-21T12:00:00Z');
+describe('rule 3 — the 60° floor, ONLY where no day/night cycle exists', () => {
+  it('67°N June (no sunset): whole night cluster from 60°, dhuhr/asr local real', () => {
+    const s = sched(67.0, 18.0, '2026-06-21T12:00:00Z');
+    expect(s.kind).toBe('midnightsun');
     for (const k of ['fajr', 'isha', 'maghrib', 'sunrise']) {
       expect(s[k].source, k).toBe('borrow60');
       expect(s[k].estimated, k).toBe(true);
     }
     expect(s.dhuhr.estimated).toBe(false);
     expect(s.asr.estimated).toBe(false);
-    // coherent order — the audit's Isha-before-Maghrib inversion is dead
     expect(s.isha.ms).toBeGreaterThan(s.maghrib.ms);
     expect(s.fajr.ms).toBeLessThan(s.sunrise.ms);
   });
 
   it('cluster times equal the 60° seventh-rule schedule at the same longitude', () => {
-    const s = sched(64.0, 18.0, '2026-06-21T12:00:00Z');
+    const s = sched(67.0, 18.0, '2026-06-21T12:00:00Z');
     const s60 = sched(60.0, 18.0, '2026-06-21T12:00:00Z');
     expect(s.maghrib.ms).toBe(s60.maghrib.ms);
     expect(s.isha.ms).toBe(s60.isha.ms);
@@ -99,13 +121,16 @@ describe('method specials', () => {
     expect(s.fajr.source).toBe('method');
   });
 
-  it('ummalqura interval isha: real with a cycle; joins the cluster above the floor', () => {
+  it('ummalqura interval isha: real wherever a cycle exists; joins the cluster without one', () => {
     const low = sched(58.0, 18.0, '2026-06-21T12:00:00Z', 'ummalqura');
     expect(low.isha.source).toBe('method');                  // sunset + 90, real
     expect(low.isha.ms - low.maghrib.ms).toBe(90 * 60000);
-    const high = sched(64.0, 18.0, '2026-06-21T12:00:00Z', 'ummalqura');
-    expect(high.isha.source).toBe('borrow60');               // whole cluster
-    expect(high.isha.ms - high.maghrib.ms).toBe(90 * 60000); // 90 min after the borrowed sunset
+    const band = sched(64.0, 18.0, '2026-06-21T12:00:00Z', 'ummalqura');
+    expect(band.isha.source).toBe('method');                 // local sunset + 90, still real
+    expect(band.isha.ms - band.maghrib.ms).toBe(90 * 60000);
+    const polar = sched(67.0, 18.0, '2026-06-21T12:00:00Z', 'ummalqura');
+    expect(polar.isha.source).toBe('borrow60');              // whole cluster
+    expect(polar.isha.ms - polar.maghrib.ms).toBe(90 * 60000); // 90 min after the borrowed sunset
   });
 });
 

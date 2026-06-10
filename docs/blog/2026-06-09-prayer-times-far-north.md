@@ -121,8 +121,9 @@ Maghrib 22:08, **Isha 22:54**, **Fajr 02:45**, sunrise 03:31. It uses *your own*
 the seasons, and degrades gracefully… as long as there *is* a night to divide.
 
 **Which is the catch.** Cross the Arctic Circle in summer and the night is gone — a seventh of
-nothing is nothing. And just *below* the circle the night can be twenty minutes long, so
-Maghrib, Isha, Fajr and sunrise all crowd into a sliver, minutes apart.
+nothing is nothing. (Just *below* the circle the night merely thins: Akureyri's June night is
+thirty-seven minutes. And thin, it turns out, is not the same as gone. Hold that thought — it
+cost us a rewrite.)
 
 **The nearest place with a valid time** (*aqrab al-bilād*). When your own sky fails, borrow from
 the closest latitude where the calculation still works. Sound idea — but implemented literally,
@@ -135,9 +136,10 @@ correct" — it was *where to stand* so the cliffs don't reach the user.
 
 ## Why we round down to 60°
 
-The answer Isfar settled on: when a calculation has nowhere real to stand, compute it as if you
-were at **latitude 60°N** (at your own longitude). Not the nearest valid latitude — a fixed,
-deliberate floor. Two reasons, and they point at the same line on the map.
+The answer Isfar settled on: when the sky has no night left at all — no sunset, no sunrise,
+nothing to portion — compute as if you were at **latitude 60°N** (at your own longitude). Not
+the nearest valid latitude — a fixed, deliberate floor. Two reasons, and they point at the same
+line on the map.
 
 **The astronomical reason.** 60° is about the furthest north that keeps a dependable night all
 year round. Its midsummer night is short but real — just over five hours, enough for the
@@ -212,13 +214,31 @@ position along your flight path**:
 
 1. **Wherever the sun reaches your method's angle — use it.** Your chosen authority's real times,
    untouched. This covers almost every flight, and even the far north for most of the year.
-2. **Where the angle is out of reach, up to 60° — divide your own night by sevenths.** Your
-   local night, sunset to sunrise, portioned following the old juristic convention
-   moonsighting.com recommends. The result is marked as an estimate.
-3. **Beyond 60°, or where no night survives at all — compute at 60°N**, your longitude, as if
-   you stood there: your method's real angle wherever that borrowed sky reaches it, never
-   straying more than a seventh of the borrowed night from its sunset or sunrise. Marked as an
-   estimate, with a banner telling you why ("the sun won't set at Tromsø tonight…").
+2. **Where the angle is out of reach but the sun still rises and sets — divide your own night
+   by sevenths.** Your local night, sunset to sunrise, portioned following the old juristic
+   convention moonsighting.com recommends — at *any* latitude. A seventh is less than half, so
+   however short the night runs, Isha lands after the sunset you can see, Fajr begins before
+   the coming sunrise, and the two never meet in the middle. The result is marked as an
+   estimate.
+3. **Where the night itself is gone — midnight sun, polar night — compute at 60°N**, your
+   longitude, as if you stood there: your method's real angle wherever that borrowed sky
+   reaches it, never straying more than a seventh of the borrowed night from its sunset or
+   sunrise. The whole night comes along (Maghrib, Isha, Fajr, sunrise), and there is no local
+   sunset or sunrise left to disagree with it. Marked as an estimate, with a banner telling
+   you why ("the sun won't set at Tromsø tonight…").
+
+> **2026-06-10 update — the flights that redrew the rule.** The first published version of
+> rule 3 engaged everywhere above 60°, even where a local night survived. A June audit against
+> real timetables killed that: BA48 (SEA→LHR) showed ~Fajr 08:14 nineteen minutes *after* the
+> cabin watched the sun rise (66.1°N, sun +1.5°); AC854 (YVR→LHR) the same, +16 min; FI455
+> (LHR→KEF) put Keflavík's ~Fajr 14 min after its real 03:10 sunrise; and between 63°
+> and the circle the borrowed Maghrib ran up to two hours ahead of the visible sunset
+> (Akureyri: "Maghrib" 22:40, sun up till 00:56 — invalid, not just awkward). Rule 2 now applies
+> wherever a cycle exists; the floor is purely the no-cycle fallback. Worst-case compression is
+> real but tiny and true: Akureyri June 21 night = 37 min (Maghrib 00:56 · Isha 01:01 · Fajr
+> 01:27–01:33), Luleå 60 min; the app posts a short-night banner and counsels jam'. The
+> published page carries the full story ("The flights that redrew the rule") and
+> `tests/engine-regressions.test.js` pins every flight in it.
 
 The switch between rule 1 and rule 2 isn't a line of latitude — it's *your angle meeting your
 sky*. Choose an 18° method and the fallback engages further south than your neighbour's 15°;
@@ -232,8 +252,8 @@ calculates from is the one outside your window.
 
 A worked example, the day we kept testing: **Oslo → Tromsø, December 21st**, landing in polar
 night. Before departure, Oslo's real Asr (13:04) and Maghrib (15:08). Isha arrives mid-flight,
-where the night below the aircraft is still real. After landing: Fajr ~06:25, borrowed from
-latitude 60° — where a 15° dawn still exists even in late December — and Dhuhr ~11:43, Tromsø's
+where the night below the aircraft is still real. After landing: Fajr ~06:26, borrowed from
+latitude 60° — where a 15° dawn still exists even in late December — and Dhuhr ~11:44, Tromsø's
 own solar noon, flagged because the sun beneath it never rises. Both carry the `~`, under a
 banner that says the sun will not rise tomorrow in Tromsø, and that's why.
 
@@ -261,15 +281,30 @@ Safe travels. *سفر مبارك*
 ## Production notes (not for publication)
 
 ### Numbers — provenance
-Every time quoted above was re-verified with adhan-js 4.4.3 at publication (2026-06-09) via
-`scripts/verify-blog-times.mjs` (run it any time). London June: 15° → Isha 00:49/Fajr 01:16 BST
+Every time quoted above was re-verified with adhan-js 4.4.3, last on 2026-06-10 against the
+rewritten engine (`scripts/verify-blog-times.mjs` + the session harnesses; the audit fleet is
+pinned in `tests/engine-regressions.test.js`). London June: 15° → Isha 00:49/Fajr 01:16 BST
 (27-min window); 18° → both 01:02 BST = 00:02 UTC (collapsed). Stockholm June:
 MiddleOfTheNight → both 22:50 UTC, half a second apart (collapsed); SeventhOfTheNight → Isha
-20:54/Fajr 00:45 UTC. Tromsø Dec borrowed-60: Fajr 06:25 / Maghrib 14:38 / Isha 16:59 CET
-(these are the real 15° angle times at lat 60 — the seventh clamp doesn't bind in winter).
-Tromsø midnight sun ≈ May 18 – Jul 25; polar night ≈ Nov 28 – Jan 15. Tromsø has all-five-real
-days only ~41% of the year with a 15° method (engine classification) — hence "four to five
-months". BA48 now renders: Maghrib real, Isha ~portioned, Fajr ~substituted, 2nd Dhuhr real.
+20:54/Fajr 00:45 UTC. Oslo→Tromsø Dec 21 worked example (current engine): Asr 13:04 /
+Maghrib 15:08 / in-flight Isha 17:19 real; after landing Fajr ~06:26 (borrow60) /
+Dhuhr ~11:44 (flagged local noon). Tromsø midnight sun ≈ May 18 – Jul 25; polar night ≈
+Nov 28 – Jan 15. Tromsø has all-five-real days ~38% of the year with a 15° method (138 days;
+the Asr fringe-borrow around polar night, Nov 15–27 and Jan 16–20, pulls it under 40%) —
+"four to five months" still holds (138 d ≈ 4.5 months). June audit fleet (ISNA): OLD floor —
+BA48 ~Fajr 08:14 LHR at 66.1°N sun +1.5° (cabin sunrise 07:55 at 65.2°N); AC854 ~Fajr 08:52
+vs cabin sunrise 08:36; FI455→KEF after-arrival ~Fajr 03:24 vs real Keflavík sunrise 03:10
+(Reykjavík city's is 03:04); 64°N borrowed Maghrib 22:12 vs local sunset 23:17; Akureyri
+borrowed Maghrib 22:40 vs local sunset 00:56 (+136 min). NEW rule — BA48 ~Fajr 07:49 (6 min
+before cabin sunrise, ends ~08:08); AC854 ~Fajr 08:29 (7 min before 08:36); FI455 ~Fajr 02:42
+(28 min before 03:10); AY16 ~Fajr 06:21 HEL at 62.9°N sun −2.5°; SK910 at 60.4°N sun −3.6°;
+BA268 Fajr fully real at 51.2°N. Dawn-inversion season at the old floor: ~82 days
+(May 12 – Aug 1). Sliver: night<30 min strip = 65.69–65.73°N ≈ 5 km (~20 s at 480 kt);
+NAT 58/61/63°N nights 350/284/222 min. Akureyri Jun 21: night 37 min, Maghrib 00:56 /
+Isha 01:01 / Fajr 01:27 / sunrise 01:33 (shortnight banner); Luleå: night 60 min,
+Maghrib 00:03 / Isha 00:12 / Fajr 00:55 / sunrise 01:03. Other shortnight-eligible scheduled
+airports exist (Arvidsjaur 52-min night, Brønnøysund 72-min) — hence "a handful", with
+Akureyri and Luleå as the worked pair.
 
 City-table figures are deliberately hedged (metro approximations; community estimates from
 national statistics + community sources). Before publishing, decide whether to cite specific

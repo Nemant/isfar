@@ -112,6 +112,81 @@ it('boundary-date flag consistency: estimated ⇔ estimateBasis (OSL→LYR polar
   }
 });
 
+it('BA48 (the audited flight): in-flight Fajr lands BEFORE the visible sunrise, window coherent', () => {
+  // The 60° floor used to put this Fajr 19 min after the cabin watched the sun
+  // rise (66°N, sun +1.5°). Local sevenths must keep it before the dawn, and
+  // the displayed window must never end before it starts.
+  const m = C(flight({ fromLat: 47.449, fromLon: -122.309, fromTz: 'America/Los_Angeles', fromIata: 'SEA',
+                       toLat: 51.4706, toLon: -0.4619, toTz: 'Europe/London', toIata: 'LHR',
+                       depUTC: '2026-06-09T03:20:00Z', arrUTC: '2026-06-09T12:45:00Z' }), 'isna');
+  const fajr = m.prayers.find(p => p.key === 'fajr' && p.status === 'inflight');
+  expect(fajr).toBeTruthy();
+  expect(fajr.estimateBasis).toBe('seventh');              // portioned from the LOCAL night, not borrowed
+  expect(fajr.ms).toBeLessThan(fajr.sunriseMs ?? Infinity);
+});
+
+it('short-night destination gets a shortnight skyNote (RKV→AEY, 37-minute Akureyri night)', () => {
+  const m = C(flight({ fromLat: 64.13, fromLon: -21.94, fromTz: 'Atlantic/Reykjavik', fromIata: 'RKV',
+                       toLat: 65.659, toLon: -18.072, toTz: 'Atlantic/Reykjavik', toIata: 'AEY',
+                       depUTC: '2026-06-21T22:30:00Z', arrUTC: '2026-06-21T23:15:00Z' }), 'isna');
+  const note = m.skyNotes.find(n => n.kind === 'shortnight');
+  expect(note).toBeTruthy();
+  expect(note.place).toBe('destination');
+  expect(note.nightMin).toBeGreaterThan(0);
+  expect(note.nightMin).toBeLessThan(90);
+});
+
+// —— the June audit fleet from the guide article: each flight's Fajr must stay
+//    coherent with the sky it is actually under ——————————————————————————————
+const AUDIT = [
+  ['AC854 YVR→LHR', { fromLat: 49.194, fromLon: -123.184, fromTz: 'America/Vancouver', fromIata: 'YVR',
+                      toLat: 51.4706, toLon: -0.4619, toTz: 'Europe/London', toIata: 'LHR',
+                      depUTC: '2026-06-09T04:35:00Z', arrUTC: '2026-06-09T13:50:00Z' }, 'seventh'],
+  ['AY16 JFK→HEL',  { fromLat: 40.6413, fromLon: -73.7781, fromTz: 'America/New_York', fromIata: 'JFK',
+                      toLat: 60.3172, toLon: 24.9633, toTz: 'Europe/Helsinki', toIata: 'HEL',
+                      depUTC: '2026-06-09T22:35:00Z', arrUTC: '2026-06-10T06:50:00Z' }, 'seventh'],
+  ['SK910 EWR→OSL', { fromLat: 40.6895, fromLon: -74.1745, fromTz: 'America/New_York', fromIata: 'EWR',
+                      toLat: 60.1939, toLon: 11.1004, toTz: 'Europe/Oslo', toIata: 'OSL',
+                      depUTC: '2026-06-09T23:25:00Z', arrUTC: '2026-06-10T07:05:00Z' }, 'seventh'],
+  ['BA268 LAX→LHR', { fromLat: 33.9416, fromLon: -118.4085, fromTz: 'America/Los_Angeles', fromIata: 'LAX',
+                      toLat: 51.4706, toLon: -0.4619, toTz: 'Europe/London', toIata: 'LHR',
+                      depUTC: '2026-06-09T04:25:00Z', arrUTC: '2026-06-09T14:45:00Z' }, null],
+];
+for (const [name, rec, basis] of AUDIT) {
+  it(`audit fleet — ${name}: Fajr ${basis ? 'portioned, before its sunrise' : 'fully real'}`, () => {
+    const m = C(flight(rec), 'isna');
+    const fajr = m.prayers.find(p => p.key === 'fajr');
+    expect(fajr, 'fajr missing').toBeTruthy();
+    if (basis) {
+      expect(fajr.estimateBasis).toBe(basis);
+      if (fajr.sunriseMs != null) expect(fajr.ms).toBeLessThan(fajr.sunriseMs);
+    } else {
+      expect(fajr.estimated).toBe(false);
+    }
+  });
+}
+
+it('audit fleet — FI455 LHR→KEF: after-arrival Fajr portioned, before the real Reykjavik sunrise', () => {
+  const m = C(flight({ fromLat: 51.4706, fromLon: -0.4619, fromTz: 'Europe/London', fromIata: 'LHR',
+                       toLat: 63.985, toLon: -22.6056, toTz: 'Atlantic/Reykjavik', toIata: 'KEF',
+                       depUTC: '2026-06-09T20:05:00Z', arrUTC: '2026-06-09T23:35:00Z' }), 'isna');
+  const fajr = m.prayers.find(p => p.key === 'fajr' && p.status === 'after');
+  expect(fajr).toBeTruthy();
+  expect(fajr.estimateBasis).toBe('seventh');
+  expect(fajr.ms).toBeLessThan(fajr.sunriseMs);
+});
+
+it('audit fleet — ARN→LLA: shortnight skyNote at Luleå (~60-minute night)', () => {
+  const m = C(flight({ fromLat: 59.6519, fromLon: 17.9186, fromTz: 'Europe/Stockholm', fromIata: 'ARN',
+                       toLat: 65.5436, toLon: 22.122, toTz: 'Europe/Stockholm', toIata: 'LLA',
+                       depUTC: '2026-06-21T20:00:00Z', arrUTC: '2026-06-21T21:15:00Z' }), 'isna');
+  const note = m.skyNotes.find(n => n.kind === 'shortnight');
+  expect(note).toBeTruthy();
+  expect(note.iata).toBe('LLA');
+  expect(note.nightMin).toBeGreaterThan(30);
+  expect(note.nightMin).toBeLessThan(90);
+});
+
 it("moonsighting at CPH winter: unflagged (the method's own rule)", () => {
   const m = C(flight({ fromLat: 55.68, fromLon: 12.57, fromTz: 'Europe/Copenhagen', fromIata: 'CPH',
                        toLat: 51.47, toLon: -0.45, toTz: 'Europe/London', toIata: 'LHR',

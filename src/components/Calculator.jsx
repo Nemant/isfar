@@ -326,7 +326,11 @@ function Results({ f, activeKey, selectPrayer, cardRefs, onBack }) {
       {(f.skyNotes || []).map((n) => (
         <div className="midnight-banner" role="note" key={n.place}>
           <Ic.sunrise aria-hidden="true" />
-          <span>The sun {n.kind === "polarnight" ? "won’t rise" : "won’t set"} at <b>{n.city}</b> ({n.latitude}) — {n.allEstimated ? "prayer times there are estimated" : "some prayer times there are estimates"}. <a className="banner-link" href="/guide/far-north-prayer-times/">How we estimate these times</a></span>
+          {n.kind === "shortnight" ? (
+            <span>The night at <b>{n.city}</b> ({n.latitude}) is only {n.nightMin} minutes long — the ~ times follow that real, short night; Maghrib and Isha may be combined. <a className="banner-link" href="/guide/far-north-prayer-times/">How we estimate these times</a></span>
+          ) : (
+            <span>The sun {n.kind === "polarnight" ? "won’t rise" : "won’t set"} at <b>{n.city}</b> ({n.latitude}) — {n.allEstimated ? "prayer times there are estimated" : "some prayer times there are estimates"}. <a className="banner-link" href="/guide/far-north-prayer-times/">How we estimate these times</a></span>
+          )}
         </div>
       ))}
       <ArcTimeline f={f} activeKey={activeKey} onSelect={selectPrayer} />

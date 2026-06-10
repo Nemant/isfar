@@ -82,11 +82,14 @@ build time, not load order.
 
 `compute()` returns `raw` plus: `prayers[]`, `durationMin`, `dep/arr.local`, `cruiseAltFt`,
 `multiDay`, and `skyNotes[]` — one `{place: origin|destination, city, iata, latitude, kind:
-midnightsun|polarnight, allEstimated, names}` per no-cycle endpoint (drives the banner).
+midnightsun|polarnight|shortnight, allEstimated, names, nightMin?}` per notable endpoint:
+no-cycle endpoints get midnightsun/polarnight; an endpoint whose real night is under 90 min
+(e.g. Akureyri's 37-minute June night) gets `shortnight` + `nightMin` (drives the
+combine-Maghrib-and-Isha banner).
 
 Each `prayers[]` entry: `{ id, key, en, ar, status (before|inflight|after), t (0..1 sun
-fraction), ms, qiblaClock, qiblaRel, sunrise{iata:time}|null, estimated, estimateBasis
-(= source when estimated), source (angle|method|seventh|borrow60),
+fraction), ms, qiblaClock, qiblaRel, sunrise{iata:time}|null, sunriseMs (fajr only),
+estimated, estimateBasis (= source when estimated), source (angle|method|seventh|borrow60),
 zones{iata:{iata,city,time,date}}, seq }`.
 
 **The high-latitude policy lives in `daySchedule(lat, lon, refMs, params, method)`** — the only
@@ -94,15 +97,22 @@ code that calls adhan. Three rules, decided per prayer/position/date, all **obse
 outputs** (never re-predicted with our own astronomy):
 1. **Real angle** — the method's fajr/isha angle wherever the sky reaches it, at any latitude
    (detected by replicating adhan's middle-of-the-night safe-time arithmetic from its outputs).
-2. **Seventh** — angle unreachable at |lat| ≤ 60: 1/7 of the *local* night (adhan
-   `SeventhOfTheNight`), flagged `~`.
-3. **Borrow60** — angle unreachable above 60°, or no day/night cycle at all (adhan's sunrise/sunset
-   Invalid): the **whole night cluster** (maghrib, isha, fajr, sunrise) from the 60° sky at the
-   same longitude, so the evening always keeps canonical order. Dhuhr/Asr stay local; polar-night
-   Dhuhr keeps its real transit but is **flagged**; Asr is borrowed when the local sun gives it no
-   sane afternoon. Moonsighting Committee is trusted verbatim whenever a cycle exists (it ships its
-   own ≥55° rule); interval isha (ummalqura/qatar) is real with a cycle, clustered without one.
+2. **Seventh** — angle unreachable but the sun still rises and sets, at **any latitude**: 1/7 of
+   the *local* night (adhan `SeventhOfTheNight`), flagged `~`. Coherent with the visible sky by
+   construction (Isha after the real sunset, Fajr before the real sunrise). The June flight audit
+   (BA48/AC854/FI455 — see the guide article) killed the old above-60° borrow here: it declared
+   Maghrib in daylight and Fajr after the cabin had watched the sun rise.
+3. **Borrow60** — **only** where no day/night cycle exists at all (adhan's sunrise/sunset
+   Invalid — midnight sun / polar night): the **whole night cluster** (maghrib, isha, fajr,
+   sunrise) from the 60° sky at the same longitude; nothing local remains to contradict it.
+   Dhuhr/Asr stay local; polar-night Dhuhr keeps its real transit but is **flagged**; Asr is
+   borrowed when the local sun gives it no sane afternoon. Moonsighting Committee is trusted
+   verbatim whenever a cycle exists (it ships its own ≥55° rule); interval isha (ummalqura/qatar)
+   is real with a cycle, clustered without one. An angle-based Maghrib that fails while the sun
+   still sets (Tehran above ~62° midsummer) falls back to the sun-disk sunset, flagged.
    `daySchedule` **never returns a null instant** — prayers cannot silently vanish (test-enforced).
+   The fajr altitude-dip on the displayed sunrise applies only when the Fajr itself is real (a
+   ~30-min high-latitude dip would push a portioned Fajr's window-end before its start).
 
 Key internals:
 - `greatCircle()` / `initialBearing()` — spherical position + heading.

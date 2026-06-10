@@ -4,8 +4,11 @@
  * The article's per-prayer table as five concentric rings: solid = real time,
  * dashed = estimated. Day-of-year → angle, Jan 1 at the top, clockwise; windows
  * that wrap across Jan 1 are split into two arcs. Engine-verified windows
- * (zero-based days): Jan 15→15, Mar 20→78, Apr 5→94, May 18→137, Jun 21→171,
- * Jul 25→206, Sep 7→250, Nov 28→331.
+ * (zero-based days, full-year sweep of daySchedule under the local-sevenths
+ * rule): Jan 15→15, Jan 20→20, Mar 20→78, Apr 3→92, Apr 4→93, May 18→137,
+ * Jun 21→171, Jul 25→206, Sep 9→252, Nov 15→318, Nov 27→330, Nov 28→331.
+ * Asr's estimate window is wider than the polar arc: the borrowed-Asr sanity
+ * guard fires for ~13 days before and ~5 after it (Nov 15 – Jan 20).
  */
 const CX = 320, CY = 235, D2R = Math.PI / 180;
 const ang = (d) => (d / 365) * 360;
@@ -19,14 +22,17 @@ const complement = (est) => {
   return out;
 };
 
-const POLAR = [[331, 365], [0, 15]];          // polar night · Nov 28 – Jan 15
-const TWILIGHT = [[94, 250], ...POLAR];       // Apr 5 – Sep 7, plus polar night
+const POLAR = [[331, 365], [0, 15]];               // polar night · Nov 28 – Jan 15
+const WINTER = [[330, 365], [0, 15]];              // twilight pair: from Nov 27
+const FAJR_EST = [[93, 252], ...WINTER];           // Apr 4 – Sep 9, plus winter
+const ISHA_EST = [[92, 252], ...WINTER];           // Apr 3 – Sep 9, plus winter
+const ASR_EST = [[318, 365], [0, 20]];             // Nov 15 – Jan 20 (guard fringe)
 const RINGS = [
-  { name: 'Fajr',    cls: 'fajr',    letter: 'F', r: 88,  est: TWILIGHT },
+  { name: 'Fajr',    cls: 'fajr',    letter: 'F', r: 88,  est: FAJR_EST },
   { name: 'Dhuhr',   cls: 'dhuhr',   letter: 'D', r: 104, est: POLAR },
-  { name: 'Asr',     cls: 'asr',     letter: 'A', r: 120, est: POLAR },
+  { name: 'Asr',     cls: 'asr',     letter: 'A', r: 120, est: ASR_EST },
   { name: 'Maghrib', cls: 'maghrib', letter: 'M', r: 136, est: [[137, 206], ...POLAR] },
-  { name: 'Isha',    cls: 'isha',    letter: 'I', r: 152, est: TWILIGHT },
+  { name: 'Isha',    cls: 'isha',    letter: 'I', r: 152, est: ISHA_EST },
 ].map((p) => ({ ...p, real: complement(p.est) }));
 
 const BOUND = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
@@ -42,7 +48,7 @@ const KEYX = [171, 229, 297, 351, 429];
 ---
 <figure class="anim" data-anim="year-wheel">
   <svg viewBox="40 26 560 458" role="img"
-    aria-label="A year wheel for Tromsø at 69.68 degrees north, computed with a 15-degree method: five concentric rings, one per prayer, solid where the prayer has a real computed time and dashed where it must be estimated. Fajr and Isha are estimated from early April to early September and again through the polar night, late November to mid-January. Maghrib is estimated during the midnight sun, mid-May to late July, and the polar night. Asr and Dhuhr are estimated only during the polar night. For most of the year every ring is solid.">
+    aria-label="A year wheel for Tromsø at 69.68 degrees north, computed with a 15-degree method: five concentric rings, one per prayer, solid where the prayer has a real computed time and dashed where it must be estimated. Fajr and Isha are estimated from early April to early September and again through the darkest winter weeks. Maghrib is estimated during the midnight sun, mid-May to late July, and the polar night. Asr is estimated from mid-November to late January, around and through the polar night; Dhuhr only during the polar night itself. For most of the year every ring is solid.">
 
     <text class="corner" x="48" y="64">TROMS&Oslash; &middot; 69.68&deg;N &middot; 15&deg; METHOD</text>
 
@@ -182,8 +188,9 @@ const KEYX = [171, 229, 297, 351, 429];
     const btns = [...fig.querySelectorAll('.anim-btn[data-day]')];
 
     // same verified windows as the build-time arcs (zero-based day, end-exclusive)
-    const POLAR = [[331, 365], [0, 15]], TWI = [[94, 250], ...POLAR];
-    const EST = { fajr: TWI, dhuhr: POLAR, asr: POLAR, maghrib: [[137, 206], ...POLAR], isha: TWI };
+    const POLAR = [[331, 365], [0, 15]], WINTER = [[330, 365], [0, 15]];
+    const EST = { fajr: [[93, 252], ...WINTER], dhuhr: POLAR, asr: [[318, 365], [0, 20]],
+                  maghrib: [[137, 206], ...POLAR], isha: [[92, 252], ...WINTER] };
     const MN = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
     const ML = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
 

@@ -24,7 +24,7 @@ const ISFAR_ENGINE = (function () {
   const D2R = Math.PI / 180, R2D = 180 / Math.PI;
   const ORDER = ["fajr", "dhuhr", "asr", "maghrib", "isha"];
   const BEFORE_CAP = 2, AFTER_CAP = 2;
-  const HIGHLAT_FLOOR = 60;  // above this latitude, borrow twilight times from lat 60
+  const HIGHLAT_FLOOR = 60;  // rule-3 floor: where no day/night cycle exists, borrow the night from lat 60
 
   function greatCircle(lat1, lon1, lat2, lon2, f) {
     const φ1 = lat1 * D2R, λ1 = lon1 * D2R, φ2 = lat2 * D2R, λ2 = lon2 * D2R;
@@ -84,7 +84,8 @@ const ISFAR_ENGINE = (function () {
     // Base rule = MiddleOfTheNight: it returns the chosen method's REAL twilight angle wherever
     // the sun actually reaches it (it only caps the rare case of an angle past solar midnight).
     // Where the sun never reaches the angle, daySchedule swaps in a seventh-of-the-night fallback
-    // (and, above 60°, borrows latitude 60). Using SeventhOfTheNight here as the base was wrong —
+    // (and, where no day/night cycle exists at all, borrows latitude 60). Using SeventhOfTheNight
+    // here as the base was wrong —
     // it clamps real angle times even at normal latitudes (London June Isha 21:24 vs the real 23:48).
     p.highLatitudeRule = adhan.HighLatitudeRule.MiddleOfTheNight;
     return p;
@@ -155,13 +156,19 @@ const ISFAR_ENGINE = (function () {
      "normal" | "midnightsun" | "polarnight".
 
      1. REAL ANGLE   — the method's own time wherever the sky reaches it.
-     2. SEVENTH      — angle unreachable, |lat| ≤ 60: 1/7 of the LOCAL night.
-     3. BORROW60     — angle unreachable, |lat| > 60 (or no day/night cycle at
-                       all): the whole night cluster — maghrib, isha, fajr,
-                       sunrise — read from the 60° sky at this longitude, so the
-                       evening always stays in canonical order. Dhuhr and Asr
-                       stay local (Dhuhr flagged in polar night; Asr borrowed
-                       when the local sun gives it no sane afternoon).
+     2. SEVENTH      — angle unreachable but the sun still rises and sets, at
+                       ANY latitude: 1/7 of the LOCAL night. Coherent with the
+                       visible sky by construction — Isha lands after the real
+                       sunset, Fajr before the real sunrise (a seventh < half),
+                       which a borrowed schedule cannot guarantee (the audited
+                       60-66.5° flights: Maghrib declared in daylight, Fajr
+                       after the cabin watched the sun rise).
+     3. BORROW60     — no day/night cycle at all (midnight sun / polar night):
+                       the whole night cluster — maghrib, isha, fajr, sunrise —
+                       read from the 60° sky at this longitude. Nothing local
+                       exists to contradict, so coherence is automatic. Dhuhr
+                       and Asr stay local (Dhuhr flagged in polar night; Asr
+                       borrowed when the local sun gives it no sane afternoon).
      Moonsighting Committee is trusted verbatim whenever a cycle exists (the
      method ships its own ≥55° rule). Interval isha (ummalqura/qatar) is real
      with a cycle and joins the cluster without one.
@@ -194,7 +201,14 @@ const ISFAR_ENGINE = (function () {
     // ---- a real day and night exist: sun-disk events + asr are local --------
     out.kind = "normal";
     out.sunrise = real(sunriseMs);
-    out.maghrib = real(msOf(pt.maghrib));
+    // an angle-based maghrib (Tehran, 4.5° after sunset) can fail while the sun
+    // still sets; the honest floor is the sun-disk sunset itself, flagged —
+    // parallels the flagged polar Dhuhr (keep the real solar event, admit the
+    // method's refinement is out of reach)
+    const maghribMs = msOf(pt.maghrib);
+    out.maghrib = maghribMs != null
+      ? real(maghribMs)
+      : { ms: sunsetMs, source: "method", estimated: true };
     const asrMs = msOf(pt.asr);                           // degenerate near |lat−decl|≈90: range-guard
     if (asrMs != null && asrMs > out.dhuhr.ms && asrMs < sunsetMs) {
       out.asr = real(asrMs);
@@ -229,7 +243,9 @@ const ISFAR_ENGINE = (function () {
         out[k] = { ms: msOf(pt[k]), source: "angle", estimated: false };
         continue;
       }
-      if (Math.abs(lat) > HIGHLAT_FLOOR) { floor = true; continue; }  // resolved below as a cluster
+      // rule 2 at ANY latitude: while the sun still rises and sets, portion the
+      // LOCAL night — Isha after the real sunset and Fajr before the real
+      // sunrise by construction, which no borrowed sky can guarantee
       pt7 = pt7 || ptFor(lat, lon, refMs, seventhParams(params));
       out[k] = { ms: msOf(pt7[k]), source: "seventh", estimated: true };
     }
@@ -237,13 +253,6 @@ const ISFAR_ENGINE = (function () {
     // seventh-of-night isha — re-anchor the portion on the method's own nightfall
     if (out.isha && out.isha.source === "seventh" && out.isha.ms <= out.maghrib.ms) {
       out.isha = { ms: out.maghrib.ms + (out.isha.ms - sunsetMs), source: "seventh", estimated: true };
-    }
-    if (floor) {
-      // rule 3: the whole night cluster from the 60° sky — order-coherent by construction
-      const b = borrow60(lat, lon, refMs, params);
-      for (const k of ["fajr", "sunrise", "maghrib", "isha"]) {
-        out[k] = { ms: b[k], source: "borrow60", estimated: true };
-      }
     }
     return out;
   }
@@ -408,11 +417,29 @@ const ISFAR_ENGINE = (function () {
       return true;
     });
 
-    // 5. SKY NOTES — a banner per no-cycle endpoint (origin AND destination).
+    // 5. SKY NOTES — a banner per no-cycle endpoint (origin AND destination),
+    //    plus a short-night note where the night is real but compressed (the
+    //    sliver just below the polar boundary, e.g. Akureyri's 37-minute June
+    //    night): the times are true to the sky, and combining is the answer.
     const skyNotes = [];
     for (const [place, pt, refMs] of [["origin", from, dep], ["destination", to, arr]]) {
       const s = sched(pt.lat, pt.lon, refMs);
-      if (s.kind === "normal") continue;
+      if (s.kind === "normal") {
+        const s2 = sched(pt.lat, pt.lon, refMs + DAY);
+        if (s2.kind === "normal" && !s2.sunrise.estimated && !s.maghrib.estimated) {
+          const nightMin = Math.round((s2.sunrise.ms - s.maghrib.ms) / MIN);
+          if (nightMin > 0 && nightMin < 90 && s.isha.estimated) {
+            skyNotes.push({
+              place, city: pt.city, iata: pt.iata,
+              latitude: Math.abs(pt.lat).toFixed(1) + "° " + (pt.lat >= 0 ? "N" : "S"),
+              kind: "shortnight", nightMin,
+              allEstimated: false,
+              names: ORDER.filter(k => s[k].estimated).map(k => META[k].en)
+            });
+          }
+        }
+        continue;
+      }
       skyNotes.push({
         place, city: pt.city, iata: pt.iata,
         latitude: Math.abs(pt.lat).toFixed(1) + "° " + (pt.lat >= 0 ? "N" : "S"),
@@ -456,12 +483,16 @@ const ISFAR_ENGINE = (function () {
         [from.iata]: { iata: from.iata, city: from.city, time: fmtTZ(ms, from.tz), date: fmtDate(ms, from.tz) },
         [to.iata]:   { iata: to.iata,   city: to.city,   time: fmtTZ(ms, to.tz),   date: fmtDate(ms, to.tz) }
       };
-      // Fajr ends at sunrise — captured in both zones (advanced for altitude
-      // aloft only when the sunrise is the real local one)
+      // Fajr ends at sunrise — captured in both zones. The altitude dip is
+      // applied only when the FAJR ITSELF is real: a portioned Fajr sits a
+      // seventh before the ground sunrise, and a ~30-minute high-latitude dip
+      // would shove its displayed end before its start. Estimates get no fake
+      // precision — their window wears the ~ instead.
       let sunrise = null;
       if (a.key === "fajr" && a.sunriseMs != null) {
-        const srMs = a.sunriseMs - (a.sunriseReal ? dipMs : 0);
-        const pre = a.sunriseReal ? "" : "~";              // borrowed sunrise is an estimate too
+        const exact = a.sunriseReal && !a.estimated;
+        const srMs = a.sunriseMs - (exact ? dipMs : 0);
+        const pre = exact ? "" : "~";
         sunrise = { [from.iata]: pre + fmtTZ(srMs, from.tz), [to.iata]: pre + fmtTZ(srMs, to.tz) };
       }
       return {
@@ -471,6 +502,7 @@ const ISFAR_ENGINE = (function () {
         t: solarFrac(a.lat, a.lon, ms),
         ms,
         qiblaClock, qiblaRel, sunrise,
+        sunriseMs: a.key === "fajr" ? (a.sunriseMs ?? null) : null,
         estimated: a.estimated, estimateBasis: a.estimated ? a.source : null,
         source: a.source,
         zones, seq
