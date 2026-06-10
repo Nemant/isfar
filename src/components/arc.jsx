@@ -79,7 +79,7 @@ function ArcTimeline({ f, activeKey, onSelect }) {
         </span>
       </div>
       <svg className="arc-svg" viewBox={`0 0 ${W} ${H}`} role="img"
-           aria-label={`${n} prayers from ${f.from.city} to ${f.to.city}, placed by the sun's height: dawn and dusk low, midday high, night below the horizon.`}>
+           aria-label={`${n} prayers from ${f.from.city} to ${f.to.city}, placed by time of day: dawn and dusk low, midday high.`}>
         {/* in-flight band */}
         {band && (
           <g>
@@ -118,10 +118,13 @@ function ArcTimeline({ f, activeKey, onSelect }) {
             <g key={pr.id} className={"prayer-dot" + (active ? " active" : "")}
                onClick={() => onSelect && onSelect(pr.id)} role="button" tabIndex={0}
                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSelect && onSelect(pr.id); } }}
-               aria-label={`${pr.en}, ${aloft ? "in flight" : pr.status === "before" ? "before departure" : "after arrival"}`}>
+               aria-label={`${pr.en}${pr.estimated ? " (estimated)" : ""}, ${aloft ? "in flight" : pr.status === "before" ? "before departure" : "after arrival"}`}>
               <line x1={p.x} y1={p.y} x2={p.x} y2={tip} stroke={c} strokeWidth="1" opacity="0.35" />
               <circle className="halo" cx={p.x} cy={p.y} r={active ? 16 : 12}
                       fill={`oklch(from ${c} l c h / 0.26)`} />
+              {pr.estimated
+                ? <circle cx={p.x} cy={p.y} r="9" fill="none" stroke={c} strokeWidth="1" strokeDasharray="2 3" opacity="0.8" />
+                : null}
               {aloft
                 ? <circle className="core" cx={p.x} cy={p.y} r="6" fill={c} />
                 : <circle className="core-hollow" cx={p.x} cy={p.y} r="5.5" fill="var(--bg-mid)" stroke={c} strokeWidth="2.5" />}
@@ -138,6 +141,9 @@ function ArcTimeline({ f, activeKey, onSelect }) {
         <div className="lg"><i className="dot-filled"></i> prayed aloft</div>
         <div className="lg"><i className="dot-hollow"></i> on the ground</div>
         <div className="lg"><i className="dot-band"></i> flight window</div>
+        {f.prayers.some(p => p.estimated)
+          ? <div className="lg"><i className="dot-hollow" style={{ borderStyle: "dashed" }}></i> ~ estimate</div>
+          : null}
       </div>
     </section>
   );

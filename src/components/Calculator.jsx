@@ -319,18 +319,16 @@ function Loading({ query, msg }) {
 
 /* ---- Results ------------------------------------------------------------ */
 function Results({ f, activeKey, selectPrayer, cardRefs, onBack }) {
-  const ms = f.midnightSun;
-  const msVerb = ms && ms.kind === "polarnight" ? "won’t rise" : "won’t set";
   return (
     <main className="results">
       <NextPrayer prayers={f.prayers} order={[f.from.iata, f.to.iata]} />
       <FlightSummary f={f} />
-      {ms ? (
-        <div className="midnight-banner" role="note">
+      {(f.skyNotes || []).map((n) => (
+        <div className="midnight-banner" role="note" key={n.place}>
           <Ic.sunrise aria-hidden="true" />
-          <span>The sun {msVerb} at <b>{ms.city}</b> ({ms.latitude}) — {ms.allEstimated ? "prayer times here are estimated" : "some prayer times here are estimates"}. <a className="banner-link" href="/guide/far-north-prayer-times/">How we estimate these times</a></span>
+          <span>The sun {n.kind === "polarnight" ? "won’t rise" : "won’t set"} at <b>{n.city}</b> ({n.latitude}) — {n.allEstimated ? "prayer times there are estimated" : "some prayer times there are estimates"}. <a className="banner-link" href="/guide/far-north-prayer-times/">How we estimate these times</a></span>
         </div>
-      ) : null}
+      ))}
       <ArcTimeline f={f} activeKey={activeKey} onSelect={selectPrayer} />
       <PrayerList f={f} activeKey={activeKey} cardRefs={cardRefs} />
       <button className="btn" onClick={onBack} style={{ marginTop: 8 }}><Ic.back style={{width:16,height:16}} aria-hidden="true" /> Look up another flight</button>

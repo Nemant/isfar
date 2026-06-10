@@ -161,7 +161,7 @@ function MethodSheet({ open, onClose }) {
     { ic: Ic.book, t: "Trusted prayer-time methods",
       d: "The times follow the established calculation authorities — ISNA, Muslim World League, Umm al-Qura and more — not formulas of our own. Choose the one you follow in Settings." },
     { ic: Ic.sunrise, t: "Far-north flights",
-      d: "Near the poles the summer sky never truly darkens, so the usual dawn and dusk angles have no moment to mark. Across most of the world — Istanbul, New York — your method's normal angle works all year. Only farther north does it run out: there we round down to 60°N — roughly the latitude of Stockholm, St Petersburg, Helsinki and Anchorage, about as far north as big cities go — and mark those prayers as estimates.",
+      d: "Your method's own dawn and dusk angles are used wherever the sky actually reaches them — at any latitude. In high summer, above roughly 48–55°, the sky may never get dark enough: there we divide your own night into sevenths instead, an established convention, and mark the time with a ~. Past 60°, where even the night can vanish, the night's times are borrowed from latitude 60 at your longitude — about where Stockholm, St Petersburg, Helsinki and Anchorage live — and marked the same way.",
       link: { href: "/guide/far-north-prayer-times/", label: "Read the full story" } },
     { ic: Ic.auto, t: "Yours, on your device",
       d: "Look up a flight while you still have signal, and it’s saved to your device — so it stays available offline once you’re in the air. No account needed; the live flight search itself does need a connection." }
@@ -301,17 +301,18 @@ function NextPrayer({ prayers, order }) {
             : m > 0 ? `${m}m ${String(s).padStart(2, "0")}s`
             : `${s}s`;
   const color = COLOR[next.key];
+  const est = next.estimated;
   const statusText = next.status === "inflight" ? "in flight" : next.status === "before" ? "before departure" : "after arrival";
   const zs = (order || Object.keys(next.zones)).map(i => next.zones[i]).filter(Boolean);
   return (
     <div className="nextp" role="status" aria-live="polite" style={{ "--dot": color }}>
       <div className="np-left">
-        <div className="np-eyebrow">Next prayer</div>
+        <div className="np-eyebrow">Next prayer{est ? " · estimated" : ""}</div>
         <div className="np-name">
           <span className="np-en">{next.en}</span>
           <span className="np-ar ar" aria-hidden="true">{next.ar}</span>
         </div>
-        <div className="np-meta">{statusText} · {zs.map(z => `${z.iata} ${z.time}`).join(" · ")}</div>
+        <div className="np-meta">{statusText} · {zs.map(z => `${z.iata} ${est ? "~" : ""}${z.time}`).join(" · ")}</div>
       </div>
       <div className="np-right">
         <div className="np-count tnum">{left}</div>

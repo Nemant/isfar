@@ -61,7 +61,10 @@ function PrayerCard({ pr, active, multiDay, order, refEl }) {
 function EstimateNote({ items }) {
   const est = items.filter(p => p.estimated);
   if (!est.length) return null;
-  const text = "This far north the normal cycle of dawn and dusk doesn't hold, so these times are estimates. Scholars differ; follow the guidance you trust.";
+  const borrowed = est.some(p => p.estimateBasis === "borrow60");
+  const text = borrowed
+    ? "Here the sky gives the usual dawn-and-dusk angles nothing to mark, so the ~ times are estimates portioned from the night at latitude 60°. Scholars differ; follow the guidance you trust."
+    : "Here the sky never gets dark enough for the usual dawn-and-dusk angles, so the ~ times are estimates portioned from your own night. Scholars differ; follow the guidance you trust.";
   return (
     <div className="pc-est-note">
       <Ic.info aria-hidden="true" />
