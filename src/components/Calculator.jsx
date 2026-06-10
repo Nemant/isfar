@@ -20,6 +20,12 @@ const LOAD_MSGS = [
   "Calculating prayer times aloft…"
 ];
 
+/* the device's current date as YYYY-MM-DD (local, not UTC) */
+function todayISO() {
+  const d = new Date();
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+}
+
 /* resolve auto → light/dark from the OS colour-scheme preference */
 function resolveTheme(theme) {
   if (theme !== "auto") return theme;
@@ -60,7 +66,7 @@ function Calculator() {
 
   const [view, setView] = useS("landing");      // landing|loading|results|error
   const [query, setQuery] = useS("");
-  const [date, setDate] = useS("2026-06-06");
+  const [date, setDate] = useS(todayISO());
   const [err, setErr] = useS(null);              // field-level validation
   const [raw, setRaw] = useS(null);              // matched flight record
   const [loadMsg, setLoadMsg] = useS(0);
@@ -260,7 +266,12 @@ function Landing({ query, setQuery, date, setDate, err, onSubmit, recents, onCle
         </div>
 
         <div className="field">
-          <label htmlFor="date">Date of travel</label>
+          <div className="label-row">
+            <label htmlFor="date">Date of travel</label>
+            {date !== todayISO() ? (
+              <button type="button" className="today-btn" onClick={() => setDate(todayISO())}>Today</button>
+            ) : null}
+          </div>
           <input id="date" className="input compact" type="date" value={date}
                  onChange={(e) => setDate(e.target.value)} />
         </div>
