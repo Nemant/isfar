@@ -8,6 +8,13 @@
 > review pass (line edits, taqdīr paragraph, FAQ block, internal links). This file keeps the
 > narrative draft + production notes; the factual corrections below have been mirrored here so
 > nothing in this file is quotably wrong.
+>
+> **v3 (2026-06-10): the page was SIMPLIFIED and restructured.** The headline rule is now the
+> seventh of the local night ("Does a seventh of the night actually work?" — the June audit
+> fleet as a TABLE, every row test-pinned); the 60° borrow is presented as the no-night
+> fallback only, folded into rule 3 with the sixty-floor figure (the city table and the
+> "Why we round down to 60°" section were cut, as was the long audit narrative). This file
+> retains the long-form material the page no longer carries.
 > **Credit:** the latitude-and-season framing that anchors our approach is owed to
 > [moonsighting.com's "How we calculate"](https://moonsighting.com/how-we.html) by Khalid Shaukat.
 > All times in this post are computed with [adhan-js](https://github.com/batoulapps/adhan-js),

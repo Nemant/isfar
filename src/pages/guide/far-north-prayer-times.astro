@@ -9,7 +9,7 @@ import AnimSixtyFloor from '../../components/blog/AnimSixtyFloor.astro';
 import AnimYearWheel from '../../components/blog/AnimYearWheel.astro';
 
 const TITLE = "Prayer times in the midnight sun and polar night — Isfar";
-const DESC = "What happens to Fajr and Isha when the sun never sets? How Isfar computes honest prayer times in the far north — and why it borrows the night at 60°N.";
+const DESC = "What happens to Fajr and Isha when the sun never sets? How Isfar computes honest far-north prayer times from a seventh of the night — tested on real flights.";
 const URL = "https://isfar.app/guide/far-north-prayer-times/";
 ---
 <!DOCTYPE html>
@@ -115,10 +115,10 @@ const URL = "https://isfar.app/guide/far-north-prayer-times/";
     <article class="post">
       <p class="eyebrow">Guide · The far north</p>
       <h1>Praying by a sun that won&rsquo;t set</h1>
-      <p class="lede">How Isfar finds prayer times where the night disappears — and how six June flights redrew the rule.</p>
+      <p class="lede">How Isfar finds prayer times where the night disappears — and why a seventh of the night, honestly divided, is all it takes.</p>
       <div class="byline">
         <span>9 June 2026 · updated 10 June</span>
-        <span>14 min read</span>
+        <span>12 min read</span>
         <span>The engineering behind <a href="/">Isfar</a></span>
       </div>
 
@@ -173,35 +173,12 @@ const URL = "https://isfar.app/guide/far-north-prayer-times/";
       <p><strong>Use the chosen angle, always.</strong> Breaks first. As London-in-June showed, an 18° angle stops existing at ~48°N (Vienna) in midsummer, 15° at ~52°N (Birmingham). You cannot compute a time from an angle the sun never reaches.</p>
       <p><strong>Middle of the night.</strong> When the angle fails, treat the night&rsquo;s midpoint as a boundary — Isha must arrive by it, Fajr won&rsquo;t begin before it. Simple — but at exactly the latitudes that need the rule, both times get pinned to that same instant. Stockholm, June 21: Fajr <strong>00:50</strong>, Isha <strong>00:50</strong> — the same minute, in the small hours. This is the silent default in much prayer software, and it&rsquo;s why far-north timetables so often collapse into a single strange minute.</p>
       <p><strong>A seventh of the night</strong> (<em>sub&lsquo; al-layl</em> — the convention moonsighting.com favors for these latitudes). Divide the actual night, sunset to sunrise, into sevenths: Isha falls after the first seventh, Fajr begins at the last. At Stockholm in June this produces a humane, prayable schedule: Maghrib 22:08, <strong>Isha 22:54</strong>, <strong>Fajr 02:45</strong>, sunrise 03:31. It uses <em>your own</em> sky, scales with the seasons, and degrades gracefully&hellip; as long as there <em>is</em> a night to divide.</p>
-      <p>That last clause is the catch. Cross the Arctic Circle in summer and the night is gone — a seventh of nothing is nothing. (Just <em>below</em> the circle the night merely thins: at Akureyri in northern Iceland the June night lasts thirty-seven minutes. And thin, it turns out, is not the same as gone. Hold that thought — it cost us a rewrite.)</p>
+      <p>That last clause is the catch. Cross the Arctic Circle in summer and the night is gone — a seventh of nothing is nothing. (Just <em>below</em> the circle the night merely thins: at Akureyri in northern Iceland the June night lasts thirty-seven minutes. And thin, it turns out, is not the same as gone. We&rsquo;ll put that to the test below.)</p>
       <p><strong>The nearest place with a valid time</strong> (<em>aqrab al-bilād</em>). When your own sky fails, borrow from the closest latitude where the calculation still works. Sound idea — but implemented literally, software slides to the <em>mathematical boundary</em>: the exact latitude where the night is fifteen minutes long. The borrowed times sit right at the breaking point and lurch from day to day as that boundary moves.</p>
 
       <AnimCollapsingNight />
 
       <p class="pull">Every tool is good. Every tool has a cliff. The design question was never &ldquo;which opinion is correct&rdquo; — it was <em>where to stand</em> so the cliffs don&rsquo;t reach the user.</p>
-
-      <h2 id="why-60">Why we round down to 60°</h2>
-      <p>The answer Isfar settled on: when the sky has no night left at all — no sunset, no sunrise, nothing to portion — compute as if you were at <strong>latitude 60°N</strong> (at your own longitude). Not the nearest valid latitude — a fixed, deliberate floor. Two reasons, and they point at the same line on the map.</p>
-      <p><strong>The astronomical reason.</strong> 60° is about the furthest north that keeps a dependable night all year round. Its midsummer night is short but real — just over five hours, enough for the seventh-of-the-night convention to produce sensible, stable, <em>prayable</em> times every single day of the year. Go higher and the guarantee dissolves; stop at 60° and the borrowed night never gets more extreme than Helsinki&rsquo;s.</p>
-      <p><strong>The human reason.</strong> 60°N is, in practice, where the world&rsquo;s big cities stop. Look at who lives on that line:</p>
-      <div class="tablewrap">
-        <table>
-          <caption class="vh">The major cities on or near the 60th parallel and their Muslim communities.</caption>
-          <thead><tr><th>City</th><th>Latitude</th><th>Metro population</th><th>Muslim community (rough estimate)</th></tr></thead>
-          <tbody>
-            <tr><th>Stockholm</th><td>59.3°N</td><td>~2.4M</td><td>~150–250k</td></tr>
-            <tr><th>Oslo</th><td>59.9°N</td><td>~1.6M</td><td>~100–150k</td></tr>
-            <tr><th>St Petersburg</th><td>59.9°N</td><td>~5.6M</td><td>low hundreds of thousands</td></tr>
-            <tr><th>Helsinki</th><td>60.2°N</td><td>~1.5M</td><td>~80–100k</td></tr>
-            <tr><th>Anchorage</th><td>61.2°N</td><td>~0.4M</td><td>a few thousand</td></tr>
-          </tbody>
-        </table>
-      </div>
-      <p class="note">Population figures are metro-area approximations; Muslim community sizes are order-of-magnitude estimates assembled from national statistics and community sources — treat them as such.</p>
-      <p>Five cities, strung within a degree or two of the line, each with an established Muslim community that faces these skies every June — Oslo holds Norway&rsquo;s largest, Helsinki&rsquo;s Tatars have prayed these bright summers for over a century, St Petersburg keeps a historic grand mosque, Anchorage gathers Alaska&rsquo;s main congregation — and almost nothing million-scale beyond them. (Mid-size cities do exist further north — Murmansk, Arkhangelsk, Yakutsk — but nothing on the scale of this cluster.)</p>
-      <p>Anchoring the fallback at 60° means the borrowed times are the <em>lived</em> times of Stockholm, Oslo, St Petersburg and Helsinki — not an abstract sliver-night at a mathematical boundary. And for the traveller who does continue to Tromsø, where the world&rsquo;s northernmost mosques actually hold these debates as a matter of daily life, the estimate they receive is anchored to the nearest great cities to their south.</p>
-
-      <AnimSixtyFloor />
 
       <h2 id="two-seasons">Summer breaks the night. Winter breaks the day.</h2>
       <p>Here&rsquo;s the part that surprised us during testing: <strong>this is a two-season problem, and the seasons break different prayers.</strong></p>
@@ -230,24 +207,37 @@ const URL = "https://isfar.app/guide/far-north-prayer-times/";
       <ol>
         <li><strong>Wherever the sun reaches your method&rsquo;s angle — use it.</strong> Your chosen authority&rsquo;s real times, untouched. This covers almost every flight, and even the far north for most of the year.</li>
         <li><strong>Where the angle is out of reach but the sun still rises and sets — divide your own night by sevenths.</strong> Your local night, sunset to sunrise, portioned following the old juristic convention moonsighting.com recommends — at <em>any</em> latitude. A seventh is less than half, so however short the night runs, Isha lands after the sunset you can see, Fajr begins before the coming sunrise, and the two never meet in the middle. The result is marked as an estimate.</li>
-        <li><strong>Where the night itself is gone — midnight sun, polar night — compute at 60°N</strong>, your longitude, as if you stood there: your method&rsquo;s real angle wherever that borrowed sky reaches it, never straying more than a seventh of the borrowed night from its sunset or sunrise. The whole night comes along — Maghrib, Isha, Fajr and sunrise are all read from that borrowed sky, so the evening keeps its order; there is no local sunset or sunrise left to disagree with it. Marked as an estimate, with a banner telling you why (&ldquo;the sun won&rsquo;t set at Tromsø tonight&hellip;&rdquo;).</li>
+        <li><strong>And on the few days a place has no night at all — midnight sun, polar night — borrow the night from latitude 60°N</strong>, at your own longitude. Sixty is about the furthest north that keeps a dependable night all year, and the line where the region&rsquo;s great cities actually live — Stockholm, Oslo, Helsinki, St Petersburg — so the borrowed times are lived times, not a mathematical edge. The whole night comes along (Maghrib, Isha, Fajr, sunrise), there is no local sunset or sunrise left to disagree with it, and a banner says why (&ldquo;the sun won&rsquo;t set at Tromsø tonight&hellip;&rdquo;).</li>
       </ol>
+
+      <AnimSixtyFloor />
       <p>The switch between rule 1 and rule 2 isn&rsquo;t a line of latitude — it&rsquo;s <em>your angle meeting your sky</em>. Choose an 18° method and the fallback engages further south than your neighbour&rsquo;s 15°; in winter it disengages entirely. The app adapts to the opinion you follow rather than overriding it.</p>
       <p>And everything estimated <em>says so</em>. A <code>~</code> before the time, an &ldquo;estimate&rdquo; tag on the card, and a plain-language note. We&rsquo;d rather show you an honest approximation than a confident fiction — the same instinct that makes the app nudge Maghrib a few minutes later at cruising altitude (when we must err, we err toward the sun you can actually see) and compute every prayer from the sky outside your window, not the one at your destination.</p>
       <p>A worked example, the day we kept testing: <strong>Oslo → Tromsø, December 21st</strong>, landing in polar night. Before departure, Oslo&rsquo;s real Asr (13:04) and Maghrib (15:08). Isha arrives mid-flight at 17:19 — a real time, not an estimate, because the night below the aircraft at 62°N (level with Ålesund, over inland Norway) is still deep enough for the angle. After landing: Fajr ~06:26, borrowed from latitude 60° — where a 15° dawn still exists even in late December — and Dhuhr ~11:44, Tromsø&rsquo;s own solar noon, flagged because the sun beneath it never rises. Both carry the <code>~</code>, under a banner that says the sun will not rise tomorrow in Tromsø, and that&rsquo;s why.</p>
-      <p>And BA48, the flight that opened this story? It shows all five prayers now. Isha and Fajr are back, each carrying a quiet <code>~</code>, both portioned from the thin night the route itself crosses. Present, labelled, no longer a hole in the sky — and there is more to say about that flight.</p>
+      <p>And BA48, the flight that opened this story? It shows all five prayers now. Isha and Fajr are back, each carrying a quiet <code>~</code>, both portioned from the thin night the route itself crosses. Present, labelled, no longer a hole in the sky.</p>
 
-      <h2 id="the-flights-that-redrew-the-rule">The flights that redrew the rule</h2>
-      <p>The rule above is not the rule we shipped first. Our first version reached for the 60° floor more eagerly: everywhere above the 60th parallel, the whole night — Maghrib, Isha, Fajr, sunrise — was borrowed from latitude 60, even where the local sky still kept a short night of its own. It was stable, orderly, and we published a careful defence of it on this very page.</p>
-      <p>Then we audited it against real June timetables, and the window seat disagreed.</p>
-      <p>On <strong>BA48</strong>, the Seattle&ndash;London red-eye, the cabin watches the sun rise at 65.2°N, at 07:55 London time. Nineteen minutes later — 66.1°N, sun a degree and a half <em>above</em> the horizon — the floor announced dawn: ~Fajr 08:14. <strong>AC854</strong>, Vancouver to Heathrow, drew the same shape: sunrise from the cabin at 08:36, &ldquo;Fajr&rdquo; sixteen minutes after it. A passenger would have watched the sun rise, and then been told dawn was still coming.</p>
-      <p>The evening side was worse. Between roughly 63°N and the Arctic Circle, the borrowed sunset runs ahead of the real one — by more than an hour at 64°N, and at Akureyri&rsquo;s latitude the floor called Maghrib at 22:40 while the sun stayed visibly up until 00:56. A Fajr after sunrise is a contradiction; a Maghrib before sunset is simply wrong — by consensus, Maghrib begins when the sun has set, and no convention may move it earlier.</p>
-      <p>It wasn&rsquo;t only aircraft. <strong>FI455</strong> from Heathrow lands at Keflavík at 23:35; the next morning the floor offered ~Fajr at 03:24 — fourteen minutes <em>after</em> Keflavík&rsquo;s actual sunrise at 03:10, on the doorstep of the one capital city on Earth far enough north for the contradiction to reach the ground.</p>
-      <p>The near-misses drew the boundary just as precisely. <strong>AY16</strong>, New York to Helsinki, catches its ~Fajr at 62.9°N with the sun still 2.5° below the horizon; <strong>SK910</strong>, Newark to Oslo, sits at a comfortable 3.6° below. And <strong>BA268</strong> from Los Angeles, cresting only 62°N, never needed an estimate for Fajr at all: its one dawn fell at 51°N, where the real angle still exists. The failure lived in a strip three and a half degrees wide, for nearly three months around the solstice — and the fix turned out to be a simplification, not a patch. <em>Borrow nothing while the sky still gives you a night</em> — the rule you read above.</p>
-      <p>Run the same flights again and the contradiction is gone. BA48&rsquo;s ~Fajr now falls at 07:49, six minutes <em>before</em> the sunrise the cabin will watch. AC854&rsquo;s comes seven minutes before its sunrise. The Keflavík arrival prays ~Fajr at 02:42, twenty-eight minutes before Keflavík&rsquo;s sun.</p>
-      <p>What about the crowded sliver this page warned about — the one the floor was built to avoid? We went looking for it. The strip where a June night lasts under half an hour is about five kilometres wide; an aircraft crosses it in twenty seconds. The North Atlantic tracks where flights actually spend their hours, between 58° and 63°N, keep nights of three to six hours and prayer gaps of half an hour or more.</p>
-      <p>On the ground, the compressed truth reaches only a handful of small airports, and two are worth naming. At <strong>Akureyri</strong> (65.7°N) the June 21st night runs 00:56 to 01:33 — thirty-seven minutes — so Isha follows Maghrib by five minutes and Fajr keeps a six-minute window before sunrise. At <strong>Luleå</strong> in Swedish Lapland (65.5°N) the night is an hour, and the gaps are nine and eight minutes. Isfar shows those times as they are, adds a banner that says so — <em>the night here is 37 minutes long</em> — and leans on the oldest of the traveller&rsquo;s concessions: Maghrib and Isha, prayed together.</p>
-      <p>A short night honestly divided turns out to be a better companion than a long night borrowed from a sky the traveller isn&rsquo;t under. That is the whole lesson, and the engine now carries a test for every flight in this section so it stays learned.</p>
+      <h2 id="does-a-seventh-actually-work">Does a seventh of the night actually work?</h2>
+      <p>Here is the worry, stated plainly. Near the Arctic Circle the night thins to minutes — and a seventh of a twenty-minute night would put Isha three minutes after Maghrib and give Fajr a three-minute window. True times, barely usable ones. If that happened on real routes, the rule would be elegant on paper and useless in the air.</p>
+      <p>So we flew it — the June solstice timetable, the season at its worst. (An earlier version of this page defended a heavier fallback, borrowing the 60° night everywhere above the 60th parallel, until these same flights showed it calling Maghrib in daylight and announcing Fajr after the cabin had watched the sun rise. The simpler rule won.) What the engine shows today, every row pinned by a test:</p>
+      <div class="tablewrap">
+        <table>
+          <caption class="vh">Isfar&rsquo;s June-solstice output across the real far-north timetable.</caption>
+          <thead><tr><th>Flight</th><th>The June sky</th><th>What Isfar shows</th></tr></thead>
+          <tbody>
+            <tr><th>BA48 · Seattle→London</th><td>crests 67.5°N; the cabin watches the sun rise at 07:55</td><td>~Fajr 07:49 — six minutes <em>before</em> that sunrise</td></tr>
+            <tr><th>AC854 · Vancouver→London</th><td>crests 68.3°N; cabin sunrise 08:36</td><td>~Fajr 08:29 — seven minutes before</td></tr>
+            <tr><th>AY16 · New York→Helsinki</th><td>crests 64.4°N</td><td>~Fajr 06:21, sun still 2.5° down</td></tr>
+            <tr><th>SK910 · Newark→Oslo</th><td>crests 62.1°N</td><td>~Fajr 06:01, sun 3.6° down</td></tr>
+            <tr><th>BA268 · Los Angeles→London</th><td>crests only 62.3°N</td><td>Fajr 08:23 — real, no estimate needed</td></tr>
+            <tr><th>FI455 · London→Keflavík</th><td>lands 23:35, at 64°N</td><td>~Fajr 02:42 — 28 minutes before sunrise</td></tr>
+            <tr><th>Reykjavík→Akureyri</th><td>a 37-minute night at 65.7°N</td><td>Maghrib 00:56 · ~Isha 01:01 · ~Fajr 01:27, with a banner</td></tr>
+            <tr><th>Stockholm→Luleå</th><td>a 60-minute night at 65.5°N</td><td>~Isha nine minutes after Maghrib, with the banner</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="note">Times in the destination&rsquo;s clock, on the June solstice timetable, with a 15° (ISNA) method; <code>~</code> marks an estimate.</p>
+      <p>The compressed night everyone fears turns out to be hard to even find. The strip where a June night dips under half an hour is about five kilometres wide — an aircraft crosses it in twenty seconds — and the North Atlantic tracks where flights actually spend their hours, between 58° and 63°N, keep nights of three to six hours and prayer gaps of half an hour or more. On the ground it reaches a handful of small airports, and the worst of them is Akureyri: thirty-seven minutes of night, in the weeks around the solstice. There Isfar prints the times as they are, says so in a banner — <em>the night here is 37 minutes long</em> — and leans on the oldest of the traveller&rsquo;s concessions: Maghrib and Isha, prayed together.</p>
+      <p>A short night honestly divided turns out to be a better companion than a long night borrowed from a sky the traveller isn&rsquo;t under. That is the whole rule.</p>
 
       <h2 id="questions-travellers-ask">Questions travellers ask</h2>
       <div class="faq">
