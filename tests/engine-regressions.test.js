@@ -81,13 +81,26 @@ it('destination no-cycle skyNote + no dip on a borrowed maghrib (DY394)', () => 
   if (maghrib && maghrib.estimated) expect(maghrib.ms % 60000).toBe(0);
 });
 
-it('61–66.5°N June ordering: never Isha before Maghrib (OSL→TRD)', () => {
+it('61–66.5°N June ordering: never Isha before Maghrib (OSL→TRD, evening arrival)', () => {
   const m = C(flight({ fromLat: 60.19, fromLon: 11.10, fromTz: 'Europe/Oslo', fromIata: 'OSL',
                        toLat: 63.46, toLon: 10.92, toTz: 'Europe/Oslo', toIata: 'TRD',
-                       depUTC: '2026-06-21T14:00:00Z', arrUTC: '2026-06-21T15:00:00Z' }));
+                       depUTC: '2026-06-21T19:30:00Z', arrUTC: '2026-06-21T20:30:00Z' }));
   const isha = m.prayers.find(p => p.key === 'isha');
   const maghrib = m.prayers.find(p => p.key === 'maghrib');
-  if (isha && maghrib) expect(isha.ms).toBeGreaterThan(maghrib.ms);
+  expect(isha, 'isha missing from journey').toBeTruthy();
+  expect(maghrib, 'maghrib missing from journey').toBeTruthy();
+  expect(isha.ms).toBeGreaterThan(maghrib.ms);
+});
+
+it('Tehran: seventh Isha re-anchored after the angle-based Maghrib (OSL→ARN midsummer)', () => {
+  const m = C(flight({ fromLat: 60.19, fromLon: 11.10, fromTz: 'Europe/Oslo', fromIata: 'OSL',
+                       toLat: 59.65, toLon: 17.92, toTz: 'Europe/Stockholm', toIata: 'ARN',
+                       depUTC: '2026-06-21T19:30:00Z', arrUTC: '2026-06-21T20:35:00Z' }), 'tehran');
+  const isha = m.prayers.find(p => p.key === 'isha');
+  const maghrib = m.prayers.find(p => p.key === 'maghrib');
+  expect(isha, 'isha missing').toBeTruthy();
+  expect(maghrib, 'maghrib missing').toBeTruthy();
+  expect(isha.ms).toBeGreaterThan(maghrib.ms);
 });
 
 it('boundary-date flag consistency: estimated ⇔ estimateBasis (OSL→LYR polar edge)', () => {

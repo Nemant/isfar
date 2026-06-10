@@ -83,7 +83,7 @@ const ISFAR_ENGINE = (function () {
     p.madhab = (madhab === "hanafi") ? adhan.Madhab.Hanafi : adhan.Madhab.Shafi;
     // Base rule = MiddleOfTheNight: it returns the chosen method's REAL twilight angle wherever
     // the sun actually reaches it (it only caps the rare case of an angle past solar midnight).
-    // Where the sun never reaches the angle, instantsAt swaps in a seventh-of-the-night fallback
+    // Where the sun never reaches the angle, daySchedule swaps in a seventh-of-the-night fallback
     // (and, above 60°, borrows latitude 60). Using SeventhOfTheNight here as the base was wrong —
     // it clamps real angle times even at normal latitudes (London June Isha 21:24 vs the real 23:48).
     p.highLatitudeRule = adhan.HighLatitudeRule.MiddleOfTheNight;
@@ -117,22 +117,35 @@ const ISFAR_ENGINE = (function () {
     const pt = ptFor(Math.sign(lat) * HIGHLAT_FLOOR, lon, refMs, seventhParams(params));
     const out = {};
     SIX_KEYS.forEach(k => { out[k] = msOf(pt[k]); });
+    // a method whose maghrib is an angle after sunset (Tehran) can outrun the
+    // seventh-of-night isha — re-anchor the portion on the method's own nightfall
+    const sunset = msOf(pt.sunset);
+    if (out.isha != null && out.maghrib != null && sunset != null && out.isha <= out.maghrib) {
+      out.isha = out.maghrib + (out.isha - sunset);
+    }
     return out;
   }
 
+  const adjOf = (params, k) => ((((params.adjustments || {})[k] || 0) +
+                                 ((params.methodAdjustments || {})[k] || 0)) * MIN);
+
   /* Did adhan substitute this fajr/isha with its middle-of-the-night safe time?
-     OBSERVED, not predicted: we replicate adhan's own arithmetic from its outputs
-     (night = today's sunset → tomorrow's sunrise; + the method/user minute
-     adjustments adhan adds before rounding) and compare within rounding slack. */
+     OBSERVED, not predicted: we replicate adhan's own arithmetic from its outputs.
+     adhan derives night and the safe times from the UNADJUSTED sunrise/sunset and
+     only then adds each prayer's minute adjustments and rounds — so the
+     sunrise/sunset adjustments are stripped off the outputs before
+     reconstructing (Turkey: sunrise −7, Dubai: −3), and the prayer's own
+     adjustment added back. The ±2 min tolerance covers the minute-rounding of
+     the three reconstructed inputs. */
   function wasSubstituted(key, outMs, sunriseMs, sunsetMs, nextSunriseMs, params) {
     if (outMs == null) return true;                       // invalid ⇒ certainly no angle
     if (sunriseMs == null || sunsetMs == null || nextSunriseMs == null) return true;
-    const night = nextSunriseMs - sunsetMs;
+    const sunrise = sunriseMs - adjOf(params, "sunrise");
+    const sunset = sunsetMs - adjOf(params, "sunset");
+    const night = (nextSunriseMs - adjOf(params, "sunrise")) - sunset;
     if (night < 60 * MIN) return true;                    // <1 h night ⇒ no method angle is reachable
-    const adj = (((params.adjustments || {})[key] || 0) +
-                 ((params.methodAdjustments || {})[key] || 0)) * MIN;
-    const safe = key === "fajr" ? sunriseMs - night / 2 : sunsetMs + night / 2;
-    return Math.abs(outMs - (safe + adj)) <= 2 * MIN;
+    const safe = key === "fajr" ? sunrise - night / 2 : sunset + night / 2;
+    return Math.abs(outMs - (safe + adjOf(params, key))) <= 2 * MIN;
   }
 
   /* ==========================================================================
@@ -171,7 +184,8 @@ const ISFAR_ENGINE = (function () {
       out.maghrib = est("maghrib"); out.isha = est("isha");
       out.dhuhr.estimated = polarNight;                   // local noon kept, flagged for honesty
       const asrMs = msOf(pt.asr);
-      const asrSane = asrMs != null && asrMs > out.dhuhr.ms && asrMs < out.dhuhr.ms + 11 * 3600000;
+      const asrSane = asrMs != null && asrMs > out.dhuhr.ms &&
+                      b.maghrib != null && asrMs < b.maghrib;  // keep the afternoon before the (borrowed) dusk
       out.asr = (!polarNight && asrSane) ? real(asrMs) : est("asr");
       out.kind = polarNight ? "polarnight" : "midnightsun";
       return out;
@@ -182,9 +196,14 @@ const ISFAR_ENGINE = (function () {
     out.sunrise = real(sunriseMs);
     out.maghrib = real(msOf(pt.maghrib));
     const asrMs = msOf(pt.asr);                           // degenerate near |lat−decl|≈90: range-guard
-    out.asr = (asrMs != null && asrMs > out.dhuhr.ms && asrMs < sunsetMs)
-      ? real(asrMs)
-      : { ms: borrow60(lat, lon, refMs, params).asr, source: "borrow60", estimated: true };
+    if (asrMs != null && asrMs > out.dhuhr.ms && asrMs < sunsetMs) {
+      out.asr = real(asrMs);
+    } else {
+      // borrowed afternoon, clamped inside the local day — the 60° afternoon
+      // can outlast a fringe-latitude day near the polar-night boundary
+      const bAsr = borrow60(lat, lon, refMs, params).asr;
+      out.asr = { ms: Math.min(bAsr, out.maghrib.ms - MIN), source: "borrow60", estimated: true };
+    }
 
     if (method === "moonsighting") {                      // the method's own high-lat rule: trust it
       out.fajr = real(msOf(pt.fajr));
@@ -213,6 +232,11 @@ const ISFAR_ENGINE = (function () {
       if (Math.abs(lat) > HIGHLAT_FLOOR) { floor = true; continue; }  // resolved below as a cluster
       pt7 = pt7 || ptFor(lat, lon, refMs, seventhParams(params));
       out[k] = { ms: msOf(pt7[k]), source: "seventh", estimated: true };
+    }
+    // a method whose maghrib is an angle after sunset (Tehran) can outrun the
+    // seventh-of-night isha — re-anchor the portion on the method's own nightfall
+    if (out.isha && out.isha.source === "seventh" && out.isha.ms <= out.maghrib.ms) {
+      out.isha = { ms: out.maghrib.ms + (out.isha.ms - sunsetMs), source: "seventh", estimated: true };
     }
     if (floor) {
       // rule 3: the whole night cluster from the 60° sky — order-coherent by construction
@@ -342,9 +366,10 @@ const ISFAR_ENGINE = (function () {
           captured[dk] = true;
           let T = Math.min(arr, Math.max(dep, resid <= STEP ? e.ms : ms));
           // altitude horizon-dip, baked in BEFORE sorting: from cruise height a
-          // REAL sunset is seen later. Estimates get no fake precision.
+          // REAL sunset is seen later. Estimates get no fake precision, and the
+          // dip never pushes an in-flight prayer past landing.
           if (k === "maghrib" && !e.estimated) {
-            T += Math.round(altDipMinutes(pos.lat, raw.cruiseAltFt || 38000) * 60000);
+            T = Math.min(arr, T + Math.round(altDipMinutes(pos.lat, raw.cruiseAltFt || 38000) * 60000));
           }
           push(k, "inflight", e, s, pos.lat, pos.lon, T);
         }
@@ -436,7 +461,8 @@ const ISFAR_ENGINE = (function () {
       let sunrise = null;
       if (a.key === "fajr" && a.sunriseMs != null) {
         const srMs = a.sunriseMs - (a.sunriseReal ? dipMs : 0);
-        sunrise = { [from.iata]: fmtTZ(srMs, from.tz), [to.iata]: fmtTZ(srMs, to.tz) };
+        const pre = a.sunriseReal ? "" : "~";              // borrowed sunrise is an estimate too
+        sunrise = { [from.iata]: pre + fmtTZ(srMs, from.tz), [to.iata]: pre + fmtTZ(srMs, to.tz) };
       }
       return {
         id: a.key + "-" + i,

@@ -62,7 +62,10 @@ function EstimateNote({ items }) {
   const est = items.filter(p => p.estimated);
   if (!est.length) return null;
   const borrowed = est.some(p => p.estimateBasis === "borrow60");
-  const text = borrowed
+  const portioned = est.some(p => p.estimateBasis === "seventh");
+  const text = borrowed && portioned
+    ? "Here the sky gives the usual dawn-and-dusk angles nothing to mark, so the ~ times are estimates — portioned from the night where one survives, from latitude 60°'s where it doesn't. Scholars differ; follow the guidance you trust."
+    : borrowed
     ? "Here the sky gives the usual dawn-and-dusk angles nothing to mark, so the ~ times are estimates portioned from the night at latitude 60°. Scholars differ; follow the guidance you trust."
     : "Here the sky never gets dark enough for the usual dawn-and-dusk angles, so the ~ times are estimates portioned from your own night. Scholars differ; follow the guidance you trust.";
   return (

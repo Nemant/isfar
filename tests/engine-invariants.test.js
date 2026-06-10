@@ -60,12 +60,12 @@ describe('invariants over 120 randomized flights', () => {
     }
   });
 
-  it('in-flight prayers sit inside the flight window', () => {
+  it('in-flight prayers sit inside the flight window (dip included)', () => {
     for (const { m, f, method } of runs) {
       const dep = Date.parse(f.depUTC), arr = Date.parse(f.arrUTC);
       for (const p of m.prayers.filter(p => p.status === 'inflight')) {
         expect(p.ms, label(f, method)).toBeGreaterThanOrEqual(dep);
-        expect(p.ms, label(f, method)).toBeLessThanOrEqual(arr + 40 * 60000); // + maghrib dip allowance
+        expect(p.ms, label(f, method)).toBeLessThanOrEqual(arr);
       }
     }
   });

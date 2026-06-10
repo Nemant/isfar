@@ -114,7 +114,12 @@ Key internals:
   moment it became due aloft — never a time from the past. A final same-prayer-within-6h pass
   dedups across the three lists.
 - `altDipMinutes(lat, altFt)` — horizon dip; applied to **real** in-flight Maghrib (later, baked in
-  before sorting) and the **real** Fajr-ending sunrise (earlier). Estimates get no dip.
+  before sorting, never past `arr`) and the **real** Fajr-ending sunrise (earlier). Estimates get
+  no dip.
+- ordering guards inside `daySchedule`: Tehran's angle-based Maghrib re-anchors the seventh Isha
+  (= maghrib + night/7); borrowed Asr is clamped inside the local day; midnight-sun Asr borrows
+  when it would land after the borrowed dusk. The test suite enforces canonical order for every
+  method × madhab across fringe latitudes.
 - qibla = `adhan.Qibla(pos)` minus heading → clock position (12 = nose).
 
 ## Sample flights (in `src/lib/data.js`)
@@ -160,6 +165,10 @@ preview — the curated sample chips resolve from the local table everywhere.
   — SEO build-out (programmatic route/guide pages, i18n) → see `ROADMAP.md`.
 - Read true cruise altitude per flight instead of the 38,000 ft default.
 - Worker date resolution is "today UTC + first matching segment"; implement true "next departure ≥ now".
+- Pre-existing quirk: adhan reads the calendar day off the `Date` with **local** getters, so on a
+  device whose tz is far from UTC the engine's `Date.UTC(y,m,d,12)` can map to the adjacent solar
+  day (times shift by one day's drift, ~1–4 min). Harmless and uniform; fix would be passing
+  adhan a date built from local components.
 - ~~Regenerate `og-cover.png` in Newsreader~~ ✅ done. ~~Self-host fonts~~ ✅ done (`public/fonts/` +
   `@font-face` in `styles.css`).
 - Optional: live "current/next prayer" highlight already exists via `NextPrayer`.

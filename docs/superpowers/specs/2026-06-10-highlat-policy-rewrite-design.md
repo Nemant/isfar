@@ -60,16 +60,21 @@ Per prayer, per position (lat, lon), per date:
   (adhan applies night/7 + seasonal tables internally at ≥55°) — **no estimate flag**
   (user decision: it is the authority's published methodology, same standing as ISNA's
   angles). Joins the cluster borrow when no cycle exists.
-- **Interval Isha (Umm al-Qura, Qatar):** real whenever a cycle exists (sunset + 90 min);
-  borrowed with the cluster otherwise. Never goes through reachability detection.
+- **Interval Isha (Umm al-Qura, Qatar):** real whenever a cycle exists (sunset + 90 min) *and
+  the 60° floor hasn't engaged*; when Fajr drags the night to the floor, Isha joins the borrowed
+  cluster (= the 60° sunset + interval) so the evening stays coherent. Never goes through
+  reachability detection. Likewise, a fajr/isha angle that is itself reachable joins the cluster
+  when its partner is not — whole-night coherence wins over a lone real angle.
 - **Tehran maghrib angle:** adhan's internal sunset fallback is accepted as the method's
   time (documented; no flag).
 
 **Reachability detection (the heart of the fix):** a Fajr/Isha value from adhan (base
 rule `MiddleOfTheNight`) counts as *substituted* iff it equals adhan's own safe-time —
 `roundedMinute(sunrise − night/2)` / `roundedMinute(sunset + night/2)` — recomputed
-from adhan's outputs (today's sunset, tomorrow's sunrise, adhan's rounding), compared
-with ±90 s tolerance. Otherwise it is the real angle time. This replicates one line of
+from adhan's outputs (today's sunset, tomorrow's sunrise — each stripped of the method's
+sunrise/sunset minute adjustments, since adhan derives night from the unadjusted internals;
+Turkey adjusts sunrise −7, Dubai −3), compared with ±2 min tolerance (the minute-rounding of
+three reconstructed inputs can stack past 90 s). Otherwise it is the real angle time. This replicates one line of
 adhan's substitution arithmetic instead of its astronomy; a coincidental equality on a
 boundary day downgrades that day to 1/7 (flagged) — harmless, the policy cliff merely
 shifts by a day. Moonsighting skips detection entirely (see above).
@@ -91,8 +96,14 @@ must handle it losslessly (lists + walk below); both sides are honestly labeled.
   **Guaranteed non-null for all six instants at every lat/date/method** — the
   "silently missing prayer" class becomes impossible by construction (test-enforced).
   Internally: pt(true coords), pt(next day, for night length), pt_seventh(true) and/or
-  pt_seventh(±60) as the ladder requires. Small memo cache keyed by
-  (latꞏlonꞏdayKeyꞏmethodꞏmadhab) since the walk re-queries nearby positions.
+  pt_seventh(±60) as the ladder requires. No memo cache — measured cost is far under the perf
+  budget and the walk's positions never repeat exactly.
+  **Ordering guards (within every daySchedule):** a method whose Maghrib is a depression angle
+  after sunset (Tehran 4.5°) can outrun the seventh-of-night Isha — the portion is re-anchored on
+  the method's own nightfall (Isha = maghrib + night/7), in both the local seventh tier and the
+  borrowed cluster. A borrowed Asr is clamped inside the local day (the 60° afternoon can outlast
+  a fringe-latitude day), and a real Asr in midnight sun is borrowed instead when it would land
+  after the borrowed dusk.
 - **Before/After unified, rolled across days.** Before = last `BEFORE_CAP` instants
   ≤ dep scanning dep-day−1 ∪ dep-day; After = first `AFTER_CAP` instants > arr
   scanning arr-day ∪ arr-day+1. The no-cycle special branch (roll-forward + dedup)
@@ -100,8 +111,9 @@ must handle it losslessly (lists + walk below); both sides are honestly labeled.
 - **Cliff-aware in-flight capture.** Keep the 1-min walk and residual sign-flip per
   prayer/dayKey, but: capture time `T = pm` when the flip was smooth
   (`ms − pm ≤ STEP`), else `T = ms` (the moment the prayer *became due aloft* after a
-  schedule jump). Require `T ∈ [dep, arr]`; drop the old `pm ≥ dep` guard that
-  swallowed jumped prayers. The prayer's display fields (zones, qibla, sun fraction)
+  schedule jump). Require `T ∈ [dep, arr]` — including after the Maghrib horizon-dip is
+  added (the dip never pushes an in-flight prayer past landing); drop the old `pm ≥ dep`
+  guard that swallowed jumped prayers. The prayer's display fields (zones, qibla, sun fraction)
   are evaluated at `T` and the position at `T`.
 - **Cross-list dedup:** replace key-equality across heterogeneous dayKeys with a final
   pass over the merged, ms-sorted entries: drop any entry whose `key` already appeared

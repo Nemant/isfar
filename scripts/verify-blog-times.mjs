@@ -4,7 +4,7 @@
 import * as adhan from 'adhan';
 import { compute, ISFAR_TEST } from '../src/lib/engine.js';
 
-const { makeParams, instantsAt } = ISFAR_TEST;
+const { makeParams, daySchedule } = ISFAR_TEST;
 
 const fmt = (d, tz) => d && !isNaN(d) ? new Intl.DateTimeFormat('en-GB',
   { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: tz }).format(d) : 'n/a';
@@ -67,13 +67,14 @@ console.log('\n=== 3. Lat-60 night length, June 21 (the "almost five hours" clai
               '→ night', Math.floor(night / 60) + 'h ' + Math.round(night % 60) + 'm');
 }
 
-console.log('\n=== 4. Tromsø Dec 21 borrowed-60 via engine instantsAt(69.68, 18.92) ===');
+console.log('\n=== 4. Tromsø Dec 21 borrowed-60 via engine daySchedule(69.68, 18.92) ===');
 {
   const p = makeParams('isna', 'shafi');
   const dec = Date.parse('2026-12-21T12:00:00Z');
-  const at = instantsAt(69.6833, 18.9189, dec, p);
+  const at = daySchedule(69.6833, 18.9189, dec, p, 'isna');
   for (const k of ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha'])
-    console.log(' ', k, fmtD(at[k], 'Europe/Oslo'));
+    console.log(' ', k, fmtD(new Date(at[k].ms), 'Europe/Oslo'),
+                at[k].estimated ? `~ (${at[k].source})` : 'real');
 }
 
 console.log('\n=== 5. Worked example: Oslo→Tromsø Dec 21, isna/shafi, dep 16:00Z arr 17:35Z ===');
@@ -88,7 +89,7 @@ console.log('\n=== 5. Worked example: Oslo→Tromsø Dec 21, isna/shafi, dep 16:
   m.prayers.forEach(pr => console.log(' ', pr.status.padEnd(8), pr.en.padEnd(8),
     'OSL', pr.zones.OSL.time, '| TOS', pr.zones.TOS.time,
     pr.estimated ? `~ (${pr.estimateBasis})` : 'real'));
-  console.log('  banner:', JSON.stringify(m.midnightSun));
+  console.log('  banner:', JSON.stringify(m.skyNotes));
 }
 
 console.log('\n=== 6. Tromsø midnight-sun / polar-night date windows (sunrise validity) ===');

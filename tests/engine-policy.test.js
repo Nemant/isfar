@@ -109,6 +109,71 @@ describe('method specials', () => {
   });
 });
 
+describe('methods with sunrise adjustments (Turkey −7, Dubai −3) — detection must strip them', () => {
+  it('Turkey at 55°N midsummer: fajr+isha are flagged seventh, not fake "angle"', () => {
+    const s = sched(55.0, 10.0, '2026-06-21T12:00:00Z', 'turkey');
+    expect(s.fajr.source).toBe('seventh');
+    expect(s.isha.source).toBe('seventh');
+    expect(s.fajr.estimated).toBe(true);
+  });
+  it('Dubai at 51.5°N midsummer: substitution detected', () => {
+    const s = sched(51.5, 10.0, '2026-06-21T12:00:00Z', 'dubai');
+    expect(s.fajr.source).toBe('seventh');
+    expect(s.fajr.estimated).toBe(true);
+  });
+  it('Turkey detection matches adhan ground truth across the grid', () => {
+    const params = makeParams('turkey', 'shafi');
+    const bad = [];
+    for (let lat = 42; lat <= 60; lat += 1.5) {
+      for (let m = 0; m < 12; m++) {
+        const iso = `2026-${String(m + 1).padStart(2, '0')}-15T12:00:00Z`;
+        const s = daySchedule(lat, 10, T(iso), params, 'turkey');
+        for (const [k, angle] of [['fajr', 18], ['isha', 17]]) {
+          const truth = angleReachable(lat, 10, new Date(iso), angle);
+          if (truth !== (s[k].source === 'angle')) bad.push(`${lat} ${iso} ${k}`);
+        }
+      }
+    }
+    expect(bad, bad.join('\n')).toEqual([]);
+  });
+});
+
+describe('ordering holds for every method, both madhabs, including fringe latitudes', () => {
+  // Tehran's angle-based maghrib (4.5°) lands after sunset; the seventh isha and
+  // the borrowed cluster must stay after it. Fringe lats target the bands where
+  // borrowed/local mixing once inverted Asr/Maghrib.
+  const LATS = [-85.5, -85, -80.5, -72.5, -66.3, -60.5, -59.5, -58.5, -40, 0, 40,
+                58.5, 59, 59.5, 60, 60.5, 64, 66.3, 72.5, 80.5, 85, 85.5];
+  const DATES = ['2026-03-20', '2026-05-10', '2026-06-21', '2026-09-22', '2026-11-10', '2026-12-21'];
+  for (const method of ['mwl', 'isna', 'ummalqura', 'tehran', 'moonsighting', 'turkey']) {
+    for (const madhab of ['shafi', 'hanafi']) {
+      it(`${method}/${madhab}`, () => {
+        const params = makeParams(method, madhab);
+        for (const lat of LATS) {
+          for (const iso of DATES) {
+            const s = daySchedule(lat, 18, T(iso + 'T12:00:00Z'), params, method);
+            const msg = `lat=${lat} ${iso}`;
+            expect(s.fajr.ms, msg).toBeLessThan(s.sunrise.ms);
+            expect(s.sunrise.ms, msg).toBeLessThanOrEqual(s.dhuhr.ms);
+            expect(s.dhuhr.ms, msg).toBeLessThan(s.asr.ms);
+            expect(s.asr.ms, msg).toBeLessThan(s.maghrib.ms);
+            expect(s.maghrib.ms, msg).toBeLessThan(s.isha.ms);
+          }
+        }
+      });
+    }
+  }
+});
+
+describe('hanafi asr', () => {
+  it('is later than the standard asr and stays real at mid-latitudes', () => {
+    const shafi = sched(51.47, -0.45, '2026-03-20T12:00:00Z', 'mwl', 'shafi');
+    const hanafi = sched(51.47, -0.45, '2026-03-20T12:00:00Z', 'mwl', 'hanafi');
+    expect(hanafi.asr.ms).toBeGreaterThan(shafi.asr.ms);
+    expect(hanafi.asr.estimated).toBe(false);
+  });
+});
+
 describe('hemisphere mirror', () => {
   it('−70° in southern summer behaves like +70° in northern summer', () => {
     const south = sched(-70.0, 0.0, '2026-12-21T12:00:00Z');
