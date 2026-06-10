@@ -472,6 +472,12 @@ body {
   font-family: "Hanken Grotesk", sans-serif; font-weight: 500;
 }
 .input.compact::placeholder { letter-spacing: 0; }
+/* airport combobox: city names, not flight codes — no uppercase, calmer size */
+.input.combo {
+  font-size: 17px; height: 58px; letter-spacing: 0; text-transform: none;
+  font-family: "Hanken Grotesk", sans-serif; font-weight: 500;
+}
+.input.combo::placeholder { letter-spacing: 0; text-transform: none; }
 
 /* Native date field: iOS Safari gives <input type="date"> a fixed intrinsic
    width and ignores width:100%, which overflowed the column and pushed the

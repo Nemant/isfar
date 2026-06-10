@@ -44,7 +44,7 @@ function AirportField({ id, label, placeholder, list, value, onPick }) {
     <div className="field" ref={wrapRef}>
       <label htmlFor={id}>{label}</label>
       <div className="input-wrap">
-        <input id={id} className="input" type="text" autoComplete="off" spellCheck="false"
+        <input id={id} className="input combo" type="text" autoComplete="off" spellCheck="false"
                role="combobox" aria-expanded={open} aria-controls={id + '-list'} aria-autocomplete="list"
                placeholder={placeholder} value={text}
                onChange={(e) => onInput(e.target.value)} onKeyDown={onKey}
