@@ -12,10 +12,12 @@ const f = compute(lookup('SV124'), { method: 'isna', madhab: 'shafi' });
 describe('cardLines', () => {
   const lines = cardLines(f, { method: 'isna', madhab: 'shafi' });
 
-  it('starts with route + date header', () => {
-    expect(lines[0]).toEqual({ kind: 'title', text: 'SV124 · LHR → JED' });
-    expect(lines[1].kind).toBe('sub');
-    expect(lines[1].text).toContain('6h 45m');
+  it('opens with the brand, then route + date header', () => {
+    expect(lines[0]).toEqual({ kind: 'brand', text: 'Isfar', ar: 'إسفار' });
+    expect(lines[1]).toEqual({ kind: 'title', text: 'SV124 · LHR → JED' });
+    expect(lines[2].kind).toBe('sub');
+    expect(lines[2].text).toContain('6h 45m');
+    expect(lines[3].kind).toBe('horizon');
   });
 
   it('has one row per prayer with both zones', () => {
@@ -39,11 +41,13 @@ describe('cardLines', () => {
     expect(est.right).toContain('~');
   });
 
-  it('footer names the method and the app', () => {
-    const foot = lines[lines.length - 1];
-    expect(foot.kind).toBe('footer');
+  it('footer names the method; the brand line closes with url + tagline', () => {
+    const foot = lines.find((l) => l.kind === 'footer');
     expect(foot.text).toContain('ISNA');
-    expect(foot.text).toContain('isfar.app');
+    const url = lines[lines.length - 1];
+    expect(url.kind).toBe('url');
+    expect(url.text).toBe('isfar.app');
+    expect(url.tagline).toContain('flight');
   });
 
   it('repeated prayers on multi-day flights carry no sequence marker', () => {
@@ -58,6 +62,6 @@ describe('cardLines', () => {
     const r = routeRecord({ from: find('LHR'), to: find('JED'), dateISO: '2026-06-06', depTime: '14:20', arrTime: '23:05' });
     const m = compute(r, { method: 'isna', madhab: 'shafi' });
     const tl = cardLines(m, { method: 'isna', madhab: 'shafi' });
-    expect(tl[0].text).toBe('LHR → JED');
+    expect(tl.find((l) => l.kind === 'title').text).toBe('LHR → JED');
   });
 });
