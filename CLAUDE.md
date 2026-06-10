@@ -43,10 +43,15 @@ build time, not load order.
 | `src/styles/blog.css` | Guide/blog layer on top of `styles.css` tokens: `.post-col`/`.post` article typography, tables, and the shared `.anim` / `.anim-controls` / `.anim-btn` / `.anim-seg` frame the blog components rely on. |
 | `src/lib/data.js` | Named exports: sample flights, `lookup()` (sync, sample table), **`lookupRemote(raw,date)`** (async; calls the live `/api/flight` Worker in prod), `useRemoteApi()` (env switch), `COLOR`, `META`, `METHODS` (12), `GUIDANCE` (qasr/jam'). |
 | `src/lib/engine.js` | `compute(raw, {method, madhab})` → display model. All geometry. Imports `adhan` (npm) + `META` from `data.js`. |
+| `src/lib/airports.js` | **Route mode**: `searchAirports()` (prefix search over the bundled dataset), `civilToUTC()` (DST-correct via Intl, no tz lib), `routeRecord()` — synthesizes the exact `/api/flight` record shape (incl. the Worker's zone/gmt derivation) from itinerary times, so `compute()` is untouched and route lookups work fully offline. |
+| `src/assets/airports.json` | Generated, committed dataset: ~3.8k scheduled-service airports `[iata, city, name, lat, lon, tz]` (~107 KB gz). Lazy-imported only when route mode opens; the built chunk is SW-precached. Regenerate with `node scripts/gen-airports.mjs` (downloads OurAirports + mwgg/Airports at run time — never at build time). |
+| `src/lib/recents.js` | Saved flights: `upsertRecent()` stores the **full record** (offline replay needs zero network; dedup `code+dateISO`, cap 6), `recentLabel()`. Legacy code-only entries still replay via lookup. |
+| `src/lib/export-card.js` | "Save as image": `cardLines()` (pure, tested layout model) → `drawCard()` (hand-drawn canvas, live theme tokens — deliberate: DOM capture hits the backdrop-filter artifact) → `exportImage()` (Web Share files, download fallback). |
+| `src/components/route-form.jsx` | `RouteForm` + `AirportField` combobox (`.input.combo` — no uppercase). Live duration line is the wrong-day safety net; arrival day = first instant ≥ departure. |
 | `worker/` | The `isfar-flight` Cloudflare Worker (`/api/flight`): AeroDataBox lookup, `Intl`-derived tz/date, KV cache, daily ceiling. `CONTRACT.md` freezes the response shape (= the `data.js` record). Standalone — **not** ported into Astro. |
 | `wrangler.toml` (root) | Config for the **`isfar`** static-asset Worker: assets-only, `[assets] directory="./dist"`. Read by `npx wrangler deploy` after the build. (Separate from `worker/wrangler.toml`.) |
 | `scripts/gen-sw-precache.mjs` | Runs after `astro build`; rewrites `dist/sw.js`'s `CORE` list from the build output (hashed asset names never hand-maintained). Fails loudly if its marker is missing. |
-| `src/components/Calculator.jsx` | Default-exported island root: `App` state machine + `Landing`/`Loading`/`Results`/`ErrorState`. `Results` renders one banner per `skyNotes` entry. |
+| `src/components/Calculator.jsx` | Default-exported island root: `App` state machine + `Landing`/`Loading`/`Results`/`ErrorState`. `Results` renders one banner per `skyNotes` entry. Landing has two lookup modes (flight number / route, quiet link toggle, persisted `isfar.lookupMode`); date defaults to today with a `Today` reset chip; the PWA install nudge (`beforeinstallprompt` capture / iOS sheet, shown once) sits above `Results`. |
 | `src/components/tweaks-panel.jsx` | Tweaks shell (theme, accent warmth). Dev `__edit_mode_*` postMessage host bridge removed. |
 | `src/components/components.jsx` | Icons (`Ic`), `Header`, sheets (`SettingsSheet`, `GuideSheet`, `MethodSheet`), `FlightSummary`, `TzBanner`, `PlaneQibla`, `NextPrayer`. |
 | `src/components/arc.jsx` | `ArcTimeline` — sun-elevation curve, prayer dots, in-flight band, day-break dividers. |
@@ -67,7 +72,10 @@ build time, not load order.
   browser (the island isn't server-rendered), so there's no hydration mismatch to guard against.
 - Tweak defaults live in `Calculator.jsx` inside `/*EDITMODE-START*/ … /*EDITMODE-END*/`.
 - Persisted state: `localStorage` keys `isfar.settings` (method/madhab), `isfar.theme`
-  (`light|dark|auto`), and `isfar.recents`.
+  (`light|dark|auto`), `isfar.recents` (v2: full records — see `recents.js`), `isfar.lookupMode`,
+  and `isfar.installNudge`. `navigator.storage.persist()` is requested on first save.
+- **SW cache rule:** the offline fallback must NOT `ignoreSearch` for `/api/*` (query carries the
+  flight identity — ignoring it can return the wrong flight). Everything else keeps `ignoreSearch`.
 - **iOS mobile chrome (don't regress).** The page runs edge-to-edge under iOS Safari's
   *translucent* status/address bars via `viewport-fit=cover`, with content scrolling behind
   them. Keep it that way: (1) **no `<meta theme-color>`** — it forces the bars opaque and kills
