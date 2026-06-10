@@ -1,6 +1,7 @@
 import React from 'react';
 import { lookupRemote } from '../lib/data.js';
 import { upsertRecent, recentLabel } from '../lib/recents.js';
+import { exportImage } from '../lib/export-card.js';
 import { compute } from '../lib/engine.js';
 import { Header, SettingsSheet, GuideSheet, MethodSheet, FlightSummary, NextPrayer, Ic } from './components.jsx';
 import { ArcTimeline } from './arc.jsx';
@@ -234,7 +235,7 @@ function Calculator() {
                                           mode={mode} onSwitchMode={switchMode}
                                           onSubmitRecord={submitRecord} />}
         {view === "loading"  && <Loading query={query} msg={LOAD_MSGS[loadMsg]} />}
-        {view === "results"  && <Results f={data} activeKey={activeKey} selectPrayer={selectPrayer}
+        {view === "results"  && <Results f={data} settings={settings} activeKey={activeKey} selectPrayer={selectPrayer}
                                          cardRefs={cardRefs} onBack={goHome} />}
         {view === "error"    && <ErrorState code={raw && raw.code} kind={raw && raw.error}
                                             onRetry={goHome} />}
@@ -374,7 +375,13 @@ function Loading({ query, msg }) {
 }
 
 /* ---- Results ------------------------------------------------------------ */
-function Results({ f, activeKey, selectPrayer, cardRefs, onBack }) {
+function Results({ f, settings, activeKey, selectPrayer, cardRefs, onBack }) {
+  const [exportErr, setExportErr] = useS(false);
+  async function saveImage() {
+    setExportErr(false);
+    try { await exportImage(f, settings, document.querySelector(".isfar")); }
+    catch (e) { console.error("export failed", e); setExportErr(true); }
+  }
   return (
     <main className="results">
       <NextPrayer prayers={f.prayers} order={[f.from.iata, f.to.iata]} />
@@ -392,7 +399,11 @@ function Results({ f, activeKey, selectPrayer, cardRefs, onBack }) {
       ))}
       <ArcTimeline f={f} activeKey={activeKey} onSelect={selectPrayer} />
       <PrayerList f={f} activeKey={activeKey} cardRefs={cardRefs} />
-      <button className="btn" onClick={onBack} style={{ marginTop: 8 }}><Ic.back style={{width:16,height:16}} aria-hidden="true" /> Look up another flight</button>
+      <div className="results-actions">
+        <button className="btn" onClick={onBack}><Ic.back style={{width:16,height:16}} aria-hidden="true" /> Look up another flight</button>
+        <button className="btn-ghost" onClick={saveImage}><Ic.download style={{width:16,height:16}} aria-hidden="true" /> Save as image</button>
+      </div>
+      {exportErr ? <div className="field-error">Couldn’t create the image on this browser.</div> : null}
       <Foot />
     </main>
   );

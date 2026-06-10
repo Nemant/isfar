@@ -697,6 +697,7 @@ body {
   margin: -2px 0 2px; font-size: 12.5px; color: var(--text-mute);
 }
 .saved-note svg { width: 14px; height: 14px; flex-shrink: 0; color: var(--accent); }
+.results-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 8px; }
 .method { display: flex; flex-direction: column; gap: 14px; margin-top: 10px; }
 .method-head { display: flex; flex-direction: column; gap: 12px; }
 .method-head .eyebrow { margin: 0; }
