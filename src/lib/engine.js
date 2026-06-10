@@ -121,6 +121,132 @@ const ISFAR_ENGINE = (function () {
     return p;
   }
 
+  const DAY = 86400000, MIN = 60000;
+  const SIX_KEYS = ["fajr", "sunrise", "dhuhr", "asr", "maghrib", "isha"];
+  const msOf = (v) => (v && !isNaN(v.getTime())) ? v.getTime() : null;
+
+  /* adhan PrayerTimes for the mean-solar calendar day implied by lon around refMs */
+  function ptFor(lat, lon, refMs, params, dayOffset) {
+    const l = new Date(refMs + (lon / 15) * 3600000);
+    const d = new Date(Date.UTC(l.getUTCFullYear(), l.getUTCMonth(),
+                                l.getUTCDate() + (dayOffset || 0), 12));
+    return new adhan.PrayerTimes(new adhan.Coordinates(lat, lon), d, params);
+  }
+
+  /* full seventh-rule day at the floor latitude (same longitude) — every value
+     defined: at ±60° the sun rises and sets all year, and SeventhOfTheNight
+     substitutes any unreachable angle. */
+  function borrow60(lat, lon, refMs, params) {
+    const pt = ptFor(Math.sign(lat) * HIGHLAT_FLOOR, lon, refMs, seventhParams(params));
+    const out = {};
+    SIX_KEYS.forEach(k => { out[k] = msOf(pt[k]); });
+    return out;
+  }
+
+  /* Did adhan substitute this fajr/isha with its middle-of-the-night safe time?
+     OBSERVED, not predicted: we replicate adhan's own arithmetic from its outputs
+     (night = today's sunset → tomorrow's sunrise; + the method/user minute
+     adjustments adhan adds before rounding) and compare within rounding slack. */
+  function wasSubstituted(key, outMs, sunriseMs, sunsetMs, nextSunriseMs, params) {
+    if (outMs == null) return true;                       // invalid ⇒ certainly no angle
+    if (sunriseMs == null || sunsetMs == null || nextSunriseMs == null) return true;
+    const night = nextSunriseMs - sunsetMs;
+    if (night < 60 * MIN) return true;                    // <1 h night ⇒ no method angle is reachable
+    const adj = (((params.adjustments || {})[key] || 0) +
+                 ((params.methodAdjustments || {})[key] || 0)) * MIN;
+    const safe = key === "fajr" ? sunriseMs - night / 2 : sunsetMs + night / 2;
+    return Math.abs(outMs - (safe + adj)) <= 2 * MIN;
+  }
+
+  /* ==========================================================================
+     daySchedule — THE policy. One mean-solar day at (lat, lon); the only code
+     that asks adhan for times. Returns {fajr,sunrise,dhuhr,asr,maghrib,isha}
+     each {ms, source, estimated} — ms is ALWAYS a number — plus kind:
+     "normal" | "midnightsun" | "polarnight".
+
+     1. REAL ANGLE   — the method's own time wherever the sky reaches it.
+     2. SEVENTH      — angle unreachable, |lat| ≤ 60: 1/7 of the LOCAL night.
+     3. BORROW60     — angle unreachable, |lat| > 60 (or no day/night cycle at
+                       all): the whole night cluster — maghrib, isha, fajr,
+                       sunrise — read from the 60° sky at this longitude, so the
+                       evening always stays in canonical order. Dhuhr and Asr
+                       stay local (Dhuhr flagged in polar night; Asr borrowed
+                       when the local sun gives it no sane afternoon).
+     Moonsighting Committee is trusted verbatim whenever a cycle exists (the
+     method ships its own ≥55° rule). Interval isha (ummalqura/qatar) is real
+     with a cycle and joins the cluster without one.
+     ========================================================================== */
+  function daySchedule(lat, lon, refMs, params, method) {
+    const pt = ptFor(lat, lon, refMs, params);
+    const real = (ms) => ({ ms, source: "method", estimated: false });
+    const out = { dhuhr: real(msOf(pt.dhuhr)) };          // transit: valid at every lat/date
+
+    const sunriseMs = msOf(pt.sunrise), sunsetMs = msOf(pt.sunset);
+
+    if (sunriseMs == null || sunsetMs == null) {
+      // ---- no day/night cycle here, as adhan observes it (midnight sun /
+      // polar night, including the refraction fringe geometry misses) --------
+      const decl = solarDeclination(refMs);
+      const polarNight = Math.abs(lat - decl) > Math.abs(lat + decl);
+      const b = borrow60(lat, lon, refMs, params);
+      const est = (k) => ({ ms: b[k], source: "borrow60", estimated: true });
+      out.fajr = est("fajr"); out.sunrise = est("sunrise");
+      out.maghrib = est("maghrib"); out.isha = est("isha");
+      out.dhuhr.estimated = polarNight;                   // local noon kept, flagged for honesty
+      const asrMs = msOf(pt.asr);
+      const asrSane = asrMs != null && asrMs > out.dhuhr.ms && asrMs < out.dhuhr.ms + 11 * 3600000;
+      out.asr = (!polarNight && asrSane) ? real(asrMs) : est("asr");
+      out.kind = polarNight ? "polarnight" : "midnightsun";
+      return out;
+    }
+
+    // ---- a real day and night exist: sun-disk events + asr are local --------
+    out.kind = "normal";
+    out.sunrise = real(sunriseMs);
+    out.maghrib = real(msOf(pt.maghrib));
+    const asrMs = msOf(pt.asr);                           // degenerate near |lat−decl|≈90: range-guard
+    out.asr = (asrMs != null && asrMs > out.dhuhr.ms && asrMs < sunsetMs)
+      ? real(asrMs)
+      : { ms: borrow60(lat, lon, refMs, params).asr, source: "borrow60", estimated: true };
+
+    if (method === "moonsighting") {                      // the method's own high-lat rule: trust it
+      out.fajr = real(msOf(pt.fajr));
+      out.isha = real(msOf(pt.isha));
+      return out;
+    }
+
+    // fajr/isha ladder. Shortcut: at |lat| ≤ 40 every exposed angle is always
+    // reachable (min midnight depth 26.6° vs max method angle 18.5°) — skip the
+    // detection calls.
+    if (Math.abs(lat) <= 40) {
+      out.fajr = { ms: msOf(pt.fajr), source: "angle", estimated: false };
+      out.isha = params.ishaInterval > 0 ? real(msOf(pt.isha))
+                                         : { ms: msOf(pt.isha), source: "angle", estimated: false };
+      return out;
+    }
+
+    const nextSunriseMs = msOf(ptFor(lat, lon, refMs, params, 1).sunrise);
+    let pt7 = null, floor = false;
+    for (const k of ["fajr", "isha"]) {
+      if (k === "isha" && params.ishaInterval > 0) { out.isha = real(msOf(pt.isha)); continue; }
+      if (!wasSubstituted(k, msOf(pt[k]), sunriseMs, sunsetMs, nextSunriseMs, params)) {
+        out[k] = { ms: msOf(pt[k]), source: "angle", estimated: false };
+        continue;
+      }
+      if (Math.abs(lat) > HIGHLAT_FLOOR) { floor = true; continue; }  // resolved below as a cluster
+      pt7 = pt7 || ptFor(lat, lon, refMs, seventhParams(params));
+      out[k] = { ms: msOf(pt7[k]), source: "seventh", estimated: true };
+    }
+    if (floor) {
+      // rule 3: the whole night cluster from the 60° sky — order-coherent by construction
+      const b = borrow60(lat, lon, refMs, params);
+      for (const k of ["fajr", "sunrise", "maghrib", "isha"]) {
+        out[k] = { ms: b[k], source: "borrow60", estimated: true };
+      }
+    }
+    return out;
+  }
+
   /* prayer instants at a position for the local calendar date implied by the
      longitude (mean solar offset) around a reference instant — raw adhan output */
   function rawInstants(lat, lon, refMs, params) {
@@ -413,7 +539,7 @@ const ISFAR_ENGINE = (function () {
     return model;
   }
 
-  return { compute, greatCircle, _test: { estimateBasisFor, makeParams, solarDeclination, instantsAt } };
+  return { compute, greatCircle, _test: { makeParams, solarDeclination, daySchedule } };
 })();
 
 export const { compute, greatCircle } = ISFAR_ENGINE;
