@@ -11,7 +11,7 @@ const M15Y = HY + 15 * 9, M18Y = HY + 18 * 9;     // −15° → 285, −18° �
 const STARS = [[96, 52, 1, 0.55], [208, 34, 1.2, 0.62], [332, 66, 1, 0.68], [452, 40, 1.5, 0.74], [566, 84, 1, 0.8]];
 ---
 <figure class="anim" data-anim="twilight-angle">
-  <svg class="tw" viewBox="0 0 640 380" role="img"
+  <svg class="tw" viewBox="0 20 640 320" role="img"
     aria-label="Diagram of twilight angles: a small sun slides below a flat horizon. An arc at a pivot on the horizon measures its depression angle, counting downward. Dashed marker lines at 15 and 18 degrees below the horizon — labelled ISNA and Muslim World League — light up as the sun passes them, while the twilight glow above the horizon fades out and faint stars appear.">
     <defs>
       <linearGradient id="tw-glow" x1="0" y1="0" x2="0" y2="1">
@@ -85,7 +85,7 @@ const STARS = [[96, 52, 1, 0.55], [208, 34, 1.2, 0.62], [332, 66, 1, 0.68], [452
 
   .ground { fill: oklch(from var(--text) l c h / 0.05); }
   .hline  { stroke: var(--border); stroke-width: 1; }
-  .hlabel { fill: var(--text-mute); opacity: 0.6; font-size: 9px; }
+  .hlabel { fill: var(--text-mute); opacity: 0.6; font-size: 10.5px; }
 
   /* night falls inside the figure as the sun sinks — a fixed deep indigo so
      the darkening reads on the light theme too (on dark it just deepens) */
@@ -113,8 +113,8 @@ const STARS = [[96, 52, 1, 0.55], [208, 34, 1.2, 0.62], [332, 66, 1, 0.68], [452
   .mark line  { stroke: var(--text-mute); stroke-width: 1; stroke-dasharray: 4 5; }
   .mark text  { fill: var(--text-mute); transition: fill 0.6s ease; }
   .mark.lit text { fill: var(--text-soft); }
-  .tick  { font-size: 9px; }
-  .mname { font-size: 9.5px; letter-spacing: 0.02em; }
+  .tick  { font-size: 10.5px; }
+  .mname { font-size: 11px; letter-spacing: 0.02em; }
 
   /* the measured angle: hidden above the horizon, fades in as the sun dips */
   .angle { opacity: min(calc(var(--k) * 9), 1); }
@@ -122,7 +122,7 @@ const STARS = [[96, 52, 1, 0.55], [208, 34, 1.2, 0.62], [332, 66, 1, 0.68], [452
   .ray   { stroke: var(--text-soft); stroke-width: 1; }
   .meas  { stroke: var(--accent); stroke-width: 1.5; fill: none; }
   .pivot { fill: var(--text-soft); opacity: 0.7; }
-  .readout { fill: var(--text-soft); font-family: "Newsreader", serif; font-size: 13px; }
+  .readout { fill: var(--text-soft); font-family: "Newsreader", serif; font-size: 14.5px; }
 
   /* replay: always occupies layout (no card-height jump when it appears or on
      replay); only its visibility fades with the figure's done state */

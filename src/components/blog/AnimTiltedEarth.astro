@@ -12,7 +12,7 @@ const nightPath = `M ${CX} ${CY - R} A ${R} ${R} 0 0 0 ${CX} ${CY + R} Z`;
 const axisTop = CY - R - 14, axisBot = CY + R + 14;
 ---
 <figure class="anim" data-anim="tilted-earth" data-season="jun">
-  <svg viewBox="0 0 640 360" role="img"
+  <svg viewBox="78 36 562 312" role="img"
     aria-label="Side view of the Earth in June, lit from the right by the sun: the axis tilts 23.4 degrees toward the sun, and the northern polar cap stays entirely on the daylit side of the fixed day-night line.">
     <defs>
       <radialGradient id="te-sun">
@@ -50,7 +50,7 @@ const axisTop = CY - R - 14, axisBot = CY + R + 14;
       <path class="cap-glow cap-dec" d={capPath}/>
       <line class="axis" x1={CX} y1={axisTop} x2={CX} y2={axisBot}/>
       <text class="n-lbl" x={CX} y={axisTop - 6} text-anchor="middle">N</text>
-      <text class="lbl" x={CX - capX - 8} y={capY - 3} text-anchor="end">Arctic Circle</text>
+      <text class="lbl" x={CX - 56} y={capY + 11} text-anchor="middle">Arctic Circle</text>
     </g>
 
     <!-- terminator: fixed by the sun direction — never rotates with the tilt -->
@@ -155,12 +155,12 @@ const axisTop = CY - R - 14, axisBot = CY + R + 14;
 
   /* labels */
   .lbl {
-    font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase;
+    font-size: 9.5px; letter-spacing: 0.08em; text-transform: uppercase;
     fill: var(--text-mute);
   }
-  .n-lbl { font-size: 11px; fill: var(--text-soft); }
+  .n-lbl { font-size: 12px; fill: var(--text-soft); }
   .season-line {
-    font-family: "Newsreader", serif; font-style: italic; font-size: 15.5px;
+    font-family: "Newsreader", serif; font-style: italic; font-size: 16.5px;
     fill: var(--text-soft); text-anchor: middle;
     opacity: 0; transition: opacity 1.4s ease-in-out;
   }

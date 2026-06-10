@@ -59,7 +59,7 @@ const dynCss =
 <figure class="anim" data-anim="shrinking-dip">
   <div class="dip-grid">
     {PANELS.map((p) => (
-      <svg class={`panel p${p.i}`} viewBox="0 0 150 190" role="img" aria-label={p.aria}>
+      <svg class={`panel p${p.i}`} viewBox="0 2 150 170" role="img" aria-label={p.aria}>
         {p.i === 0 && (
           <defs>
             <linearGradient id="shrdip-grad" gradientUnits="userSpaceOnUse" x1="0" y1="8" x2="0" y2="128">
@@ -79,8 +79,8 @@ const dynCss =
         {p.i === 0 && <text class="marklab" x="36" y={Number(Y18) + 8}>18°</text>}
         <path class="curve" d={p.d} pathLength="1" />
         <circle class="sun" r="2.8" style={`offset-path:path('${p.d}');--rest:${p.rest}`} />
-        <text class="lat" x="75" y="158">{p.phi}°N · {p.city}</text>
-        <text class={"note" + (p.fails ? " warm" : "")} x="75" y="174">{p.note}</text>
+        <text class="lat" x="75" y="149">{p.phi}°N · {p.city}</text>
+        <text class={"note" + (p.fails ? " warm" : "")} x="75" y="164">{p.note}</text>
       </svg>
     ))}
   </div>
@@ -131,7 +131,7 @@ const dynCss =
   }
   .mark.unreached { opacity: 0.3; }
   .marklab {
-    font-size: 7px;
+    font-size: 7.5px;
     letter-spacing: 0.04em;
     fill: var(--text-mute);
   }
@@ -162,13 +162,13 @@ const dynCss =
   }
 
   .lat {
-    font-size: 8px;
+    font-size: 9px;
     letter-spacing: 0.06em;
     text-anchor: middle;
     fill: var(--text-soft);
   }
   .note {
-    font-size: 8px;
+    font-size: 9px;
     text-anchor: middle;
     fill: var(--text-mute);
   }
