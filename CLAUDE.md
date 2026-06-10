@@ -46,7 +46,7 @@ build time, not load order.
 | `worker/` | The `isfar-flight` Cloudflare Worker (`/api/flight`): AeroDataBox lookup, `Intl`-derived tz/date, KV cache, daily ceiling. `CONTRACT.md` freezes the response shape (= the `data.js` record). Standalone — **not** ported into Astro. |
 | `wrangler.toml` (root) | Config for the **`isfar`** static-asset Worker: assets-only, `[assets] directory="./dist"`. Read by `npx wrangler deploy` after the build. (Separate from `worker/wrangler.toml`.) |
 | `scripts/gen-sw-precache.mjs` | Runs after `astro build`; rewrites `dist/sw.js`'s `CORE` list from the build output (hashed asset names never hand-maintained). Fails loudly if its marker is missing. |
-| `src/components/Calculator.jsx` | Default-exported island root: `App` state machine + `Landing`/`Loading`/`Results`/`ErrorState`/`NoSunset`. |
+| `src/components/Calculator.jsx` | Default-exported island root: `App` state machine + `Landing`/`Loading`/`Results`/`ErrorState`. `Results` renders one banner per `skyNotes` entry. |
 | `src/components/tweaks-panel.jsx` | Tweaks shell (theme, accent warmth). Dev `__edit_mode_*` postMessage host bridge removed. |
 | `src/components/components.jsx` | Icons (`Ic`), `Header`, sheets (`SettingsSheet`, `GuideSheet`, `MethodSheet`), `FlightSummary`, `TzBanner`, `PlaneQibla`, `NextPrayer`. |
 | `src/components/arc.jsx` | `ArcTimeline` — sun-elevation curve, prayer dots, in-flight band, day-break dividers. |
@@ -59,9 +59,10 @@ build time, not load order.
 - **ES modules, real imports.** Components are shared via `import`/`export`; Vite resolves them at
   build time, so load order no longer matters. When adding a component, export it and import where
   used (no `window.*`). `adhan`/`react` are npm deps, pinned in `package.json`.
-- **Build / preview:** `npm run build` (Astro → `dist/`, then `gen-sw-precache.mjs`) and
-  `npm run preview`. There is no test suite — the build (Vite errors on any unresolved import) plus
-  Playwright on the preview are the verification oracle.
+- **Build / preview / test:** `npm run build` (Astro → `dist/`, then `gen-sw-precache.mjs`),
+  `npm run preview`, and **`npm test`** (vitest over `tests/`: policy matrix, invariants over 120
+  randomized flights, one regression test per audited high-latitude bug). Tests first, then build,
+  then Playwright on the preview.
 - **`client:only` island, no SSR.** Reads of `localStorage`/`window`/`navigator` happen only in the
   browser (the island isn't server-rendered), so there's no hydration mismatch to guard against.
 - Tweak defaults live in `Calculator.jsx` inside `/*EDITMODE-START*/ … /*EDITMODE-END*/`.
@@ -80,18 +81,40 @@ build time, not load order.
 ## The engine model (`engine.js`)
 
 `compute()` returns `raw` plus: `prayers[]`, `durationMin`, `dep/arr.local`, `cruiseAltFt`,
-`multiDay`, and (high-latitude) `noSunset`/`defined`/`undefinedPrayers`.
+`multiDay`, and `skyNotes[]` — one `{place: origin|destination, city, iata, latitude, kind:
+midnightsun|polarnight, allEstimated, names}` per no-cycle endpoint (drives the banner).
 
 Each `prayers[]` entry: `{ id, key, en, ar, status (before|inflight|after), t (0..1 sun
-fraction), ms, qiblaClock, qiblaRel, sunrise{iata:time}|null, zones{iata:{iata,city,time,date}},
-seq }`.
+fraction), ms, qiblaClock, qiblaRel, sunrise{iata:time}|null, estimated, estimateBasis
+(= source when estimated), source (angle|method|seventh|borrow60),
+zones{iata:{iata,city,time,date}}, seq }`.
+
+**The high-latitude policy lives in `daySchedule(lat, lon, refMs, params, method)`** — the only
+code that calls adhan. Three rules, decided per prayer/position/date, all **observed from adhan's
+outputs** (never re-predicted with our own astronomy):
+1. **Real angle** — the method's fajr/isha angle wherever the sky reaches it, at any latitude
+   (detected by replicating adhan's middle-of-the-night safe-time arithmetic from its outputs).
+2. **Seventh** — angle unreachable at |lat| ≤ 60: 1/7 of the *local* night (adhan
+   `SeventhOfTheNight`), flagged `~`.
+3. **Borrow60** — angle unreachable above 60°, or no day/night cycle at all (adhan's sunrise/sunset
+   Invalid): the **whole night cluster** (maghrib, isha, fajr, sunrise) from the 60° sky at the
+   same longitude, so the evening always keeps canonical order. Dhuhr/Asr stay local; polar-night
+   Dhuhr keeps its real transit but is **flagged**; Asr is borrowed when the local sun gives it no
+   sane afternoon. Moonsighting Committee is trusted verbatim whenever a cycle exists (it ships its
+   own ≥55° rule); interval isha (ummalqura/qatar) is real with a cycle, clustered without one.
+   `daySchedule` **never returns a null instant** — prayers cannot silently vanish (test-enforced).
 
 Key internals:
 - `greatCircle()` / `initialBearing()` — spherical position + heading.
-- crossing detection — walk dep→arr 1-min steps; a prayer is captured when the aircraft clock
-  catches its (moving) instant within the flight window. Day-tagged so repeats stay distinct.
-- `altDipMinutes(lat, altFt)` — horizon dip; applied to **in-flight Maghrib (later)** and the
-  **Fajr-ending sunrise (earlier)** only. Errs slightly late for Maghrib (safe side).
+- before/after lists scan **two days** (dep-day−1∪dep-day, arr-day∪arr-day+1) so red-eyes and
+  late-night arrivals still get their 2 prayers; the after list tops up past entries already
+  shown aloft.
+- crossing detection — walk dep→arr 1-min steps; a sign flip of (clock − instant) captures the
+  prayer. When the schedule *jumped* past the clock (the rule-1↔2 cliff), the capture time is the
+  moment it became due aloft — never a time from the past. A final same-prayer-within-6h pass
+  dedups across the three lists.
+- `altDipMinutes(lat, altFt)` — horizon dip; applied to **real** in-flight Maghrib (later, baked in
+  before sorting) and the **real** Fajr-ending sunrise (earlier). Estimates get no dip.
 - qibla = `adhan.Qibla(pos)` minus heading → clock position (12 = nose).
 
 ## Sample flights (in `src/lib/data.js`)
@@ -122,7 +145,8 @@ production** so their edge cases stay reliable; every other code hits the real A
 
 ## Verifying changes
 
-`npm run build && npm run preview`, open the preview URL, click a sample chip, watch the console
+`npm test` first (the engine's behavioral oracle), then `npm run build && npm run preview`,
+open the preview URL, click a sample chip, watch the console
 (the build itself fails on any unresolved import). The blurry horizontal band in html-to-image
 screenshots is a **capture artifact with `backdrop-filter`**, not a real bug — confirm layout via
 DOM/`getBoundingClientRect` or a real pixel screenshot if unsure. Note: non-sample live lookups
