@@ -272,9 +272,9 @@ function Calculator() {
                                           mode={mode} onSwitchMode={switchMode}
                                           onSubmitRecord={submitRecord} />}
         {view === "loading"  && <Loading query={query} msg={LOAD_MSGS[loadMsg]} />}
-        {view === "results" && canNudge ? <InstallNudge onInstall={installApp} onDismiss={dismissNudge} /> : null}
         {view === "results"  && <Results f={data} settings={settings} activeKey={activeKey} selectPrayer={selectPrayer}
-                                         cardRefs={cardRefs} onBack={goHome} />}
+                                         cardRefs={cardRefs} onBack={goHome}
+                                         nudge={canNudge ? <InstallNudge onInstall={installApp} onDismiss={dismissNudge} /> : null} />}
         {view === "error"    && <ErrorState code={raw && raw.code} kind={raw && raw.error}
                                             onRetry={goHome} />}
 
@@ -416,7 +416,7 @@ function Loading({ query, msg }) {
 }
 
 /* ---- Results ------------------------------------------------------------ */
-function Results({ f, settings, activeKey, selectPrayer, cardRefs, onBack }) {
+function Results({ f, settings, activeKey, selectPrayer, cardRefs, onBack, nudge }) {
   const [exportErr, setExportErr] = useS(false);
   async function saveImage() {
     setExportErr(false);
@@ -425,6 +425,7 @@ function Results({ f, settings, activeKey, selectPrayer, cardRefs, onBack }) {
   }
   return (
     <main className="results">
+      {nudge}
       <NextPrayer prayers={f.prayers} order={[f.from.iata, f.to.iata]} />
       <FlightSummary f={f} />
       <div className="saved-note" role="note"><Ic.auto aria-hidden="true" /> Saved on this device — available offline</div>
