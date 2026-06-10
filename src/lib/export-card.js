@@ -23,7 +23,7 @@ export function cardLines(f, settings) {
     for (const p of items) {
       const t = (z) => `${z.iata} ${p.estimated ? '~' : ''}${z.time}`;
       lines.push({
-        kind: 'prayer', en: p.en + (p.seq ? ` (${p.seq})` : ''), ar: p.ar, estimated: p.estimated,
+        kind: 'prayer', en: p.en, ar: p.ar, estimated: p.estimated,
         right: order.map((i) => p.zones[i]).filter(Boolean).map(t).join(' · ')
       });
     }

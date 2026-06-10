@@ -46,6 +46,13 @@ describe('cardLines', () => {
     expect(foot.text).toContain('isfar.app');
   });
 
+  it('repeated prayers on multi-day flights carry no sequence marker', () => {
+    const m = compute(lookup('QF10'), { method: 'isna', madhab: 'shafi' });
+    const rows = cardLines(m, { method: 'isna', madhab: 'shafi' }).filter((l) => l.kind === 'prayer');
+    expect(rows).toHaveLength(m.prayers.length);
+    expect(rows.some((r) => /\(\d\)/.test(r.en))).toBe(false);
+  });
+
   it('route-mode card titles the route once, no code repeat', () => {
     const find = (i) => airportFromRow(airportData.airports.find((a) => a[0] === i));
     const r = routeRecord({ from: find('LHR'), to: find('JED'), dateISO: '2026-06-06', depTime: '14:20', arrTime: '23:05' });
