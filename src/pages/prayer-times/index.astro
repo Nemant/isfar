@@ -1,0 +1,57 @@
+---
+/* Routes hub — groups the wave-1 route pages by corridor. Pure SSG. */
+import StaticShell from '../../components/StaticShell.astro';
+import { CORRIDORS, GROUP_LABELS, WAVE1_ROUTES } from '../../lib/routes-wave1.js';
+import { resolveAirport, cityEn, routeSlug } from '../../lib/route-pages.js';
+
+const URL_EN = 'https://isfar.app/prayer-times/';
+const TITLE = 'Prayer times by flight route — Isfar';
+const DESC = 'Route-by-route guides to the five daily prayers across a flight: which prayers fall before boarding, in the air, and after landing — Umrah, Gulf, South-Asia and more.';
+
+const groups = Object.keys(GROUP_LABELS).map((g) => ({
+  key: g, label: GROUP_LABELS[g],
+  routes: WAVE1_ROUTES.filter((r) => r.group === g),
+}));
+
+const JSONLD = [
+  { '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Isfar', item: 'https://isfar.app/' },
+    { '@type': 'ListItem', position: 2, name: 'Prayer times by route', item: URL_EN },
+  ] },
+];
+---
+<StaticShell title={TITLE} desc={DESC} url={URL_EN} jsonld={JSONLD}
+  alternates={[
+    { lang: 'en', href: URL_EN },
+    { lang: 'ar', href: 'https://isfar.app/ar/prayer-times/' },
+    { lang: 'x-default', href: URL_EN },
+  ]}>
+  <article class="post">
+    <p class="eyebrow">Route guides</p>
+    <h1>Prayer times by flight route</h1>
+    <p class="lede">Each guide works out which of the five prayers you&rsquo;ll pray before boarding, in the air,
+      and after landing — season by season, computed by the same engine that powers
+      <a href="/">the Isfar app</a>.</p>
+
+    {groups.map((g) => (
+      <>
+        <h2 id={g.key}>{g.label}</h2>
+        <ul>
+          {g.routes.map((r) => (
+            <li><a href={`/prayer-times/${routeSlug(r.from, r.to)}/`}>{cityEn(resolveAirport(r.from))} → {cityEn(resolveAirport(r.to))} ({r.from}–{r.to})</a></li>
+          ))}
+        </ul>
+      </>
+    ))}
+
+    <p>Don&rsquo;t see your route? <a href="/">Enter any flight number or airport pair in the app</a> — these
+      pages cover common corridors, but the engine maps any flight on earth, including the
+      <a href="/guide/far-north-prayer-times/">far north where the sun won&rsquo;t set</a>.</p>
+
+    <footer class="post-footer">
+      <div class="horizon" style="margin:0 0 22px"></div>
+      <p><a href="/">Isfar</a> maps Fajr, Dhuhr, Asr, Maghrib and Isha across any flight — in both time zones,
+        with qibla from your seat. Free, installable, works offline for saved flights.</p>
+    </footer>
+  </article>
+</StaticShell>

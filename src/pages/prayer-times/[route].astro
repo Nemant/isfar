@@ -1,0 +1,155 @@
+---
+/* Programmatic route page (SEO Phase D wave 1). Pure SSG, zero islands.
+   Everything quantitative on this page is computed at BUILD TIME by the real
+   engine — the same code path the app uses — for representative season ×
+   departure cells. That computed specificity is the page's reason to exist. */
+import StaticShell from '../../components/StaticShell.astro';
+import { WAVE1_ROUTES } from '../../lib/routes-wave1.js';
+import {
+  resolveAirport, cityEn, routeFacts, seasonalSchedule, routeSlug,
+  SEASON_DATES, SEASON_LABELS, DEP_TIMES, DEP_LABELS, ROUTE_METHOD,
+} from '../../lib/route-pages.js';
+
+export function getStaticPaths() {
+  return WAVE1_ROUTES.map((r) => ({ params: { route: routeSlug(r.from, r.to) }, props: { r } }));
+}
+
+const { r } = Astro.props;
+const from = resolveAirport(r.from), to = resolveAirport(r.to);
+const facts = routeFacts(from, to);
+const cells = seasonalSchedule(from, to);
+const fromCity = cityEn(from), toCity = cityEn(to);
+
+const fmtDur = (min) => `${Math.floor(min / 60)} h ${String(min % 60).padStart(2, '0')} m`;
+const fmtKm = (km) => `${(Math.round(km / 10) * 10).toLocaleString('en-GB')} km`;
+const shift = facts.tzShiftHours;
+const shiftText = shift === 0 ? `${toCity} keeps the same clock as ${fromCity} in summer`
+  : `${toCity}'s clocks run ${Math.abs(shift)} hour${Math.abs(shift) === 1 ? '' : 's'} ${shift > 0 ? 'ahead of' : 'behind'} ${fromCity}'s in summer`;
+const list = (names) => names.length ? names.join(' · ') : '—';
+
+// The June-morning cell anchors the FAQ answer (most queried season).
+const juneAM = cells.find((c) => c.dateISO === SEASON_DATES[0] && c.depTime === DEP_TIMES[0]);
+const junePM = cells.find((c) => c.dateISO === SEASON_DATES[0] && c.depTime === DEP_TIMES[1]);
+const anyEstimated = cells.some((c) => c.estimated);
+
+const URL_EN = `https://isfar.app/prayer-times/${routeSlug(r.from, r.to)}/`;
+const URL_AR = `https://isfar.app/ar/prayer-times/${routeSlug(r.from, r.to)}/`;
+const TITLE = `Prayer times on a ${fromCity} to ${toCity} flight (${r.from}–${r.to}) — Isfar`;
+const DESC = `Which prayers fall before boarding, in the air, and after landing on a ${fromCity} → ${toCity} flight — about ${fmtDur(facts.durationMin)} over ${fmtKm(facts.distanceKm)} — season by season, in both airport clocks.`;
+
+const FAQ = [
+  { q: `Which prayers will I pray during a ${fromCity} to ${toCity} flight?`,
+    a: `It depends on the season and your departure time. On a typical morning departure around 09:00 in June, ${juneAM.inflight.length ? `${juneAM.inflight.join(' and ')} fall${juneAM.inflight.length === 1 ? 's' : ''} while you are in the air` : 'no prayer falls in the air — you can pray everything on the ground'}; on an evening departure around 21:00, ${junePM.inflight.length ? `${junePM.inflight.join(' and ')} fall${junePM.inflight.length === 1 ? 's' : ''} aloft` : 'no prayer falls aloft — the whole day can be prayed on the ground'}. The table on this page covers June, September and December; enter your exact flight in Isfar for your dates.` },
+  { q: `How long is the flight from ${fromCity} to ${toCity}?`,
+    a: `The great-circle distance from ${from.name} (${r.from}) to ${to.name} (${r.to}) is about ${fmtKm(facts.distanceKm)}, which typically means around ${fmtDur(facts.durationMin)} gate to gate. Actual times vary with winds and routing.` },
+  { q: `What is the time difference between ${fromCity} and ${toCity}?`,
+    a: `${shiftText}. Isfar shows every prayer in both airports' clocks at once, so there is no conversion to do in your head.` },
+  { q: `Which direction is the qibla on this flight?`,
+    a: `On the ground at ${r.from} the qibla bears about ${facts.qiblaFrom}° from north; at ${r.to} about ${facts.qiblaTo}°. In the air the direction relative to your seat changes as the aircraft turns, so Isfar gives the qibla as a clock position from the aircraft's nose — separately for each prayer along this route.` },
+];
+
+const JSONLD = [
+  { '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Isfar', item: 'https://isfar.app/' },
+    { '@type': 'ListItem', position: 2, name: 'Prayer times by route', item: 'https://isfar.app/prayer-times/' },
+    { '@type': 'ListItem', position: 3, name: `${fromCity} → ${toCity}`, item: URL_EN },
+  ] },
+  { '@context': 'https://schema.org', '@type': 'FAQPage',
+    mainEntity: FAQ.map((f) => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })) },
+];
+
+const related = WAVE1_ROUTES
+  .filter((x) => !(x.from === r.from && x.to === r.to))
+  .filter((x) => (x.from === r.to && x.to === r.from) || x.group === r.group)
+  .slice(0, 6);
+const reverse = WAVE1_ROUTES.find((x) => x.from === r.to && x.to === r.from);
+---
+<StaticShell title={TITLE} desc={DESC} url={URL_EN} ogType="article" jsonld={JSONLD}
+  alternates={[
+    { lang: 'en', href: URL_EN },
+    { lang: 'ar', href: URL_AR },
+    { lang: 'x-default', href: URL_EN },
+  ]}>
+  <article class="post">
+    <p class="eyebrow"><a href="/prayer-times/" style="color:inherit;text-decoration:none">Route guide</a> · {r.from}–{r.to}</p>
+    <h1>Prayer times on a {fromCity}&nbsp;→&nbsp;{toCity} flight</h1>
+    <p class="lede">Which of the five prayers you&rsquo;ll pray before boarding, in the air, and after landing — and how that shifts with the seasons.</p>
+    <div class="byline">
+      <span>{fmtKm(facts.distanceKm)}</span>
+      <span>about {fmtDur(facts.durationMin)} in the air</span>
+      <span>{shift === 0 ? 'no time-zone change' : `${shift > 0 ? '+' : '−'}${Math.abs(shift)} h time difference`}</span>
+    </div>
+
+    <h2 id="overview">The flight, in prayer terms</h2>
+    <p>The flight from <strong>{from.name} ({r.from})</strong> to <strong>{to.name} ({r.to})</strong> covers
+      about {fmtKm(facts.distanceKm)} — typically around <strong>{fmtDur(facts.durationMin)}</strong> gate to gate.
+      {shiftText}. Whether Dhuhr, Asr, Maghrib or even Fajr lands inside the flight window depends on when you
+      depart and the time of year, so the table below works through the typical cases.</p>
+
+    <h2 id="schedule">What you&rsquo;ll typically pray, season by season</h2>
+    <p>Computed by Isfar&rsquo;s engine — the same one behind the app — for a representative morning and evening
+      departure, using the {ROUTE_METHOD.label} convention. <em>Before</em> means the prayers immediately before
+      departure ({fromCity} time); <em>after</em>, the first prayers after landing ({toCity} time).</p>
+
+    {DEP_TIMES.map((dep) => (
+      <div class="tablewrap">
+        <table>
+          <caption class="vh">{DEP_LABELS[dep]}: prayers before, during and after the flight, by season.</caption>
+          <thead>
+            <tr><th>{DEP_LABELS[dep]}</th><th>Before</th><th>In flight</th><th>After landing</th></tr>
+          </thead>
+          <tbody>
+            {SEASON_DATES.map((d) => {
+              const c = cells.find((x) => x.dateISO === d && x.depTime === dep);
+              return (
+                <tr>
+                  <th>{SEASON_LABELS[d]}</th>
+                  <td>{list(c.before)}</td>
+                  <td>{c.inflight.length ? c.inflight.join(' · ') + (c.estimated ? ' ~' : '') : 'none — pray on the ground'}</td>
+                  <td>{list(c.after)}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    ))}
+
+    {anyEstimated && <p>A <code>~</code> marks an estimated time: along this route the sky doesn&rsquo;t always
+      reach the method&rsquo;s twilight angle, so the engine portions the night instead — the same honest
+      fallback described in <a href="/guide/far-north-prayer-times/">the far-north guide</a>.</p>}
+
+    <p>These are typical schedules, not your flight&rsquo;s. Airlines shift timetables, winds change durations,
+      and a two-hour difference in departure can move a prayer in or out of the window.
+      <strong><a href={`/?from=${r.from}&to=${r.to}`}>Map your exact flight in Isfar&nbsp;→</a></strong></p>
+
+    <h2 id="qibla">Qibla on this flight</h2>
+    <p>On the ground at {r.from} the qibla bears about <strong>{facts.qiblaFrom}°</strong> from north;
+      at {r.to}, about <strong>{facts.qiblaTo}°</strong>. Aloft, what matters is the direction relative to
+      where you&rsquo;re sitting — and that changes as the aircraft turns along the great circle. Isfar computes
+      the aircraft&rsquo;s position and heading at each prayer and gives the qibla as a clock position
+      (12 o&rsquo;clock = straight ahead), separately for every prayer on this route.</p>
+
+    <h2 id="faq">Questions travellers ask</h2>
+    <div class="faq">
+      {FAQ.map((f) => (<><h3>{f.q}</h3><p>{f.a}</p></>))}
+    </div>
+
+    <h2 id="related">Related routes</h2>
+    <ul>
+      {reverse && <li><a href={`/prayer-times/${routeSlug(reverse.from, reverse.to)}/`}>Return flight: {cityEn(resolveAirport(reverse.from))} → {cityEn(resolveAirport(reverse.to))}</a></li>}
+      {related.filter((x) => !(reverse && x.from === reverse.from && x.to === reverse.to)).slice(0, 4).map((x) => (
+        <li><a href={`/prayer-times/${routeSlug(x.from, x.to)}/`}>{cityEn(resolveAirport(x.from))} → {cityEn(resolveAirport(x.to))} ({x.from}–{x.to})</a></li>
+      ))}
+      <li><a href="/prayer-times/">All routes</a></li>
+    </ul>
+
+    <footer class="post-footer">
+      <div class="horizon" style="margin:0 0 22px"></div>
+      <p><a href="/">Isfar</a> maps Fajr, Dhuhr, Asr, Maghrib and Isha across any flight — in both time zones,
+        with qibla from your seat. Times on this page were computed with adhan-js using the {ROUTE_METHOD.label}
+        convention; the app offers twelve methods. Nothing here is a fiqh ruling — follow your own scholars
+        on shortening, combining, and praying seated.</p>
+    </footer>
+  </article>
+</StaticShell>
