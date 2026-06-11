@@ -13,6 +13,19 @@ import { RouteForm } from './route-form.jsx';
    Isfar — app shell: state machine + theme + tweaks
    states: landing · loading · results · error
    =========================================================================== */
+
+// ?from=LHR&to=JED deep link (the /prayer-times/ route pages' CTA): open in
+// route mode with both airports prefilled. Module scope is browser-only here
+// (client:only island). Consumed once; the URL is cleaned up after mount.
+const URL_PREFILL = (() => {
+  try {
+    const p = new URLSearchParams(window.location.search);
+    const from = (p.get("from") || "").toUpperCase();
+    const to = (p.get("to") || "").toUpperCase();
+    if (/^[A-Z]{3}$/.test(from) && /^[A-Z]{3}$/.test(to) && from !== to) return { from, to };
+  } catch (e) {}
+  return null;
+})();
 const { useState: useS, useEffect: useE, useRef: useR } = React;
 
 const LOAD_MSGS = [
@@ -71,9 +84,16 @@ function Calculator() {
   const [date, setDate] = useS(todayISO());
   // lookup mode: by flight number, or by route + itinerary times
   const [mode, setMode] = useS(() => {
+    if (URL_PREFILL) return "route";             // deep link wins, not persisted
     try { return localStorage.getItem("isfar.lookupMode") === "route" ? "route" : "flight"; }
     catch (e) { return "flight"; }
   });
+  // strip the consumed deep-link params so refresh/share behaves normally
+  useE(() => {
+    if (URL_PREFILL) {
+      try { history.replaceState(null, "", window.location.pathname); } catch (e) {}
+    }
+  }, []);
   function switchMode(m) {
     setMode(m); setErr(null);
     try { localStorage.setItem("isfar.lookupMode", m); } catch (e) {}
@@ -356,7 +376,7 @@ function Landing({ query, setQuery, date, setDate, err, onSubmit, recents, onCle
           <div className="offline-note"><Ic.plane aria-hidden="true" /> Look up once — your flights then work offline</div>
         </form>
       ) : (
-        <RouteForm date={date} setDate={setDate} todayISO={todayISO} onSubmitRecord={onSubmitRecord} />
+        <RouteForm date={date} setDate={setDate} todayISO={todayISO} onSubmitRecord={onSubmitRecord} prefill={URL_PREFILL} />
       )}
 
       <div className="form form-tail">

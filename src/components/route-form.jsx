@@ -18,6 +18,11 @@ function AirportField({ id, label, placeholder, list, value, onPick }) {
   const [hi, setHi] = useS(0);
   const wrapRef = useR(null);
 
+  // reflect an externally-set value (e.g. the ?from=&to= deep-link prefill,
+  // which resolves only after the dataset loads). Typing clears value to null,
+  // which deliberately does NOT wipe the text being typed.
+  useE(() => { if (value) setText(`${value.iata} — ${value.city}`); }, [value]);
+
   useE(() => {
     const onDoc = (e) => { if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false); };
     document.addEventListener('pointerdown', onDoc);
@@ -66,14 +71,31 @@ function AirportField({ id, label, placeholder, list, value, onPick }) {
 }
 
 /* ---- the route form ------------------------------------------------------ */
-function RouteForm({ date, setDate, todayISO, onSubmitRecord }) {
+function RouteForm({ date, setDate, todayISO, onSubmitRecord, prefill }) {
   const [list, setList] = useS(null);
   const [from, setFrom] = useS(null);
   const [to, setTo] = useS(null);
   const [depTime, setDepTime] = useS('');
   const [arrTime, setArrTime] = useS('');
   const [err, setErr] = useS(null);
-  useE(() => { let on = true; loadAirports().then((l) => { if (on) setList(l); }); return () => { on = false; }; }, []);
+  useE(() => {
+    let on = true;
+    loadAirports().then((l) => {
+      if (!on) return;
+      setList(l);
+      // ?from=&to= deep link (route pages CTA): resolve exact IATA codes once
+      if (prefill) {
+        const exact = (code) => {
+          const row = searchAirports(l, code, 1)[0];
+          return row && row[0] === code ? airportFromRow(row) : null;
+        };
+        const f = exact(prefill.from), t = exact(prefill.to);
+        if (f) setFrom(f);
+        if (t) setTo(t);
+      }
+    });
+    return () => { on = false; };
+  }, []);
 
   // live duration preview — the safety net for a wrong-day arrival
   let durLine = null;
