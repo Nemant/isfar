@@ -2,7 +2,7 @@
 // (see package.json "build") — pages are never hand-listed. Each en/ar pair
 // carries xhtml:link hreflang alternates (Google's preferred bidirectional
 // annotation). Fails loudly if the page count looks wrong.
-import { readdir, writeFile } from 'node:fs/promises';
+import { readdir, readFile, writeFile } from 'node:fs/promises';
 import { join, relative } from 'node:path';
 
 const DIST = 'dist';
@@ -22,7 +22,15 @@ async function walk(dir) {
   return out;
 }
 
-const pages = (await walk(DIST))
+// a sitemap must never list a noindex page (e.g. the unlisted guide pages):
+// trust each page's own robots meta rather than a hand-maintained exclude list
+const NOINDEX = /<meta\s+name="robots"\s+content="[^"]*noindex[^"]*"/i;
+const files = await walk(DIST);
+const indexable = await Promise.all(
+  files.map(async (f) => !NOINDEX.test(await readFile(f, 'utf8'))));
+
+const pages = files
+  .filter((_, i) => indexable[i])
   .map((f) => relative(DIST, join(f, '..')).split('\\').join('/'))
   .map((rel) => (rel === '' ? '/' : `/${rel}/`))
   .sort();

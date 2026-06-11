@@ -18,7 +18,7 @@ async function walk(dir) {
 }
 
 const files = await walk(DIST);
-const urls = files
+let urls = files
   .map((f) => '/' + relative(DIST, f).split('\\').join('/'))
   .filter((u) => u !== '/sw.js')            // never precache the SW itself
   // The static SEO surface (route pages, Arabic pages, 404, sitemap) is not
@@ -27,6 +27,28 @@ const urls = files
   .filter((u) => !u.startsWith('/prayer-times/') && !u.startsWith('/ar/'))
   .filter((u) => u !== '/404.html' && u !== '/sitemap.xml')
   .sort();
+
+// Unlisted (noindex) pages are not part of the offline app shell either: drop
+// their HTML, plus any /_assets/ chunk referenced ONLY by dropped pages (a
+// chunk shared with a kept page stays). Mirrors gen-sitemap's noindex rule.
+const NOINDEX = /<meta\s+name="robots"\s+content="[^"]*noindex[^"]*"/i;
+const ASSET_REF = /_assets\/[A-Za-z0-9._-]+/g;
+const keptRefs = new Set(), droppedRefs = new Set(), noindexPages = new Set();
+for (const u of urls.filter((u) => u.endsWith('.html'))) {
+  const html = await readFile(join(DIST, u), 'utf8');
+  const refs = html.match(ASSET_REF) || [];
+  if (NOINDEX.test(html)) {
+    noindexPages.add(u);
+    refs.forEach((r) => droppedRefs.add('/' + r));
+  } else {
+    refs.forEach((r) => keptRefs.add('/' + r));
+  }
+}
+urls = urls.filter((u) => !noindexPages.has(u) &&
+  !(droppedRefs.has(u) && !keptRefs.has(u)));
+if (noindexPages.size) {
+  console.log(`gen-sw-precache: excluded ${noindexPages.size} noindex page(s) from the precache`);
+}
 
 const swPath = join(DIST, 'sw.js');
 let sw = await readFile(swPath, 'utf8');
