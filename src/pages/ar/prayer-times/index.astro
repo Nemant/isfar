@@ -1,0 +1,57 @@
+---
+/* Arabic routes hub. Pure SSG, RTL. */
+import StaticShell from '../../../components/StaticShell.astro';
+import { GROUP_LABELS, WAVE1_ROUTES } from '../../../lib/routes-wave1.js';
+import { resolveAirport, routeSlug } from '../../../lib/route-pages.js';
+import { cityAr, GROUP_LABELS_AR, AR } from '../../../lib/i18n-ar.js';
+
+const URL_EN = 'https://isfar.app/prayer-times/';
+const URL_AR = 'https://isfar.app/ar/prayer-times/';
+const TITLE = 'مواقيت الصلاة حسب مسار الرحلة — إسفار';
+const DESC = 'أدلة مسارات الطيران للصلوات الخمس: أي الصلوات تقع قبل الإقلاع وفي الجو وبعد الهبوط — العمرة والخليج وجنوب آسيا وغيرها.';
+
+const groups = Object.keys(GROUP_LABELS).map((g) => ({
+  key: g, label: GROUP_LABELS_AR[g],
+  routes: WAVE1_ROUTES.filter((r) => r.group === g),
+}));
+
+const JSONLD = [
+  { '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'إسفار', item: 'https://isfar.app/ar/' },
+    { '@type': 'ListItem', position: 2, name: AR.routesHubTitle, item: URL_AR },
+  ] },
+];
+---
+<StaticShell title={TITLE} desc={DESC} url={URL_AR} lang="ar" dir="rtl" jsonld={JSONLD}
+  alternates={[
+    { lang: 'en', href: URL_EN },
+    { lang: 'ar', href: URL_AR },
+    { lang: 'x-default', href: URL_EN },
+  ]}>
+  <article class="post">
+    <p class="eyebrow">{AR.routeEyebrow}</p>
+    <h1>{AR.routesHubTitle}</h1>
+    <p class="lede">كل دليل يبيّن أي الصلوات الخمس ستصليها قبل الإقلاع وفي الجو وبعد الهبوط — فصلًا بفصل،
+      بنفس المحرك الذي يشغّل <a href="/">تطبيق إسفار</a>.</p>
+
+    {groups.map((g) => (
+      <>
+        <h2 id={g.key}>{g.label}</h2>
+        <ul>
+          {g.routes.map((r) => (
+            <li><a href={`/ar/prayer-times/${routeSlug(r.from, r.to)}/`}>{cityAr(resolveAirport(r.from))} ← {cityAr(resolveAirport(r.to))} ({r.from}–{r.to})</a></li>
+          ))}
+        </ul>
+      </>
+    ))}
+
+    <p>لا ترى مسارك؟ <a href="/">أدخل أي رقم رحلة أو زوج مطارات في التطبيق</a> — تغطي هذه الصفحات
+      المسارات الشائعة، أما المحرك فيرسم أي رحلة على وجه الأرض.</p>
+
+    <footer class="post-footer">
+      <div class="horizon" style="margin:0 0 22px"></div>
+      <p><a href="/ar/">إسفار</a> يرسم الفجر والظهر والعصر والمغرب والعشاء عبر أي رحلة جوية — بتوقيت المطارين،
+        مع القبلة من مقعدك. مجاني، يُثبَّت كتطبيق، ويعمل دون اتصال للرحلات المحفوظة.</p>
+    </footer>
+  </article>
+</StaticShell>

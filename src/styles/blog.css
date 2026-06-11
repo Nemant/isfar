@@ -284,3 +284,27 @@ html[data-theme="dark"] #themebtn .tt-sun { display: none; }
 @media (prefers-reduced-motion: reduce) {
   .anim-btn, .post .cta .cta-link { transition: none; }
 }
+
+/* ===========================================================================
+   RTL layer — the /ar/ static pages. Arabic text sets in Noto Kufi (the
+   app's Arabic face); lists and tables flip via logical direction.
+   =========================================================================== */
+html[dir="rtl"] .post h1,
+html[dir="rtl"] .post h2,
+html[dir="rtl"] .post .lede {
+  font-family: "Noto Kufi Arabic", "Newsreader", serif;
+  letter-spacing: 0;
+}
+html[dir="rtl"] .post p,
+html[dir="rtl"] .post li,
+html[dir="rtl"] .post th,
+html[dir="rtl"] .post td,
+html[dir="rtl"] .post .eyebrow,
+html[dir="rtl"] .post .byline,
+html[dir="rtl"] .post .faq h3 {
+  font-family: "Noto Kufi Arabic", "Hanken Grotesk", sans-serif;
+  letter-spacing: 0;
+}
+html[dir="rtl"] .post ol,
+html[dir="rtl"] .post ul { padding-left: 0; padding-right: 22px; }
+html[dir="rtl"] .post th { text-align: right; }

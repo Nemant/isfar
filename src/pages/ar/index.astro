@@ -1,0 +1,61 @@
+---
+/* /ar/ — the Arabic landing page (i18n wave 1). The app island itself is
+   English this wave; this page is the Arabic front door + search surface. */
+import StaticShell from '../../components/StaticShell.astro';
+import { HOME_FAQ_AR } from '../../lib/i18n-ar.js';
+
+const URL_EN = 'https://isfar.app/';
+const URL_AR = 'https://isfar.app/ar/';
+const TITLE = 'إسفار — مواقيت الصلاة عبر رحلتك الجوية (من الفجر إلى العشاء)';
+const DESC = 'أدخل رقم رحلتك وشاهد كل صلاة — الفجر والظهر والعصر والمغرب والعشاء — قبل الإقلاع وفي الجو وبعد الهبوط، بتوقيت مطاري المغادرة والوصول معًا.';
+
+const JSONLD = [
+  { '@context': 'https://schema.org', '@type': 'WebApplication', name: 'إسفار',
+    description: DESC, url: URL_AR, inLanguage: 'ar',
+    applicationCategory: 'TravelApplication', operatingSystem: 'Web',
+    offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' } },
+  { '@context': 'https://schema.org', '@type': 'FAQPage', inLanguage: 'ar',
+    mainEntity: HOME_FAQ_AR.map((f) => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })) },
+];
+---
+<StaticShell title={TITLE} desc={DESC} url={URL_AR} lang="ar" dir="rtl" jsonld={JSONLD}
+  alternates={[
+    { lang: 'en', href: URL_EN },
+    { lang: 'ar', href: URL_AR },
+    { lang: 'x-default', href: URL_EN },
+  ]}>
+  <article class="post">
+    <p class="eyebrow">إسفار · للمسافر المصلي</p>
+    <h1>مواقيت الصلاة عبر رحلتك الجوية</h1>
+    <p class="lede">أدخل رقم رحلتك، وشاهد الصلوات الخمس مرسومة قبل الإقلاع وفي الجو وبعد الهبوط —
+      بتوقيت مطاري المغادرة والوصول معًا، مع اتجاه القبلة من مقعدك.</p>
+
+    <p><strong><a href="/">افتح التطبيق ←</a></strong> <em>(واجهة التطبيق بالإنجليزية حاليًا؛ والعربية قادمة)</em></p>
+
+    <h2>كيف يعمل إسفار</h2>
+    <ol>
+      <li><strong>أدخل رحلة</strong> — رقم رحلة مثل SV124، أو أي زوج من المطارات مع المواعيد.</li>
+      <li><strong>شاهد كل صلاة</strong> — الفجر والظهر والعصر والمغرب والعشاء، قبل الإقلاع وفي الجو وبعد
+        الهبوط، وكل صلاة بتوقيت المطارين.</li>
+      <li><strong>صلِّ على بصيرة</strong> — القبلة كموضع على عقارب الساعة من مقعدك، وتصحيح المغرب حسب
+        الارتفاع، وعلامة <code>~</code> الصريحة على كل وقت تقديري. الرحلات المحفوظة تعمل دون اتصال.</li>
+    </ol>
+
+    <h2>أسئلة المسافرين</h2>
+    <div class="faq">
+      {HOME_FAQ_AR.map((f) => (<><h3>{f.q}</h3><p>{f.a}</p></>))}
+    </div>
+
+    <h2>أدلة المسارات</h2>
+    <ul>
+      <li><a href="/ar/prayer-times/">مواقيت الصلاة حسب مسار الرحلة</a> — العمرة والخليج وجنوب آسيا وغيرها</li>
+      <li><a href="/guide/far-north-prayer-times/">دليل أقصى الشمال: الصلاة حيث لا تغيب الشمس (بالإنجليزية)</a></li>
+    </ul>
+
+    <footer class="post-footer">
+      <div class="horizon" style="margin:0 0 22px"></div>
+      <p>إسفار مجاني، يُثبَّت كتطبيق، ولا يحتاج إلى حساب. ليس في هذه الصفحة فتوى — اتبع علماءك
+        وجاليتك في أحكام القصر والجمع والصلاة في الطائرة.</p>
+    </footer>
+  </article>
+</StaticShell>

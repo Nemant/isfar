@@ -1,0 +1,158 @@
+---
+/* Arabic route page (i18n wave 1) — same computed data as the EN page,
+   rendered RTL from the i18n-ar strings. Pure SSG. */
+import StaticShell from '../../../components/StaticShell.astro';
+import { WAVE1_ROUTES } from '../../../lib/routes-wave1.js';
+import {
+  resolveAirport, routeFacts, seasonalSchedule, routeSlug,
+  SEASON_DATES, DEP_TIMES, ROUTE_METHOD,
+} from '../../../lib/route-pages.js';
+import {
+  PRAYER_AR, cityAr, hoursAr, SEASON_LABELS_AR, DEP_LABELS_AR, AR,
+} from '../../../lib/i18n-ar.js';
+
+export function getStaticPaths() {
+  return WAVE1_ROUTES.map((r) => ({ params: { route: routeSlug(r.from, r.to) }, props: { r } }));
+}
+
+const { r } = Astro.props;
+const from = resolveAirport(r.from), to = resolveAirport(r.to);
+const facts = routeFacts(from, to);
+const cells = seasonalSchedule(from, to);
+const fromCity = cityAr(from), toCity = cityAr(to);
+
+const ar = (names) => names.map((n) => PRAYER_AR[n] || n);
+const listAr = (names) => names.length ? ar(names).join(' · ') : '—';
+const fmtKm = (km) => `${(Math.round(km / 10) * 10).toLocaleString('en-GB')} كم`;
+const fmtDur = (min) => `${Math.floor(min / 60)} س ${String(min % 60).padStart(2, '0')} د`;
+const shift = facts.tzShiftHours;
+const shiftText = shift === 0
+  ? `لا فرق في التوقيت بين ${fromCity} و${toCity} صيفًا`
+  : shift > 0
+    ? `يتقدم توقيت ${toCity} عن توقيت ${fromCity} بـ${hoursAr(shift)} صيفًا`
+    : `يتأخر توقيت ${toCity} عن توقيت ${fromCity} بـ${hoursAr(shift)} صيفًا`;
+
+const juneAM = cells.find((c) => c.dateISO === SEASON_DATES[0] && c.depTime === DEP_TIMES[0]);
+const junePM = cells.find((c) => c.dateISO === SEASON_DATES[0] && c.depTime === DEP_TIMES[1]);
+const anyEstimated = cells.some((c) => c.estimated);
+const joinAr = (names) => ar(names).join(' و');
+
+const URL_EN = `https://isfar.app/prayer-times/${routeSlug(r.from, r.to)}/`;
+const URL_AR = `https://isfar.app/ar/prayer-times/${routeSlug(r.from, r.to)}/`;
+const TITLE = `مواقيت الصلاة في رحلة ${fromCity} إلى ${toCity} (${r.from}–${r.to}) — إسفار`;
+const DESC = `أي الصلوات تقع قبل الإقلاع وفي الجو وبعد الهبوط في رحلة ${fromCity} ← ${toCity} — نحو ${fmtDur(facts.durationMin)} عبر ${fmtKm(facts.distanceKm)} — فصلًا بفصل وبتوقيت المطارين.`;
+
+const FAQ = [
+  { q: `ما الصلوات التي سأصليها في رحلة من ${fromCity} إلى ${toCity}؟`,
+    a: `يعتمد ذلك على الفصل ووقت الإقلاع. في إقلاع صباحي معتاد نحو التاسعة في يونيو ${juneAM.inflight.length ? `تقع ${joinAr(juneAM.inflight)} أثناء الطيران` : 'لا تقع صلاة أثناء الطيران — يمكنك أداء الصلوات كلها على الأرض'}؛ وفي إقلاع مسائي نحو التاسعة ليلًا ${junePM.inflight.length ? `تقع ${joinAr(junePM.inflight)} في الجو` : 'لا تقع صلاة في الجو'}. يغطي الجدول في هذه الصفحة يونيو وسبتمبر وديسمبر؛ أدخل رحلتك الفعلية في إسفار لتاريخك.` },
+  { q: `كم تستغرق الرحلة من ${fromCity} إلى ${toCity}؟`,
+    a: `المسافة على الدائرة العظمى من ${fromCity} (${r.from}) إلى ${toCity} (${r.to}) نحو ${fmtKm(facts.distanceKm)}، أي نحو ${fmtDur(facts.durationMin)} من البوابة إلى البوابة عادةً. وتتغير المدة الفعلية مع الرياح والمسار.` },
+  { q: `كم فرق التوقيت بين ${fromCity} و${toCity}؟`,
+    a: `${shiftText}. يعرض إسفار كل صلاة بتوقيت المطارين معًا، فلا تحتاج إلى أي تحويل ذهني.` },
+  { q: 'ما اتجاه القبلة في هذه الرحلة؟',
+    a: `على الأرض في ${r.from} تكون القبلة نحو ${facts.qiblaFrom}° من الشمال، وفي ${r.to} نحو ${facts.qiblaTo}°. وفي الجو يتغير الاتجاه بالنسبة لمقعدك مع انعطاف الطائرة، لذلك يعرض إسفار القبلة كموضع على عقارب الساعة من مقدمة الطائرة — لكل صلاة على حدة.` },
+];
+
+const JSONLD = [
+  { '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'إسفار', item: 'https://isfar.app/ar/' },
+    { '@type': 'ListItem', position: 2, name: AR.routesHubTitle, item: 'https://isfar.app/ar/prayer-times/' },
+    { '@type': 'ListItem', position: 3, name: `${fromCity} ← ${toCity}`, item: URL_AR },
+  ] },
+  { '@context': 'https://schema.org', '@type': 'FAQPage', inLanguage: 'ar',
+    mainEntity: FAQ.map((f) => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })) },
+];
+
+const related = WAVE1_ROUTES
+  .filter((x) => !(x.from === r.from && x.to === r.to))
+  .filter((x) => (x.from === r.to && x.to === r.from) || x.group === r.group)
+  .slice(0, 6);
+const reverse = WAVE1_ROUTES.find((x) => x.from === r.to && x.to === r.from);
+---
+<StaticShell title={TITLE} desc={DESC} url={URL_AR} lang="ar" dir="rtl" ogType="article" jsonld={JSONLD}
+  alternates={[
+    { lang: 'en', href: URL_EN },
+    { lang: 'ar', href: URL_AR },
+    { lang: 'x-default', href: URL_EN },
+  ]}>
+  <article class="post">
+    <p class="eyebrow"><a href="/ar/prayer-times/" style="color:inherit;text-decoration:none">{AR.routeEyebrow}</a> · {r.from}–{r.to}</p>
+    <h1>مواقيت الصلاة في رحلة {fromCity}&nbsp;←&nbsp;{toCity}</h1>
+    <p class="lede">أي الصلوات الخمس ستصليها قبل الإقلاع، وفي الجو، وبعد الهبوط — وكيف يتغير ذلك مع فصول السنة.</p>
+    <div class="byline">
+      <span>{fmtKm(facts.distanceKm)}</span>
+      <span>نحو {fmtDur(facts.durationMin)} في الجو</span>
+      <span>{shift === 0 ? 'لا فرق في التوقيت' : `فرق التوقيت ${hoursAr(shift)}`}</span>
+    </div>
+
+    <h2 id="overview">{AR.overviewHeading}</h2>
+    <p>تقطع الرحلة من <strong>{fromCity} ({r.from})</strong> إلى <strong>{toCity} ({r.to})</strong> نحو
+      {fmtKm(facts.distanceKm)} — أي نحو <strong>{fmtDur(facts.durationMin)}</strong> من البوابة إلى البوابة عادةً.
+      {shiftText}. ووقوع الظهر أو العصر أو المغرب أو حتى الفجر داخل نافذة الطيران يتوقف على وقت إقلاعك وفصل
+      السنة، والجدول التالي يفصّل الحالات المعتادة.</p>
+
+    <h2 id="schedule">{AR.scheduleHeading}</h2>
+    <p>حُسبت المواقيت بمحرك إسفار — نفس المحرك الذي يشغّل التطبيق — لإقلاع صباحي وآخر مسائي تمثيليين،
+      بطريقة رابطة العالم الإسلامي. <em>{AR.before}</em> تعني الصلوات التي تسبق الإقلاع مباشرة (بتوقيت {fromCity})،
+      و<em>{AR.after}</em> أول الصلوات بعد الهبوط (بتوقيت {toCity}).</p>
+
+    {DEP_TIMES.map((dep) => (
+      <div class="tablewrap">
+        <table>
+          <caption class="vh">{DEP_LABELS_AR[dep]}: الصلوات قبل الرحلة وأثناءها وبعدها، حسب الفصل.</caption>
+          <thead>
+            <tr><th>{DEP_LABELS_AR[dep]}</th><th>{AR.before}</th><th>{AR.inflight}</th><th>{AR.after}</th></tr>
+          </thead>
+          <tbody>
+            {SEASON_DATES.map((d) => {
+              const c = cells.find((x) => x.dateISO === d && x.depTime === dep);
+              return (
+                <tr>
+                  <th>{SEASON_LABELS_AR[d]}</th>
+                  <td>{listAr(c.before)}</td>
+                  <td>{c.inflight.length ? listAr(c.inflight) + (c.estimated ? ' ~' : '') : AR.noneInflight}</td>
+                  <td>{listAr(c.after)}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    ))}
+
+    {anyEstimated && <p>علامة <code>~</code> تعني وقتًا تقديريًا: في هذا المسار لا تصل السماء دائمًا إلى زاوية
+      الشفق المعتمدة، فيقسّم المحرك الليل بدلًا من ذلك — وهي القاعدة الأمينة نفسها المشروحة في
+      <a href="/guide/far-north-prayer-times/">دليل أقصى الشمال (بالإنجليزية)</a>.</p>}
+
+    <p>هذه جداول معتادة لا جدول رحلتك بعينها. تغيّر شركات الطيران مواعيدها، وتغيّر الرياح المدة،
+      وساعتان في وقت الإقلاع قد تدخلان صلاة في النافذة أو تخرجانها.
+      <strong><a href={`/?from=${r.from}&to=${r.to}`}>{AR.ctaExact}</a></strong></p>
+
+    <h2 id="qibla">{AR.qiblaHeading}</h2>
+    <p>على الأرض في {r.from} تكون القبلة نحو <strong>{facts.qiblaFrom}°</strong> من الشمال،
+      وفي {r.to} نحو <strong>{facts.qiblaTo}°</strong>. وفي الجو، المهم هو الاتجاه بالنسبة لمقعدك — وهو
+      يتغير مع انعطاف الطائرة على الدائرة العظمى. يحسب إسفار موضع الطائرة واتجاهها عند كل صلاة ويعرض
+      القبلة كموضع على عقارب الساعة (الساعة 12 = الأمام مباشرة)، لكل صلاة في هذا المسار.</p>
+
+    <h2 id="faq">{AR.faqHeading}</h2>
+    <div class="faq">
+      {FAQ.map((f) => (<><h3>{f.q}</h3><p>{f.a}</p></>))}
+    </div>
+
+    <h2 id="related">{AR.relatedHeading}</h2>
+    <ul>
+      {reverse && <li><a href={`/ar/prayer-times/${routeSlug(reverse.from, reverse.to)}/`}>{AR.returnFlight}: {cityAr(resolveAirport(reverse.from))} ← {cityAr(resolveAirport(reverse.to))}</a></li>}
+      {related.filter((x) => !(reverse && x.from === reverse.from && x.to === reverse.to)).slice(0, 4).map((x) => (
+        <li><a href={`/ar/prayer-times/${routeSlug(x.from, x.to)}/`}>{cityAr(resolveAirport(x.from))} ← {cityAr(resolveAirport(x.to))} ({x.from}–{x.to})</a></li>
+      ))}
+      <li><a href="/ar/prayer-times/">{AR.allRoutes}</a></li>
+    </ul>
+
+    <footer class="post-footer">
+      <div class="horizon" style="margin:0 0 22px"></div>
+      <p><a href="/ar/">إسفار</a> يرسم الفجر والظهر والعصر والمغرب والعشاء عبر أي رحلة جوية — بتوقيت المطارين،
+        مع القبلة من مقعدك. حُسبت مواقيت هذه الصفحة بمكتبة adhan-js بطريقة رابطة العالم الإسلامي؛
+        ويوفر التطبيق اثنتي عشرة طريقة. ليس في هذه الصفحة فتوى — اتبع علماءك في القصر والجمع والصلاة جالسًا.</p>
+    </footer>
+  </article>
+</StaticShell>
