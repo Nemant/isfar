@@ -14,11 +14,13 @@ const PAR_W = { x1: 10, x2: 104 };
 const PAR_E = { x1: 136, x2: 462 };
 const PAR_LEN = PAR_E.x2 - PAR_E.x1 + 4;
 
-const LAT_LINES = [65, 70].map((l) => ({ y: Y(l) }));
+const LAT_LINES = [65, 70].map((l) => ({ y: Y(l), label: `${l}°N` }));
 const LON_LINES = [10, 15, 20, 25, 30].map((l) => X(l));
+const LON_LABELS = [10, 20, 30].map((l) => ({ x: X(l), label: `${l}°E` }));
 
 const CITIES = [
-  { n: "Anchorage",     x: 58,       y: Y(61.2),  lx: 58,  ly: 196, anchor: "middle" },
+  // label above the dot — at ly 196 it sat on the 60° parallel (y 194)
+  { n: "Anchorage",     x: 58,       y: Y(61.2),  lx: 58,  ly: 167, anchor: "middle" },
   { n: "Oslo",          x: X(10.75), y: Y(59.91), lx: 195, ly: 222, anchor: "middle" },
   // Stockholm sits 14 px from the estimate ring (that proximity IS the story),
   // so its label drops to a second row on a short leader, clear of the knot
@@ -51,14 +53,17 @@ const DROP_REVEAL = `M${TROMSO.x} 54 V192`;           // mask path, length ≈ 1
     <g class="grat">
       {LAT_LINES.map(({ y }) => <line x1="10" x2="104" y1={y} y2={y} class="lat" />)}
       {LAT_LINES.map(({ y }) => <line x1="136" x2="466" y1={y} y2={y} class="lat" />)}
+      {LAT_LINES.map(({ y, label }) => <text class="axis grat-lbl" x="466" y={y - 4} text-anchor="end">{label}</text>)}
       <line x1="58" x2="58" y1="18" y2="282" class="lon" />
+      <text class="axis grat-lbl" x="58" y="296" text-anchor="middle">150°W</text>
       {LON_LINES.map((x) => <line x1={x} x2={x} y1="18" y2="282" class="lon" />)}
+      {LON_LABELS.map(({ x, label }) => <text class="axis grat-lbl" x={x} y="296" text-anchor="middle">{label}</text>)}
     </g>
 
     <!-- Arctic Circle -->
     <line class="arctic" x1="10" x2="104" y1={ARCTIC_Y} y2={ARCTIC_Y} />
     <line class="arctic" x1="136" x2="466" y1={ARCTIC_Y} y2={ARCTIC_Y} />
-    <text class="axis arctic-lbl" x="10" y={ARCTIC_Y - 6}>Arctic Circle</text>
+    <text class="axis arctic-lbl" x="10" y={ARCTIC_Y - 6}>Arctic Circle · 66.5°N</text>
 
     <!-- THE line: the 60th parallel, broken between the continents -->
     <g class="par-west">
@@ -81,7 +86,7 @@ const DROP_REVEAL = `M${TROMSO.x} 54 V192`;           // mask path, length ≈ 1
     <!-- Tromsø, beyond the circle -->
     <g class="tromso">
       <circle class="tromso-dot" cx={TROMSO.x} cy={TROMSO.y} r="4" />
-      <text class="city-lbl tromso-lbl" x={TROMSO.x + 11} y={TROMSO.y + 4}>Tromsø</text>
+      <text class="city-lbl tromso-lbl" x={TROMSO.x + 11} y={TROMSO.y + 4}>Tromsø · 69.6°N</text>
     </g>
 
     <!-- the round-down: dashed fall to 60° -->
@@ -123,6 +128,7 @@ const DROP_REVEAL = `M${TROMSO.x} 54 V192`;           // mask path, length ≈ 1
     stroke-dasharray: 5 5;
   }
   .arctic-lbl { opacity: 0.6; font-size: 12px; }
+  .grat-lbl { opacity: 0.45; font-size: 11px; }
   .leader { stroke: oklch(from var(--text-mute) l c h / 0.4); stroke-width: 0.75; fill: none; }
 
   /* THE line */

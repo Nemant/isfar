@@ -175,6 +175,12 @@
 }
 .post td { color: var(--text); }
 .post td .est { color: var(--text-mute); }
+.post td ul {
+  margin: 0;
+  padding-left: 1.05em;
+  list-style: disc;
+}
+.post td li { margin: 1px 0; white-space: nowrap; }
 
 /* status words in the year table */
 .post .t-real { color: var(--text-soft); }
