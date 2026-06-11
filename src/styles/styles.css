@@ -849,7 +849,6 @@ body {
 .prayer-card .pc-name { display: flex; align-items: baseline; gap: 9px; }
 .prayer-card .pc-name .en { font-family: "Newsreader", serif; font-size: 20px; font-weight: 500; }
 .prayer-card .pc-name .ar { font-size: 16px; color: var(--text-soft); }
-.prayer-card .pc-name .pc-seq { font-size: 11px; font-weight: 700; color: var(--dot); background: oklch(from var(--dot) l c h / 0.16); padding: 1px 7px; border-radius: 999px; letter-spacing: .02em; }
 .prayer-card .pc-meta { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; margin-top: 8px; }
 .prayer-card .pc-qibla { display: inline-flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--text-soft); font-weight: 500; white-space: nowrap; }
 .prayer-card .pc-sunrise { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-mute); font-weight: 500; font-variant-numeric: tabular-nums; }
@@ -888,10 +887,6 @@ body {
 .nextp .np-name { display: flex; align-items: baseline; gap: 9px; }
 .nextp .np-name .np-en { font-family: "Newsreader", serif; font-size: 24px; font-weight: 500; }
 .nextp .np-name .np-ar { font-size: 18px; color: var(--text-soft); }
-.nextp .np-name .np-seq {
-  font-size: 10.5px; font-weight: 700; color: var(--dot); letter-spacing: .02em;
-  background: oklch(from var(--dot) l c h / 0.16); padding: 1px 7px; border-radius: 999px;
-}
 .nextp .np-meta { font-size: 12.5px; color: var(--text-mute); margin-top: 4px; }
 .nextp .np-right { text-align: right; flex-shrink: 0; }
 .nextp .np-count {

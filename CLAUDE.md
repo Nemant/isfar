@@ -99,8 +99,10 @@ combine-Maghrib-and-Isha banner).
 
 Each `prayers[]` entry: `{ id, key, en, ar, status (before|inflight|after), t (0..1 sun
 fraction), ms, qiblaClock, qiblaRel, sunrise{iata:time}|null, sunriseMs (fajr only),
-estimated, estimateBasis (= source when estimated), source (angle|method|seventh|borrow60),
-zones{iata:{iata,city,time,date}}, seq }`.
+estimated, estimateBasis (angle|method|seventh|borrow60 when estimated, else null),
+zones{iata:{iata,city,time,date}} }`. This shape is pinned by
+`tests/engine-display.test.js` (field list + exact ms values for the sample flights) —
+the old `dusk`/`seq`/`source` ride-along fields were removed with their dead consumers.
 
 **The high-latitude policy lives in `daySchedule(lat, lon, refMs, params, method)`** — the only
 code that calls adhan. Three rules, decided per prayer/position/date, all **observed from adhan's
