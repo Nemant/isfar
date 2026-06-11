@@ -1,0 +1,376 @@
+---
+/*
+ * "Four choices" — the four ways an app could answer EWR→HKG, 21 December,
+ * compared on one shared flight bar. Engine-verified facts (from the article,
+ * never re-derived here): 950-minute flight; no-sunrise cap at the ground
+ * below from minute 225 to 575 (5-min grid); the engine's cliff at minute 421 = 09:01 UTC
+ * (4:01 am Newark · 5:01 pm Hong Kong); Newark Maghrib 16:32 / Isha 18:05
+ * prayed before boarding (Dec 20); Hong Kong Fajr 05:40 / Dhuhr 12:24 after
+ * landing (Dec 22). A segmented control swaps four answer-states over the bar.
+ */
+const X = (min) => +(40 + (min / 950) * 480).toFixed(1);
+const BAR = { x1: 40, x2: 520, y: 111 };              // 14-wide rounded bar
+const CAP = { x1: X(225), x2: X(575) };               // engine: kind === 'polarnight', 5-min grid
+const NOTCH = X(421);                                 // 252.7 · 09:01Z
+const CAP_MID = +((CAP.x1 + CAP.x2) / 2).toFixed(1);  // 243.4 · static plane
+
+const LETTERS = ['F', 'D', 'A', 'M', 'I'];
+const CLS = ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha'];
+
+/* state 1 — printed times at plausible spots inside the cap (minutes aloft).
+   KEEP IN SYNC with the @keyframes percentages below: appear% = min/950 × 90 */
+const S1 = [255, 325, 395, 465, 535].map(X);          // 168.8 … 310.3
+
+/* state 2 — an ordinary Newark winter day laid across the whole bar
+   (Fajr 5:38 · Dhuhr 11:55 · Asr 14:15 · Maghrib 16:32 · Isha 18:05 — engine, MWL) */
+const dayX = (h, m) => +(40 + ((h + m / 60) / 24) * 480).toFixed(1);
+const S2 = [dayX(5, 38), dayX(11, 55), dayX(14, 15), dayX(16, 32), dayX(18, 5)];
+const XMARK = (x) => `M ${x - 3.5} 56.5 L ${x + 3.5} 63.5 M ${x + 3.5} 56.5 L ${x - 3.5} 63.5`;
+
+/* state 4 — five ticks fanned from the notch so all five letters read */
+const D2R = Math.PI / 180;
+const FAN = [-52, -26, 0, 26, 52].map((deg, i) => {
+  const s = Math.sin(deg * D2R), c = Math.cos(deg * D2R);
+  const P = (r) => [+(NOTCH + r * s).toFixed(1), +(104 - r * c).toFixed(1)];
+  const [x1, y1] = P(15), [x2, y2] = P(29), [lx, lyc] = P(38), [tx, tyc] = P(50);
+  return { x1, y1, x2, y2, lx, ly: +(lyc + 4).toFixed(1), tx, ty: +(tyc + 5).toFixed(1), cls: CLS[i], letter: LETTERS[i] };
+});
+
+/* the done-ticks: a small check beneath each already-prayed letter */
+const CHK = (x) => `M ${x - 5} 95.5 L ${x - 1.5} 99 L ${x + 5.5} 90.5`;
+const GND_L = [{ x: 16, cls: 'maghrib', letter: 'M' }, { x: 31, cls: 'isha', letter: 'I' }];
+const GND_R = [{ x: 529, cls: 'fajr', letter: 'F' }, { x: 544, cls: 'dhuhr', letter: 'D' }];
+---
+
+<figure class="anim" data-anim="four-choices" data-state="printed">
+  <svg
+    viewBox="0 0 560 196"
+    role="img"
+    aria-label="One flight bar, four ways a prayer app could answer. The bar runs the 15-hour-50-minute flight from Newark, departing 9:00 pm on December 20, to Hong Kong, landing 1:50 am on December 22. A dashed, shaded stretch of the bar marks the hours where the ground below has no sunrise at all that day, and a thin dashed notch marks 09:01 UTC, the instant the app declares all five prayers due. Small check marks show Maghrib and Isha already prayed in Newark before boarding, and Fajr at 5:40 and Dhuhr at 12:24 prayed in Hong Kong after landing — all real, unflagged times. Four switchable answers: following the printed times leaves every prayer time behind the aircraft the moment it finally exists; keeping Newark's clock spaces the five prayers like an ordinary Newark day, but a strip showing the actual sky outside contradicts every one of them; waiting for Hong Kong's times shows the crossed day's five prayers only as faint outlines — no prayer falls due for more than twenty-two hours; what Isfar does is declare all five due together at the 09:01 crossing, each marked as an estimate."
+  >
+    <text class="corner" x="12" y="18">EWR → HKG · 21 DECEMBER · FOUR ANSWERS</text>
+
+    <!-- the flight bar, drawn on scroll-in -->
+    <line class="bar" x1={BAR.x1} y1={BAR.y} x2={BAR.x2} y2={BAR.y} />
+
+    <!-- the no-sunrise cap on the bar (dashed --sky-isha idiom) -->
+    <g class="sl sl-cap">
+      <rect class="cap" x={CAP.x1} y="104" width={+(CAP.x2 - CAP.x1).toFixed(1)} height="14" />
+    </g>
+
+    <!-- the crossing: 09:01Z notch through the bar -->
+    <g class="sl sl-notch">
+      <line class="notch" x1={NOTCH} y1="46" x2={NOTCH} y2="126" />
+      <text class="notch-lbl" x={NOTCH} y="40" text-anchor="middle">09:01Z</text>
+    </g>
+
+    <!-- anchors + cap label, below the bar -->
+    <g class="sl sl-labels">
+      <text class="anchor" x={BAR.x1} y="136" text-anchor="start">Newark 9:00 pm</text>
+      <text class="cap-lbl" x={CAP_MID} y="136" text-anchor="middle">no-sunrise ground below</text>
+      <text class="anchor" x={BAR.x2} y="136" text-anchor="end">Hong Kong 1:50 am</text>
+    </g>
+
+    <!-- already prayed: Newark Maghrib + Isha before boarding -->
+    <g class="sl sl-gl">
+      <g class="gnd gnd-l">
+        {GND_L.map((g) => (
+          <g class={`p-${g.cls}`}>
+            <text class="gl" x={g.x} y="88" text-anchor="middle">{g.letter}</text>
+            <path class="chk" d={CHK(g.x)} />
+          </g>
+        ))}
+      </g>
+    </g>
+
+    <!-- real and unflagged after landing: Hong Kong Fajr + Dhuhr -->
+    <g class="sl sl-gr">
+      <g class="gnd gnd-r">
+        {GND_R.map((g) => (
+          <g class={`p-${g.cls}`}>
+            <text class="gl" x={g.x} y="88" text-anchor="middle">{g.letter}</text>
+            <path class="chk" d={CHK(g.x)} />
+          </g>
+        ))}
+      </g>
+    </g>
+
+    <!-- ======== the four answers (exactly one visible, crossfaded) ======== -->
+    <g class="states">
+
+      <!-- 1 · follow the printed times -->
+      <g class="st st-printed">
+        {S1.map((x, i) => (
+          <g class={`ptick pt${i} p-${CLS[i]}`}>
+            <line class="tk" x1={x} y1="86" x2={x} y2="104" />
+            <text class="ltr" x={x} y="78" text-anchor="middle">{LETTERS[i]}</text>
+          </g>
+        ))}
+        <g class="plane" transform={`translate(${CAP_MID} ${BAR.y})`}>
+          <circle r="4" />
+        </g>
+        <text class="status" x="280" y="168" text-anchor="middle">every time, when it finally exists, has already gone by</text>
+      </g>
+
+      <!-- 2 · keep Newark's clock -->
+      <g class="st st-newark">
+        <rect class="strip-night" x="40" y="56" width={+(CAP.x1 - 40).toFixed(1)} height="8" />
+        <rect class="strip-cap" x={CAP.x1} y="56" width={+(CAP.x2 - CAP.x1).toFixed(1)} height="8" />
+        <rect class="strip-day" x={CAP.x2} y="56" width={+(520 - CAP.x2).toFixed(1)} height="8" />
+        <text class="strip-lbl" x="44" y="51" text-anchor="start">night</text>
+        <text class="strip-lbl" x="516" y="51" text-anchor="end">daylight</text>
+        {S2.map((x, i) => (
+          <g class={`nt p-${CLS[i]}`}>
+            <line class="tk tall" x1={x} y1="64" x2={x} y2="104" />
+            <text class="ltr" x={x + 4.5} y="87" text-anchor="start">{LETTERS[i]}</text>
+          </g>
+        ))}
+        {S2.map((x) => <path class="xm" d={XMARK(x)} />)}
+        <text class="status" x="280" y="162" text-anchor="middle">a borrowed clock from a sky six thousand kilometres behind —</text>
+        <text class="status" x="280" y="180" text-anchor="middle">and thirteen hours adrift on landing</text>
+      </g>
+
+      <!-- 3 · wait for Hong Kong's times -->
+      <g class="st st-wait">
+        {S1.map((x, i) => (
+          <g class={`gt p-${CLS[i]}`}>
+            <line class="tk ghost" x1={x} y1="86" x2={x} y2="104" />
+            <text class="ltr" x={x} y="78" text-anchor="middle">{LETTERS[i]}</text>
+          </g>
+        ))}
+        <text class="status" x="280" y="168" text-anchor="middle">no prayer falls due for more than twenty-two hours</text>
+      </g>
+
+      <!-- 4 · what Isfar does -->
+      <g class="st st-isfar">
+        {FAN.map((f) => (
+          <g class={`p-${f.cls}`}>
+            <line class="tk" x1={f.x1} y1={f.y1} x2={f.x2} y2={f.y2} />
+            <text class="ltr" x={f.lx} y={f.ly} text-anchor="middle">{f.letter}</text>
+            <text class="tilde" x={f.tx} y={f.ty} text-anchor="middle">~</text>
+          </g>
+        ))}
+        <text class="status" x="280" y="168" text-anchor="middle">all five due together at the crossing — each marked as an estimate</text>
+      </g>
+    </g>
+  </svg>
+
+  <div class="anim-controls">
+    <div class="anim-seg" role="group" aria-label="Four ways an app could answer">
+      <button class="anim-btn" type="button" data-state="printed" aria-pressed="true">Follow the printed times</button>
+      <button class="anim-btn" type="button" data-state="newark" aria-pressed="false">Keep Newark&rsquo;s clock</button>
+      <button class="anim-btn" type="button" data-state="wait" aria-pressed="false">Wait for Hong Kong&rsquo;s times</button>
+      <button class="anim-btn" type="button" data-state="isfar" aria-pressed="false">What Isfar does</button>
+    </div>
+  </div>
+
+  <figcaption>
+    Four answers an app could give, each with a cost you can watch — times already past,
+    times from a distant sky, or a day with no prayer in it. The fourth is the one before you.
+  </figcaption>
+</figure>
+
+<style>
+  svg { width: 100%; height: auto; display: block; }
+  svg text { font-size: 11.5px; }
+
+  /* four longish labels: let the segment wrap on phones (no button restyling) */
+  .anim-seg { flex-wrap: wrap; justify-content: center; }
+
+  /* prayer palette */
+  .p-fajr    { --c: var(--sky-fajr); }
+  .p-dhuhr   { --c: var(--sky-dhuhr); }
+  .p-asr     { --c: var(--sky-asr); }
+  .p-maghrib { --c: var(--sky-maghrib); }
+  .p-isha    { --c: var(--sky-isha); }
+
+  .corner { fill: var(--text-mute); font-size: 11px; letter-spacing: 0.08em; opacity: 0.75; }
+
+  /* ---- shared stage ------------------------------------------------------ */
+  .bar {
+    stroke: oklch(from var(--text-mute) l c h / 0.18);
+    stroke-width: 14;
+    stroke-linecap: round;
+    stroke-dasharray: 482;
+    stroke-dashoffset: 482;
+    transition: stroke-dashoffset 1.2s ease-in-out 0.15s;
+  }
+  figure.in .bar { stroke-dashoffset: 0; }
+
+  .cap {
+    fill: oklch(from var(--sky-isha) l c h / 0.18);
+    stroke: oklch(from var(--sky-isha) l c h / 0.55);
+    stroke-width: 1.1;
+    stroke-dasharray: 4 5;
+  }
+  .cap-lbl {
+    fill: var(--text-mute);
+    font-family: "Newsreader", serif;
+    font-style: italic;
+    font-size: 11.5px;
+  }
+
+  .notch {
+    stroke: oklch(from var(--text-soft) l c h / 0.6);
+    stroke-width: 1.2;
+    stroke-dasharray: 3 4;
+  }
+  .notch-lbl { fill: var(--text-soft); font-size: 11px; letter-spacing: 0.05em; opacity: 0.85; }
+
+  .anchor { fill: var(--text-mute); font-size: 11.5px; }
+
+  /* done-ticks: letter + small check, prayer-coloured, quiet */
+  .gnd { opacity: 0.8; transition: opacity 0.4s ease-in-out; }
+  .gl { fill: var(--c); font-size: 11.5px; font-weight: 600; }
+  .chk { fill: none; stroke: var(--c); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+  figure[data-state="wait"] .gnd-r { opacity: 1; }
+  figure[data-state="wait"] .gnd-r .gl {
+    filter: drop-shadow(0 0 calc(3px * var(--glow, 1)) oklch(from var(--c) l c h / 0.6));
+  }
+
+  /* stage reveal: bar draws, then the rest fades in, staggered */
+  .sl { opacity: 0; transition: opacity 0.7s ease-in-out; }
+  .sl-cap    { transition-delay: 0.9s; }
+  .sl-notch  { transition-delay: 1.15s; }
+  .sl-labels { transition-delay: 1.3s; }
+  .sl-gl     { transition-delay: 1.5s; }
+  .sl-gr     { transition-delay: 1.62s; }
+  figure.in .sl { opacity: 1; }
+  .states { opacity: 0; transition: opacity 0.8s ease-in-out 1.8s; }
+  figure.in .states { opacity: 1; }
+
+  /* ---- the four answers: crossfade ~0.4s, exactly one visible ------------ */
+  .st { opacity: 0; transition: opacity 0.4s ease-in-out; }
+  figure[data-state="printed"] .st-printed,
+  figure[data-state="newark"]  .st-newark,
+  figure[data-state="wait"]    .st-wait,
+  figure[data-state="isfar"]   .st-isfar { opacity: 1; }
+
+  .tk { stroke: var(--c); stroke-width: 2; stroke-linecap: round; }
+  .ltr { fill: var(--c); font-size: 11.5px; font-weight: 600; }
+  .status {
+    fill: var(--text-soft);
+    font-family: "Newsreader", serif;
+    font-style: italic;
+    font-size: 13.5px;
+  }
+
+  /* ---- 1 · printed times: ticks bloom behind the drifting plane ---------- */
+  .plane circle {
+    fill: var(--accent);
+    filter: drop-shadow(0 0 calc(3px * var(--glow, 1)) oklch(from var(--accent) l c h / 0.55));
+  }
+  /* static pose (reduced motion / no animation): plane mid-cap, the three
+     ticks behind it in a falling fade, the two ahead not yet in existence */
+  .pt0 { opacity: 0.28; }
+  .pt1 { opacity: 0.4; }
+  .pt2 { opacity: 0.55; }
+  .pt3, .pt4 { opacity: 0; }
+
+  figure.in[data-state="printed"] .plane { animation: four-choices-plane 12s linear 0.45s infinite both; }
+  figure.in[data-state="printed"] .pt0 { animation: four-choices-pt0 12s linear 0.45s infinite both; }
+  figure.in[data-state="printed"] .pt1 { animation: four-choices-pt1 12s linear 0.45s infinite both; }
+  figure.in[data-state="printed"] .pt2 { animation: four-choices-pt2 12s linear 0.45s infinite both; }
+  figure.in[data-state="printed"] .pt3 { animation: four-choices-pt3 12s linear 0.45s infinite both; }
+  figure.in[data-state="printed"] .pt4 { animation: four-choices-pt4 12s linear 0.45s infinite both; }
+
+  /* plane: Newark (x 40) → Hong Kong (x 520) over 0–90%, then a quiet reset */
+  @keyframes four-choices-plane {
+    0%        { transform: translate(40px, 111px); opacity: 0; }
+    2%        { opacity: 1; }
+    86%       { opacity: 1; }
+    90%, 100% { transform: translate(520px, 111px); opacity: 0; }
+  }
+  /* each tick appears the moment the plane passes it — already in the past —
+     then fades as it recedes. appear% = minute/950 × 90 (minutes 255…535). */
+  @keyframes four-choices-pt0 {
+    0%, 23.2% { opacity: 0; } 25.7% { opacity: 0.95; } 34.2% { opacity: 0.4; }
+    88% { opacity: 0.3; } 100% { opacity: 0; }
+  }
+  @keyframes four-choices-pt1 {
+    0%, 29.8% { opacity: 0; } 32.3% { opacity: 0.95; } 40.8% { opacity: 0.4; }
+    88% { opacity: 0.3; } 100% { opacity: 0; }
+  }
+  @keyframes four-choices-pt2 {
+    0%, 36.4% { opacity: 0; } 38.9% { opacity: 0.95; } 47.4% { opacity: 0.4; }
+    88% { opacity: 0.3; } 100% { opacity: 0; }
+  }
+  @keyframes four-choices-pt3 {
+    0%, 43.1% { opacity: 0; } 45.6% { opacity: 0.95; } 54.1% { opacity: 0.4; }
+    88% { opacity: 0.3; } 100% { opacity: 0; }
+  }
+  @keyframes four-choices-pt4 {
+    0%, 49.7% { opacity: 0; } 52.2% { opacity: 0.95; } 60.7% { opacity: 0.4; }
+    88% { opacity: 0.3; } 100% { opacity: 0; }
+  }
+
+  /* ---- 2 · Newark's clock: the sky-strip disagrees ------------------------ */
+  .strip-night { fill: oklch(from var(--sky-isha) l c h / 0.35); }
+  .strip-cap {
+    fill: oklch(from var(--sky-isha) l c h / 0.12);
+    stroke: oklch(from var(--sky-isha) l c h / 0.55);
+    stroke-width: 1;
+    stroke-dasharray: 3 4;
+  }
+  .strip-day { fill: oklch(from var(--sky-dhuhr) l c h / 0.35); }
+  .strip-lbl { fill: var(--text-mute); font-size: 11px; opacity: 0.75; }
+  .nt { opacity: 0.9; }
+  .tk.tall { stroke-width: 1.8; }
+  .xm { fill: none; stroke: var(--text-soft); stroke-width: 1.4; stroke-linecap: round; opacity: 0.9; }
+
+  /* ---- 3 · wait for Hong Kong: ghosts, struck through --------------------- */
+  .gt { opacity: 0.35; }
+  .tk.ghost { stroke-dasharray: 2 3; }
+
+  /* ---- 4 · what Isfar does: the fan at 09:01Z ----------------------------- */
+  .tilde { fill: var(--text-mute); font-size: 11px; }
+
+  /* ---- reduced motion: static final pose, instant swaps ------------------- */
+  @media (prefers-reduced-motion: reduce) {
+    .bar { stroke-dashoffset: 0; transition: none; }
+    .sl, .states { transition: none; }
+    .st, .gnd { transition-duration: 0.01s; }
+    figure.in[data-state="printed"] .plane,
+    figure.in[data-state="printed"] .pt0,
+    figure.in[data-state="printed"] .pt1,
+    figure.in[data-state="printed"] .pt2,
+    figure.in[data-state="printed"] .pt3,
+    figure.in[data-state="printed"] .pt4 { animation: none; }
+  }
+</style>
+
+<script>
+  (function () {
+    var fig = document.querySelector('[data-anim="four-choices"]');
+    if (!fig) return;
+
+    var btns = fig.querySelectorAll('.anim-btn[data-state]');
+    function pick (btn) {
+      fig.setAttribute('data-state', btn.getAttribute('data-state'));
+      for (var i = 0; i < btns.length; i++) {
+        btns[i].setAttribute('aria-pressed', String(btns[i] === btn));
+      }
+    }
+    for (var i = 0; i < btns.length; i++) {
+      (function (b) { b.addEventListener('click', function () { pick(b); }); })(btns[i]);
+    }
+
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      fig.classList.add('in'); // CSS renders the static pose; swaps are instant
+      return;
+    }
+    if (!('IntersectionObserver' in window)) {
+      fig.classList.add('in');
+      return;
+    }
+    var io = new IntersectionObserver(function (entries) {
+      for (var j = 0; j < entries.length; j++) {
+        if (entries[j].isIntersecting) {
+          fig.classList.add('in');
+          io.disconnect();
+        }
+      }
+    }, { threshold: 0.35 });
+    io.observe(fig);
+  })();
+</script>

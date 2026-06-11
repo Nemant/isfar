@@ -124,6 +124,14 @@ describe('transpolar EWR→HKG (great circle over the Arctic)', () => {
     expect(aloft.every(p => p.estimated)).toBe(true);
     expect(aloft.find(p => p.key === 'dhuhr').estimateBasis).toBe('method'); // real transit, flagged
     expect(aloft.filter(p => p.key !== 'dhuhr').every(p => p.estimateBasis === 'borrow60')).toBe(true);
+    // the exact instants quoted by /guide/the-skipped-day/ — that page promises
+    // these are pinned here, so a policy change cannot silently strand its table
+    expect(aloft[0].ms).toBe(Date.parse('2026-12-21T09:01:00Z'));            // the crossing
+    const ground = (key, status) => m.prayers.find(p => p.key === key && p.status === status).ms;
+    expect(ground('maghrib', 'before')).toBe(Date.parse('2026-12-20T21:32:00Z')); // EWR 16:32 EST
+    expect(ground('isha', 'before')).toBe(Date.parse('2026-12-20T23:05:00Z'));    // EWR 18:05 EST
+    expect(ground('fajr', 'after')).toBe(Date.parse('2026-12-21T21:40:00Z'));     // HKG 05:40 HKT
+    expect(ground('dhuhr', 'after')).toBe(Date.parse('2026-12-22T04:24:00Z'));    // HKG 12:24 HKT
   });
 });
 

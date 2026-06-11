@@ -511,3 +511,5 @@ export function compute(raw, opts) {
 }
 
 export const ISFAR_TEST = { makeParams, daySchedule };
+// build-time consumer: the guide pages sample the flight path for their figures
+export { greatCircle };

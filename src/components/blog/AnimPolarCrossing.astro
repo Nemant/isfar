@@ -1,0 +1,372 @@
+---
+/*
+ * "The polar crossing" — EWR→HKG, 21 December 2026, seen from directly above
+ * the North Pole. Azimuthal-equidistant: r = K·(90−lat), pole at center. The
+ * map is rotated (ROT added before projecting) so the route reads left-to-
+ * right — Newark lower-left, Hong Kong at the right — with the 180° meridian
+ * rising near-vertically through the top, crossing the route at 83°N. The
+ * great circle itself comes from the engine (never hand-rolled); the flight
+ * facts (cap minutes 225–575 on the 5-min grid, cliff at minute 421 = 09:01 UTC) are the
+ * engine-verified numbers from the article, baked as sample indices.
+ */
+import { greatCircle } from '../../lib/engine.js';
+
+const CX = 280, CY = 255, K = 3.45, ROT = 192, N = 120, D2R = Math.PI / 180;
+const EWR = { lat: 40.69, lon: -74.17 };
+const HKG = { lat: 22.31, lon: 113.91 };
+const R = (lat) => K * (90 - lat);
+const RIM = R(30);                       // outermost graticule ring = map edge
+const ARCTIC_R = +R(66.56).toFixed(1);   // Arctic Circle
+const CAP_R = +R(67.4).toFixed(1);       // no-sunrise-today boundary, 21 Dec
+
+const proj = (lat, lon) => {
+  const r = R(lat), a = (ROT - lon) * D2R;
+  return [+(CX + r * Math.sin(a)).toFixed(1), +(CY - r * Math.cos(a)).toFixed(1)];
+};
+
+/* the route: 121 equal-time samples of the engine's great circle */
+const PTS = Array.from({ length: N + 1 }, (_, i) => {
+  const p = greatCircle(EWR.lat, EWR.lon, HKG.lat, HKG.lon, i / N);
+  return proj(p.lat, p.lon);
+});
+const ROUTE_D = 'M ' + PTS.map(([x, y]) => `${x} ${y}`).join(' L ');
+let len = 0;
+for (let i = 1; i <= N; i++) len += Math.hypot(PTS[i][0] - PTS[i - 1][0], PTS[i][1] - PTS[i - 1][1]);
+const ROUTE_LEN = Math.ceil(len) + 2;
+
+/* minute of the 950-minute flight → fractional sample index / screen point */
+const idx = (min) => +((min / 950) * N).toFixed(3);
+const at = (min) => {
+  const f = (min / 950) * N, a = Math.floor(f), k = f - a;
+  const p = PTS[a], q = PTS[Math.min(a + 1, N)];
+  return [+(p[0] + (q[0] - p[0]) * k).toFixed(1), +(p[1] + (q[1] - p[1]) * k).toFixed(1)];
+};
+const CLIFF = at(421);                       // all five prayers due · 09:01 UTC
+const CLIFF_IDX = idx(421);                  // 53.179
+const CAP_IDX = [idx(225), idx(575)];        // inside the no-sunrise cap (engine: kind === 'polarnight')
+
+/* graticule */
+const LATS = [30, 45, 60, 75].map((l) => ({ r: +R(l).toFixed(1), lbl: `${l}°`, ly: +(CY + R(l) + 11).toFixed(1) }));
+const MERIDIANS = [-150, -120, -90, -60, -30, 0, 30, 60, 90, 120, 150].map((lon) => {
+  const a = (ROT - lon) * D2R;
+  return {
+    x1: +(CX + ARCTIC_R * Math.sin(a)).toFixed(1), y1: +(CY - ARCTIC_R * Math.cos(a)).toFixed(1),
+    x2: +(CX + RIM * Math.sin(a)).toFixed(1),      y2: +(CY - RIM * Math.cos(a)).toFixed(1),
+  };
+});
+const aDL = (ROT - 180) * D2R;               // the date line, drawn from the pole
+const DL_END = [+(CX + RIM * Math.sin(aDL)).toFixed(1), +(CY - RIM * Math.cos(aDL)).toFixed(1)];
+
+/* the moment: five tiny ticks fanning above the cliff point, fajr→isha */
+const TICKS = [-48, -24, 0, 24, 48].map((deg, i) => {
+  const a = deg * D2R;
+  return {
+    cls: ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha'][i],
+    x1: +(CLIFF[0] + 10 * Math.sin(a)).toFixed(1), y1: +(CLIFF[1] - 10 * Math.cos(a)).toFixed(1),
+    x2: +(CLIFF[0] + 18 * Math.sin(a)).toFixed(1), y2: +(CLIFF[1] - 18 * Math.cos(a)).toFixed(1),
+  };
+});
+---
+
+<figure
+  class="anim"
+  data-anim="polar-crossing"
+  data-pts={JSON.stringify(PTS)}
+  data-cliff={CLIFF_IDX}
+  data-cap={CAP_IDX.join(' ')}
+  style={`--pc-route-len:${ROUTE_LEN}`}
+>
+  <svg
+    viewBox="0 0 560 520"
+    role="img"
+    aria-label="A map of the northern hemisphere seen from directly above the North Pole, with latitude rings at 30, 45, 60 and 75 degrees. The flight from Newark to Hong Kong on 21 December crosses it as a nearly straight line, passing about 700 kilometres from the pole. A shaded disc around the pole — everywhere north of about 67 degrees — marks ground where the sun does not rise at all that day; the route spends almost six hours inside it. The 180-degree meridian, the date line, rises through the top of the map and crosses the route at 83 degrees north. At almost the same point, marked with a small ring and five coloured ticks, the app declares all five prayers due at one instant: 09:01 UTC, 4:01 am in Newark, 5:01 pm in Hong Kong."
+  >
+    <!-- graticule: latitude rings, quiet meridians, a small label column -->
+    <g class="layer l-grat">
+      <text class="corner" x="12" y="20">EWR → HKG · 21 DECEMBER · 15 H 50 M</text>
+      {LATS.map((l) => <circle class="grat-c" cx={CX} cy={CY} r={l.r} />)}
+      {MERIDIANS.map((m) => <line class="grat-m" x1={m.x1} y1={m.y1} x2={m.x2} y2={m.y2} />)}
+      {LATS.map((l) => <text class="lat-lbl" x={CX} y={l.ly} text-anchor="middle">{l.lbl}</text>)}
+    </g>
+
+    <!-- Arctic Circle -->
+    <g class="layer l-arctic">
+      <circle class="arctic-c" cx={CX} cy={CY} r={ARCTIC_R} />
+      <text class="arctic-lbl" x="214" y="311" text-anchor="end">Arctic Circle</text>
+    </g>
+
+    <!-- THE CAP: where the sun does not rise on 21 December -->
+    <g class="layer l-cap">
+      <circle class="cap-fill" cx={CX} cy={CY} r={CAP_R} />
+      <circle class="cap-rim" cx={CX} cy={CY} r={CAP_R} />
+      <text class="cap-lbl" x={CX} y="282" text-anchor="middle">no sunrise here today</text>
+      <text class="cap-date" x={CX} y="300" text-anchor="middle">21 December</text>
+    </g>
+
+    <!-- the pole itself -->
+    <g class="layer l-pole">
+      <line class="pole-mark" x1={CX - 4} y1={CY} x2={CX + 4} y2={CY} />
+      <line class="pole-mark" x1={CX} y1={CY - 4} x2={CX} y2={CY + 4} />
+      <text class="pole-lbl" x={CX + 8} y={CY + 4}>North Pole</text>
+    </g>
+
+    <!-- the 180° meridian, slightly stronger than the graticule -->
+    <g class="layer l-dl">
+      <line class="dl" x1={CX} y1={CY} x2={DL_END[0]} y2={DL_END[1]} />
+      <text class="dl-lbl" x="330" y="42">180° — the date line</text>
+    </g>
+
+    <!-- endpoints -->
+    <g class="layer city c0">
+      <circle class="dot" cx={PTS[0][0]} cy={PTS[0][1]} r="3.5" />
+      <text class="city-lbl" x={PTS[0][0]} y="288" text-anchor="middle">EWR · Newark</text>
+      <text class="city-sub" x={PTS[0][0]} y="304" text-anchor="middle">departs 9:00 pm, Dec 20</text>
+    </g>
+    <g class="layer city c1">
+      <circle class="dot" cx={PTS[N][0]} cy={PTS[N][1]} r="3.5" />
+      <text class="city-lbl" x="552" y="228" text-anchor="end">HKG · Hong Kong</text>
+      <text class="city-sub" x="552" y="244" text-anchor="end">lands 1:50 am, Dec 22</text>
+    </g>
+
+    <!-- the route, revealed on scroll-in -->
+    <path class="route" d={ROUTE_D} />
+
+    <!-- the aircraft (script-driven; parked at the cliff point for reduced motion) -->
+    <g class="plane" transform={`translate(${CLIFF[0]} ${CLIFF[1]})`}>
+      <circle r="4" />
+    </g>
+
+    <!-- THE MOMENT: ring + five sky-coloured ticks + serif label -->
+    <g class="moment">
+      {TICKS.map((t) => <line class={`tick t-${t.cls}`} x1={t.x1} y1={t.y1} x2={t.x2} y2={t.y2} />)}
+      <path class="m-leader" d="M 309 174 L 302.5 224.5" />
+      <text class="m-lbl" x="314" y="150">the app marks all five prayers due here</text>
+      <text class="m-sub" x="314" y="168">— 09:01 UTC</text>
+    </g>
+    <circle class="pulse" cx={CLIFF[0]} cy={CLIFF[1]} r="13" />
+  </svg>
+
+  <div class="anim-controls">
+    <button class="anim-btn" type="button">Replay</button>
+  </div>
+
+  <figcaption>
+    The flight seen from directly above the North Pole — a near-straight line that spends
+    almost six hours over ground where the sun never rises on 21&nbsp;December, and crosses
+    the date line at 83°N. The marked ring is the moment this page exists to ask about.
+  </figcaption>
+</figure>
+
+<style>
+  svg { width: 100%; height: auto; display: block; }
+  svg text { font-size: 13px; }
+
+  /* quiet bones */
+  .corner { fill: var(--text-mute); font-size: 11px; letter-spacing: 0.08em; opacity: 0.75; }
+  .grat-c { fill: none; stroke: var(--text-mute); stroke-width: 1; opacity: 0.12; }
+  .grat-m { stroke: var(--text-mute); stroke-width: 1; opacity: 0.07; }
+  .lat-lbl { fill: var(--text-mute); font-size: 11px; opacity: 0.65; letter-spacing: 0.06em; }
+  .arctic-c {
+    fill: none;
+    stroke: oklch(from var(--text-mute) l c h / 0.4);
+    stroke-width: 1;
+    stroke-dasharray: 5 5;
+  }
+  .arctic-lbl { fill: var(--text-mute); opacity: 0.6; font-size: 11.5px; letter-spacing: 0.05em; }
+
+  /* the cap: no sunrise at the ground beneath, this one day */
+  .cap-fill { fill: oklch(from var(--sky-isha) l c h / 0.1); }
+  .cap-rim {
+    fill: none;
+    stroke: var(--sky-isha);
+    stroke-width: 1.2;
+    stroke-dasharray: 4 5;
+    opacity: 0.55;
+    transition: opacity 0.8s ease-in-out;
+  }
+  .cap-lbl {
+    fill: var(--text-soft);
+    font-family: "Newsreader", serif;
+    font-style: italic;
+    font-size: 13px;
+  }
+  .cap-date {
+    fill: var(--text-mute);
+    font-family: "Newsreader", serif;
+    font-style: italic;
+    font-size: 11.5px;
+  }
+
+  .pole-mark { stroke: var(--text-mute); stroke-width: 1.2; opacity: 0.7; }
+  .pole-lbl { fill: var(--text-mute); font-size: 11px; opacity: 0.7; letter-spacing: 0.05em; }
+
+  /* the date line */
+  .dl {
+    stroke: oklch(from var(--text-soft) l c h / 0.55);
+    stroke-width: 1.3;
+    stroke-dasharray: 7 5;
+  }
+  .dl-lbl { fill: var(--text-soft); font-size: 12px; letter-spacing: 0.04em; opacity: 0.85; }
+
+  /* endpoints */
+  .dot { fill: var(--text-soft); }
+  .city-lbl { fill: var(--text-mute); }
+  .city-sub { fill: var(--text-mute); font-size: 11.5px; opacity: 0.8; }
+
+  /* the route: dashoffset reveal, accent glow */
+  .route {
+    fill: none;
+    stroke: var(--accent);
+    stroke-width: 2;
+    stroke-linecap: round;
+    filter: drop-shadow(0 0 calc(3px * var(--glow, 1)) oklch(from var(--accent) l c h / 0.5));
+    stroke-dasharray: var(--pc-route-len);
+    stroke-dashoffset: var(--pc-route-len);
+    transition: stroke-dashoffset 2.5s ease 0.9s;
+  }
+  figure.in .route { stroke-dashoffset: 0; }
+
+  /* the aircraft */
+  .plane { opacity: 0; transition: opacity 0.4s ease-in-out; }
+  figure.flying .plane { opacity: 1; }
+  .plane circle {
+    fill: var(--accent);
+    filter: drop-shadow(0 0 calc(3px * var(--glow, 1)) oklch(from var(--accent) l c h / 0.55));
+  }
+  figure.incap .cap-rim { opacity: 0.95; }
+
+  /* the moment */
+  .moment { opacity: 0; transition: opacity 0.7s ease-in-out 0.15s; }
+  figure.fired .moment { opacity: 1; }
+  .tick { stroke-width: 2; stroke-linecap: round; }
+  .t-fajr    { stroke: var(--sky-fajr); }
+  .t-dhuhr   { stroke: var(--sky-dhuhr); }
+  .t-asr     { stroke: var(--sky-asr); }
+  .t-maghrib { stroke: var(--sky-maghrib); }
+  .t-isha    { stroke: var(--sky-isha); }
+  .m-leader { stroke: oklch(from var(--text-mute) l c h / 0.4); stroke-width: 0.75; fill: none; }
+  .m-lbl {
+    fill: var(--text-soft);
+    font-family: "Newsreader", serif;
+    font-style: italic;
+    font-size: 13.5px;
+  }
+  .m-sub {
+    fill: var(--text-mute);
+    font-family: "Newsreader", serif;
+    font-style: italic;
+    font-size: 12.5px;
+  }
+  .pulse {
+    fill: none;
+    stroke: var(--accent);
+    stroke-width: 1.5;
+    opacity: 0;
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+  figure.fired .pulse { animation: polar-crossing-pulse 1.8s ease-out forwards; }
+  @keyframes polar-crossing-pulse {
+    from { transform: scale(0.15); opacity: 0.85; }
+    to   { transform: scale(1.7);  opacity: 0; }
+  }
+
+  /* entry: layers fade in staggered on scroll-in */
+  .layer { opacity: 0; transition: opacity 0.8s ease-in-out; }
+  .l-arctic { transition-delay: 0.15s; }
+  .l-cap { transition-delay: 0.35s; }
+  .l-pole { transition-delay: 0.5s; }
+  .l-dl { transition-delay: 0.6s; }
+  .c0 { transition-delay: 0.8s; }
+  .c1 { transition-delay: 0.95s; }
+  figure.in .layer { opacity: 1; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .layer { opacity: 1; transition: none; }
+    .route { stroke-dashoffset: 0; transition: none; }
+    .plane { opacity: 1; transition: none; }        /* parked at the cliff point */
+    .moment { opacity: 1; transition: none; }
+    .pulse { opacity: 0.45; }
+    figure.fired .pulse { animation: none; }
+    .cap-rim { transition: none; }
+  }
+</style>
+
+<script>
+  (function () {
+    var fig = document.querySelector('[data-anim="polar-crossing"]');
+    if (!fig) return;
+    var plane = fig.querySelector('.plane');
+    var pts = JSON.parse(fig.getAttribute('data-pts'));
+    var LAST = pts.length - 1;
+    var CLIFF_IDX = parseFloat(fig.getAttribute('data-cliff'));
+    var cap = fig.getAttribute('data-cap').split(' ').map(parseFloat);
+    var DUR = 9000;
+    var raf = 0, timer = 0;
+
+    function setPlane(i) {
+      if (i < 0) i = 0;
+      if (i > LAST) i = LAST;
+      var a = Math.min(Math.floor(i), LAST - 1), k = i - a;
+      var x = pts[a][0] + (pts[a + 1][0] - pts[a][0]) * k;
+      var y = pts[a][1] + (pts[a + 1][1] - pts[a][1]) * k;
+      plane.setAttribute('transform', 'translate(' + x.toFixed(1) + ' ' + y.toFixed(1) + ')');
+    }
+
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      // static final pose: CSS draws the route, parks the plane at the cliff
+      // (its markup transform), and renders the pulse + ticks + label as-is.
+      // Replay stays wired but only re-asserts the pose (no sweep).
+      fig.classList.add('in');
+      var rbtn = fig.querySelector('.anim-btn');
+      if (rbtn) rbtn.addEventListener('click', function () { fig.classList.add('in'); });
+      return;
+    }
+
+    function fly() {
+      cancelAnimationFrame(raf);
+      fig.classList.remove('fired');
+      fig.classList.remove('incap');
+      setPlane(0);
+      void fig.offsetWidth; /* restart the pulse animation on replay */
+      fig.classList.add('flying');
+      var t0 = performance.now();
+      var fired = false;
+      function step(now) {
+        var p = (now - t0) / DUR;
+        if (p > 1) p = 1;
+        var i = p * LAST;
+        setPlane(i);
+        fig.classList.toggle('incap', i >= cap[0] && i <= cap[1]);
+        if (!fired && i >= CLIFF_IDX) {
+          fired = true;
+          fig.classList.add('fired'); /* the label stays after landing */
+        }
+        if (p < 1) raf = requestAnimationFrame(step);
+      }
+      raf = requestAnimationFrame(step);
+    }
+
+    var btn = fig.querySelector('.anim-btn');
+    if (btn) btn.addEventListener('click', function () {
+      clearTimeout(timer);
+      fig.classList.add('in');
+      fly();
+    });
+
+    function arm() {
+      fig.classList.add('in');
+      timer = setTimeout(fly, 3600); /* after the 2.5s route reveal (0.9s delay) */
+    }
+    if (!('IntersectionObserver' in window)) { arm(); return; }
+    var io = new IntersectionObserver(function (entries) {
+      for (var i = 0; i < entries.length; i++) {
+        if (entries[i].isIntersecting) {
+          io.disconnect();
+          arm();
+        }
+      }
+    }, { threshold: 0.35 });
+    io.observe(fig);
+  })();
+</script>

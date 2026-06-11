@@ -1,0 +1,489 @@
+---
+/*
+ * "The skipped day" — THE interactive. A scrubber over the real EWR→HKG
+ * flight of 21 December 2026. The reader drags; a cursor on a four-day
+ * solar-calendar tape tracks the aircraft's local mean solar datetime
+ * (utc + lon/15 h). Crossing the 180° meridian at 83°N the cursor leaps
+ * almost a whole day in a few minutes of slider — Monday 21 December, the
+ * day with no sunrise beneath the route, slips past the window — and the
+ * five prayer chips fill at once, all marked ~.
+ *
+ * Everything is engine data, computed here at build time: the flight model
+ * (compute), the cliff instant the five in-flight prayers share (found, not
+ * hardcoded), and 5-minute path samples [min, lat, lon, polarnight?] from
+ * greatCircle + daySchedule, serialized into a data- attribute for the
+ * script. The ground bookends (Newark Maghrib/Isha before, Hong Kong
+ * Fajr/Dhuhr after) come straight from the model's display strings.
+ */
+import { greatCircle, ISFAR_TEST, compute } from '../../lib/engine.js';
+
+const record = {
+  found: true,
+  airline: 'Cathay Pacific',
+  code: 'CX899',
+  aircraft: 'Boeing 777-300ER',
+  dateISO: '2026-12-21',
+  date: 'Monday, 21 December 2026',
+  from: { iata: 'EWR', city: 'Newark', airport: 'Newark Liberty',
+          lat: 40.69, lon: -74.17, tz: 'America/New_York', zone: 'EST', gmt: 'GMT-5' },
+  to:   { iata: 'HKG', city: 'Hong Kong', airport: 'Hong Kong Intl',
+          lat: 22.31, lon: 113.91, tz: 'Asia/Hong_Kong', zone: 'HKT', gmt: 'GMT+8' },
+  depUTC: '2026-12-21T02:00:00Z',
+  arrUTC: '2026-12-21T17:50:00Z'
+};
+const dep = Date.parse(record.depUTC);
+const TOTAL = Math.round((Date.parse(record.arrUTC) - dep) / 60000);   // 950
+
+const model = compute(record, { method: 'mwl', madhab: 'shafi' });
+
+/* the cliff: the one instant all five in-flight prayers share */
+const byMs = {};
+for (const p of model.prayers) {
+  if (p.status === 'inflight') (byMs[p.ms] = byMs[p.ms] || []).push(p.key);
+}
+const cliffRow = Object.entries(byMs).find(([, keys]) => keys.length === 5);
+if (!cliffRow) throw new Error('AnimSkippedDay: expected five in-flight prayers at one instant');
+const cliffMs = +cliffRow[0];
+const cliffMin = Math.round((cliffMs - dep) / 60000);                  // engine says 421
+
+/* path samples every 5 minutes: [minute, lat, lon, polar-night?] */
+const params = ISFAR_TEST.makeParams('mwl', 'shafi');
+const SAMPLES = [];
+for (let m = 0; m <= TOTAL; m += 5) {
+  const pos = greatCircle(record.from.lat, record.from.lon, record.to.lat, record.to.lon, m / TOTAL);
+  const s = ISFAR_TEST.daySchedule(pos.lat, pos.lon, dep + m * 60000, params, 'mwl');
+  SAMPLES.push([m, +pos.lat.toFixed(2), +pos.lon.toFixed(2), s.kind === 'polarnight' ? 1 : 0]);
+}
+
+/* ground bookends, straight from the model */
+const pick = (status, key) => model.prayers.find((p) => p.status === status && p.key === key);
+const G = {
+  maghrib: pick('before', 'maghrib').zones.EWR.time,   // 16:32
+  isha:    pick('before', 'isha').zones.EWR.time,      // 18:05
+  beforeDate: pick('before', 'maghrib').zones.EWR.date,
+  fajr:    pick('after', 'fajr').zones.HKG.time,       // 05:40
+  dhuhr:   pick('after', 'dhuhr').zones.HKG.time,      // 12:24
+  afterDate: pick('after', 'fajr').zones.HKG.date
+};
+
+/* formatting (mirrors the script exactly, so the baked pose = a render) */
+const pad = (n) => String(n).padStart(2, '0');
+const hm = (ms) => { const d = new Date(ms); return pad(d.getUTCHours()) + ':' + pad(d.getUTCMinutes()); };
+const DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const MONN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+/* the tape: four solar-calendar days around the flight date, 130 units each */
+const TAPE0 = Date.parse(record.dateISO + 'T00:00:00Z') - 2 * 86400000; // Sat 19 Dec 00:00 (solar)
+const BLOCKS = [0, 1, 2, 3].map((i) => {
+  const d = new Date(TAPE0 + i * 86400000);
+  return { x: 20 + i * 130, label: `${DOW[d.getUTCDay()]} ${d.getUTCDate()} ${MONN[d.getUTCMonth()]}` };
+});
+const solarX = (solar) => 20 + ((solar - TAPE0) / 86400000) * 130;
+
+/* the static pose (no-JS / reduced motion) = the cliff minute itself */
+const smp = SAMPLES[Math.round(cliffMin / 5)];
+const poseUtc = dep + cliffMin * 60000;
+const poseSolar = poseUtc + smp[2] * 240000;                 // + lon/15 hours
+const pd = new Date(poseSolar);
+const POSE = {
+  readout: `${DOW[pd.getUTCDay()]} ${pd.getUTCDate()} ${MONN[pd.getUTCMonth()]} · ${hm(poseSolar)}`,
+  aloft: `${Math.floor(cliffMin / 60)} h ${pad(cliffMin % 60)} m aloft`,
+  clocks: `Newark ${hm(poseUtc - 18000000)} · Hong Kong ${hm(poseUtc + 28800000)}`,
+  x: +solarX(poseSolar).toFixed(1),
+  block: Math.min(3, Math.floor((solarX(poseSolar) - 20) / 130))
+};
+const CLIFF_UTC = hm(cliffMs) + ' UTC';                      // "09:01 UTC"
+
+const CHIPS = ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha'].map((key, i) => ({
+  key, letter: 'FDAMI'[i], cx: 200 + i * 40
+}));
+---
+
+<figure
+  class="anim"
+  data-anim="skipped-day"
+  data-samples={JSON.stringify(SAMPLES)}
+  data-dep={dep}
+  data-cliff={cliffMin}
+  data-tape0={TAPE0}
+>
+  <svg
+    viewBox="0 0 560 346"
+    role="img"
+    aria-label="An interactive scrubber over the Newark to Hong Kong flight of 21 December 2026. A tape of four calendar days — Saturday 19 to Tuesday 22 December — shows the aircraft's own solar calendar, with a cursor at its local sun time. For the first seven hours the cursor barely moves, parked late on Sunday evening, while the cabin readout shows the hours aloft and both city clocks, and a dashed chip notes that the ground below is in polar night, where the sun will not rise that day. Crossing the 180-degree meridian at 83 degrees north, the cursor leaps almost a whole day in moments, from Sunday evening to Monday evening: Monday 21 December slips past the window unlived. At that crossing — 09:01 UTC, 4:01 am in Newark, 5:01 pm in Hong Kong, seven hours and one minute aloft — the app declares all five prayers, Fajr, Dhuhr, Asr, Maghrib and Isha, due at one instant, every chip filling at once and marked with a tilde as an estimate. On the ground before departure Newark's Maghrib was 16:32 and Isha 18:05; after landing Hong Kong's Fajr is 05:40 and Dhuhr 12:24 — real, unflagged times either side of the crossing."
+  >
+    <!-- header: corner label + the big solar readout -->
+    <g class="layer l-head">
+      <text class="corner" x="12" y="20">EWR → HKG · 21 DECEMBER · THE AIRCRAFT’S SOLAR CALENDAR</text>
+      <text class="ro-main" x="280" y="58" text-anchor="middle">{POSE.readout}</text>
+      <text class="ro-sub" x="280" y="76" text-anchor="middle">sun time at the aircraft</text>
+    </g>
+
+    <!-- the tape: four solar days, the leap flash, the cursor -->
+    <g class="layer l-tape">
+      {BLOCKS.map((b, i) => (
+        <g class:list={['day-block', { cur: i === POSE.block }]}>
+          <rect x={b.x} y="94" width="127" height="44" rx="8" />
+          <text x={b.x + 63.5} y="121" text-anchor="middle">{b.label}</text>
+        </g>
+      ))}
+      <rect class="leap-flash" x="0" y="94" width="0" height="44" rx="8" />
+      <g class="sd-cursor" transform={`translate(${POSE.x} 0)`}>
+        <polygon points="-5,85 5,85 0,92" />
+        <line x1="0" x2="0" y1="92" y2="141" />
+      </g>
+      <text class="leap-line show" x="280" y="158" text-anchor="middle">a whole day just slipped past the window</text>
+    </g>
+
+    <!-- cabin readout -->
+    <g class="layer l-cab">
+      <text class="cab-aloft" x="20" y="190">{POSE.aloft}</text>
+      <text class="cab-clocks" x="20" y="208">{POSE.clocks}</text>
+    </g>
+
+    <!-- the sky below -->
+    <g class="layer l-sky">
+      <rect class="sky-pill polar" x="288" y="174" width="252" height="44" rx="12" />
+      <text class="sky-l1" x="414" y="192" text-anchor="middle">below: ground where the sun</text>
+      <text class="sky-l2" x="414" y="208" text-anchor="middle">will not rise today</text>
+    </g>
+
+    <!-- the five prayers -->
+    <g class="layer l-chips">
+      <g class="chips due">
+        {CHIPS.map((c) => (
+          <g class={`chip p-${c.key}`}>
+            <text class="tld" x={c.cx} y="246" text-anchor="middle">~</text>
+            <rect x={c.cx - 15} y="250" width="30" height="26" rx="6" />
+            <text class="cl" x={c.cx} y="267" text-anchor="middle">{c.letter}</text>
+          </g>
+        ))}
+      </g>
+      <text class="cap cap-before" x="280" y="298" text-anchor="middle">still ahead, by the schedule of the sky below</text>
+      <text class="cap cap-after show" x="280" y="298" text-anchor="middle">all five fall due at this crossing — {CLIFF_UTC} — together, each marked ~</text>
+    </g>
+
+    <!-- ground bookends: real, unflagged -->
+    <g class="layer l-foot">
+      <text class="ft" x="20" y="324">Maghrib {G.maghrib} · Isha {G.isha}</text>
+      <text class="ft-sub" x="20" y="338">on the ground · Newark, {G.beforeDate}</text>
+      <text class="ft" x="540" y="324" text-anchor="end">Fajr {G.fajr} · Dhuhr {G.dhuhr}</text>
+      <text class="ft-sub" x="540" y="338" text-anchor="end">after landing · Hong Kong, {G.afterDate}</text>
+    </g>
+  </svg>
+
+  <div class="anim-controls">
+    <input class="sd-range" type="range" min="0" max={TOTAL} step="1" value={cliffMin} aria-label="Scrub the flight" />
+    <button class="anim-btn sd-play" type="button">Play</button>
+    <button class="anim-btn sd-jump" type="button">Jump to the crossing</button>
+  </div>
+
+  <figcaption>
+    Seven hours in, the aircraft&rsquo;s solar calendar leaps a day in minutes — the day it
+    leaps over has no sunrise in it, and its five prayer times share a single due-moment.
+  </figcaption>
+</figure>
+
+<style>
+  svg { width: 100%; height: auto; display: block; }
+
+  .corner { fill: var(--text-mute); font-size: 11px; letter-spacing: 0.08em; opacity: 0.75; }
+
+  /* the solar readout — the serif moment */
+  .ro-main { fill: var(--text); font-family: "Newsreader", serif; font-size: 20px; }
+  .ro-sub {
+    fill: var(--text-mute);
+    font-family: "Newsreader", serif;
+    font-style: italic;
+    font-size: 11.5px;
+  }
+
+  /* the tape */
+  .day-block rect {
+    fill: var(--surface-2);
+    stroke: var(--border-2);
+    stroke-width: 1;
+    transition: fill 0.4s ease-in-out, stroke 0.4s ease-in-out;
+  }
+  .day-block text {
+    fill: var(--text-mute);
+    font-size: 11.5px;
+    letter-spacing: 0.03em;
+    transition: fill 0.4s ease-in-out;
+  }
+  .day-block.cur rect {
+    fill: oklch(from var(--accent) l c h / 0.1);
+    stroke: oklch(from var(--accent) l c h / 0.45);
+  }
+  .day-block.cur text { fill: var(--text-soft); }
+
+  /* the leapt-over region, flashed and fading */
+  .leap-flash { fill: oklch(from var(--sky-maghrib) l c h / 0.3); opacity: 0; }
+  .leap-flash.go { animation: skipped-day-flash 1.4s ease-out forwards; }
+  @keyframes skipped-day-flash {
+    from { opacity: 1; }
+    to   { opacity: 0; }
+  }
+
+  /* the cursor */
+  .sd-cursor polygon {
+    fill: var(--accent);
+    filter: drop-shadow(0 0 calc(3px * var(--glow, 1)) oklch(from var(--accent) l c h / 0.55));
+  }
+  .sd-cursor line { stroke: var(--accent); stroke-width: 1.4; opacity: 0.9; }
+
+  .leap-line {
+    fill: var(--text-soft);
+    font-family: "Newsreader", serif;
+    font-style: italic;
+    font-size: 13px;
+    opacity: 0;
+    transition: opacity 0.5s ease-in-out;
+  }
+  .leap-line.show { opacity: 1; }
+
+  /* cabin readout */
+  .cab-aloft { fill: var(--text-soft); font-size: 13.5px; }
+  .cab-clocks { fill: var(--text-mute); font-size: 12px; }
+
+  /* the sky below */
+  .sky-pill {
+    fill: oklch(from var(--sky-isha) l c h / 0.08);
+    stroke: var(--sky-isha);
+    stroke-width: 1.2;
+    stroke-dasharray: 4 4;
+    opacity: 0;
+    transition: opacity 0.4s ease-in-out;
+  }
+  .sky-pill.polar { opacity: 0.9; }
+  .sky-l1, .sky-l2 { fill: var(--text-soft); font-size: 12px; }
+
+  /* prayer chips — dim outline until due, filled with the ~ once due */
+  .p-fajr    { --c: var(--sky-fajr); }
+  .p-dhuhr   { --c: var(--sky-dhuhr); }
+  .p-asr     { --c: var(--sky-asr); }
+  .p-maghrib { --c: var(--sky-maghrib); }
+  .p-isha    { --c: var(--sky-isha); }
+  .chip rect {
+    fill: oklch(from var(--c) l c h / 0.05);
+    stroke: oklch(from var(--c) l c h / 0.45);
+    stroke-width: 1;
+    transition: fill 0.4s ease-in-out, stroke 0.4s ease-in-out;
+  }
+  .chip .cl { fill: var(--text-mute); font-size: 12.5px; transition: fill 0.4s ease-in-out; }
+  .chip .tld { fill: var(--text-mute); font-size: 11.5px; opacity: 0; transition: opacity 0.4s ease-in-out; }
+  .chips.due .chip rect { fill: oklch(from var(--c) l c h / 0.45); stroke: var(--c); }
+  .chips.due .chip .cl { fill: var(--text); }
+  .chips.due .chip .tld { opacity: 1; }
+  .chips.pulse .chip rect { animation: skipped-day-due 0.9s ease-out; }
+  @keyframes skipped-day-due {
+    0%   { stroke-width: 1; }
+    35%  { stroke-width: 3; }
+    100% { stroke-width: 1; }
+  }
+
+  .cap {
+    font-family: "Newsreader", serif;
+    font-style: italic;
+    font-size: 12.5px;
+    opacity: 0;
+    transition: opacity 0.45s ease-in-out;
+  }
+  .cap-before { fill: var(--text-mute); }
+  .cap-after { fill: var(--text-soft); }
+  .cap.show { opacity: 1; }
+
+  /* ground bookends */
+  .ft { fill: var(--text-soft); font-size: 11.5px; }
+  .ft-sub { fill: var(--text-mute); font-size: 11px; opacity: 0.8; }
+
+  /* the slider (blog.css has no range style) */
+  .sd-range {
+    -webkit-appearance: none;
+    appearance: none;
+    flex: 1 1 100%;
+    max-width: 460px;
+    margin-inline: auto;
+    height: 18px;
+    background: transparent;
+    cursor: pointer;
+  }
+  .sd-range:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 999px; }
+  .sd-range::-webkit-slider-runnable-track {
+    height: 4px;
+    border-radius: 999px;
+    background: var(--surface-2);
+    border: 1px solid var(--border-2);
+  }
+  .sd-range::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    margin-top: -7px;
+    border-radius: 50%;
+    border: none;
+    background: var(--accent);
+    box-shadow: 0 0 calc(6px * var(--glow, 1)) oklch(from var(--accent) l c h / 0.5);
+  }
+  .sd-range::-moz-range-track {
+    height: 4px;
+    border-radius: 999px;
+    background: var(--surface-2);
+    border: 1px solid var(--border-2);
+  }
+  .sd-range::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: none;
+    background: var(--accent);
+    box-shadow: 0 0 calc(6px * var(--glow, 1)) oklch(from var(--accent) l c h / 0.5);
+  }
+
+  /* entry: the script arms the figure (hides the layers, parks the slider at
+     0); scroll-in adds .in and they fade up staggered. Without JS — or with
+     reduced motion — the markup above IS the final pose: the cliff minute. */
+  .layer { transition: opacity 0.8s ease-in-out; }
+  .l-tape  { transition-delay: 0.15s; }
+  .l-cab   { transition-delay: 0.3s; }
+  .l-sky   { transition-delay: 0.4s; }
+  .l-chips { transition-delay: 0.55s; }
+  .l-foot  { transition-delay: 0.7s; }
+  figure.arm:not(.in) .layer { opacity: 0; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .layer, .cap, .leap-line, .sky-pill, .day-block rect, .day-block text,
+    .chip rect, .chip .cl, .chip .tld { transition: none; }
+    .leap-flash.go, .chips.pulse .chip rect { animation: none; }
+    .sd-play { display: none; }
+  }
+</style>
+
+<script>
+  (function () {
+    var fig = document.querySelector('[data-anim="skipped-day"]');
+    if (!fig) return;
+    var S = JSON.parse(fig.getAttribute('data-samples'));
+    var DEP = +fig.getAttribute('data-dep');
+    var CLIFF = +fig.getAttribute('data-cliff');
+    var TAPE0 = +fig.getAttribute('data-tape0');
+    var svg = fig.querySelector('svg');
+    var q = function (s) { return svg.querySelector(s); };
+    var cursor = q('.sd-cursor'), flash = q('.leap-flash'), leapLine = q('.leap-line');
+    var roMain = q('.ro-main'), aloftEl = q('.cab-aloft'), clocksEl = q('.cab-clocks');
+    var pill = q('.sky-pill'), sky1 = q('.sky-l1'), sky2 = q('.sky-l2');
+    var chips = q('.chips'), capB = q('.cap-before'), capA = q('.cap-after');
+    var blocks = svg.querySelectorAll('.day-block');
+    var range = fig.querySelector('.sd-range');
+    var playBtn = fig.querySelector('.sd-play');
+    var jumpBtn = fig.querySelector('.sd-jump');
+    var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var MAXM = +range.max;                        /* 950 minutes aloft */
+
+    var DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    var MONN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    function pad(n) { return (n < 10 ? '0' : '') + n; }
+    function hm(ms) { var d = new Date(ms); return pad(d.getUTCHours()) + ':' + pad(d.getUTCMinutes()); }
+
+    var val = +range.value, prevSolar = null, prevX = null;
+    var raf = 0, playing = false, lastT;
+
+    function render(m, live) {
+      var smp = S[Math.max(0, Math.min(S.length - 1, Math.round(m / 5)))];
+      var utc = DEP + m * 60000;
+      var solar = utc + smp[2] * 240000;            /* + lon/15 hours, from the sample's lon */
+      var d = new Date(solar);
+      roMain.textContent = DOW[d.getUTCDay()] + ' ' + d.getUTCDate() + ' ' + MONN[d.getUTCMonth()] + ' · ' + hm(solar);
+      var x = Math.max(20, Math.min(540, 20 + ((solar - TAPE0) / 86400000) * 130));
+      cursor.setAttribute('transform', 'translate(' + x.toFixed(1) + ' 0)');
+      var bi = Math.max(0, Math.min(3, Math.floor((x - 20) / 130)));
+      for (var i = 0; i < blocks.length; i++) blocks[i].classList.toggle('cur', i === bi);
+      /* the leap: > 12 h of solar time between two rendered frames */
+      if (live && !reduced && prevSolar !== null && Math.abs(solar - prevSolar) > 43200000) {
+        flash.setAttribute('x', Math.min(x, prevX).toFixed(1));
+        flash.setAttribute('width', Math.abs(x - prevX).toFixed(1));
+        flash.classList.remove('go'); void fig.offsetWidth;
+        flash.classList.add('go');
+      }
+      leapLine.classList.toggle('show', solar > utc);  /* past the date line, sun time runs ahead of UTC */
+      prevSolar = solar; prevX = x;
+      var mm = Math.round(m);
+      aloftEl.textContent = Math.floor(mm / 60) + ' h ' + pad(mm % 60) + ' m aloft';
+      clocksEl.textContent = 'Newark ' + hm(utc - 18000000) + ' · Hong Kong ' + hm(utc + 28800000);
+      var polar = smp[3] === 1;
+      pill.classList.toggle('polar', polar);
+      sky1.textContent = polar ? 'below: ground where the sun' : 'below: ordinary day and night';
+      sky2.textContent = polar ? 'will not rise today' : '';
+      var due = m >= CLIFF;
+      if (due && !chips.classList.contains('due') && live && !reduced) {
+        chips.classList.remove('pulse'); void fig.offsetWidth;
+        chips.classList.add('pulse');
+      }
+      if (!due) chips.classList.remove('pulse');
+      chips.classList.toggle('due', due);
+      capB.classList.toggle('show', !due);
+      capA.classList.toggle('show', due);
+    }
+
+    function setVal(v) { val = v; range.value = String(Math.round(v)); }
+    function stopPlay() {
+      playing = false;
+      cancelAnimationFrame(raf);
+      playBtn.textContent = 'Play';
+    }
+    function tick(now) {
+      if (lastT !== undefined) { setVal(Math.min(MAXM, val + (now - lastT) * (MAXM / 25000))); render(val, true); }
+      lastT = now;
+      if (val >= MAXM) { stopPlay(); return; }
+      raf = requestAnimationFrame(tick);
+    }
+    function play() {
+      if (val >= MAXM) { prevSolar = null; setVal(0); render(0, false); }
+      playing = true; lastT = undefined;
+      playBtn.textContent = 'Pause';
+      raf = requestAnimationFrame(tick);
+    }
+    function jumpTo(target) {
+      stopPlay();
+      if (reduced) { setVal(target); render(val, true); return; }
+      var from = val, t0 = performance.now();
+      var step = function (now) {
+        var t = Math.min((now - t0) / 1200, 1);
+        var k = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+        setVal(from + (target - from) * k);
+        render(val, true);
+        if (t < 1) raf = requestAnimationFrame(step);
+      };
+      raf = requestAnimationFrame(step);
+    }
+
+    range.addEventListener('input', function () { stopPlay(); val = +range.value; render(val, true); });
+    jumpBtn.addEventListener('click', function () { jumpTo(CLIFF); });
+
+    if (reduced) {                /* static cliff pose; slider + jump work with instant updates */
+      playBtn.hidden = true;
+      fig.classList.add('in');
+      render(val, false);
+      return;
+    }
+    playBtn.addEventListener('click', function () { if (playing) stopPlay(); else play(); });
+
+    /* arm: hide the layers, park the slider at take-off, wait for the scroll */
+    fig.classList.add('arm');
+    prevSolar = null;
+    setVal(0); render(0, false);
+    var started = false;
+    function enter() {
+      fig.classList.add('in');
+      if (!started) { started = true; setTimeout(play, 700); }
+    }
+    if (!('IntersectionObserver' in window)) { enter(); return; }
+    var io = new IntersectionObserver(function (entries) {
+      for (var i = 0; i < entries.length; i++) {
+        if (entries[i].isIntersecting) { io.disconnect(); enter(); }
+      }
+    }, { threshold: 0.35 });
+    io.observe(fig);
+  })();
+</script>

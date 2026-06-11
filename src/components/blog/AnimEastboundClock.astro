@@ -1,0 +1,273 @@
+---
+/*
+ * "Flying east squeezes the day" — two stacked 24-hour ribbons.
+ * Top: a full civil day in one city, five prayer ticks at their usual clock
+ * times. Bottom: the same sun-day lived through an eastbound cabin — the whole
+ * pattern compressed to ~2/3 width (≈16 h of the traveller's own time), the
+ * remaining third already belonging to the next day. Two dots sweep at the
+ * SAME speed (same units/ms): the lower dot simply meets every prayer sooner.
+ * Generic mid-latitude day — deliberately not the EWR→HKG polar case; this
+ * figure is only the first ingredient.
+ */
+const X0 = 20, W = 500, H = 30, R = 10;   // track origin, width, band height, corner
+const TY = 32, BY = 134;                  // band tops
+const SQUEEZE = 2 / 3;                    // 24 h of sun in ~16 h of body clock
+
+const HOURS = [
+  { key: "fajr",    letter: "F", h: 5.5 },    // 05:30
+  { key: "dhuhr",   letter: "D", h: 12.25 },  // 12:15
+  { key: "asr",     letter: "A", h: 15.5 },   // 15:30
+  { key: "maghrib", letter: "M", h: 17.75 },  // 17:45
+  { key: "isha",    letter: "I", h: 19.25 },  // 19:15
+];
+const TICKS = HOURS.map((p) => ({
+  ...p,
+  tx: +(X0 + (p.h / 24) * W).toFixed(1),            // top-ribbon x
+  bx: +(X0 + (p.h / 24) * W * SQUEEZE).toFixed(1),  // squeezed x
+}));
+const DAY_END = +(X0 + W * SQUEEZE).toFixed(1);     // 353.3 — the sun-day's next midnight
+const TOP_PARK = TICKS[4].tx;                       // top dot rests on its Isha (mid-evening)
+const TCY = TY + H / 2, BCY = BY + H / 2;
+---
+
+<figure class="anim" data-anim="eastbound-clock">
+  <svg
+    viewBox="0 0 560 196"
+    role="img"
+    aria-label="Two horizontal day ribbons compared. The top ribbon is a full twenty-four-hour day in one city, shaded night, day, night, with five ticks marking Fajr, Dhuhr, Asr, Maghrib and Isha at their usual clock times. The bottom ribbon is the same day lived while flying east: the identical pattern of five prayers is compressed into about two thirds of the width — roughly sixteen hours of the traveller's own time — and the next day already begins in the remaining third. Two dots travelling at the same speed show the eastbound traveller meeting every prayer sooner than the person who stayed; the traveller has finished all five and entered the next day while the city dot is still at its evening Isha."
+  >
+    <defs>
+      <linearGradient id="eastbound-clock-day" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" class="g-night"></stop>
+        <stop offset="0.14" class="g-night2"></stop>
+        <stop offset="0.23" class="g-dawn"></stop>
+        <stop offset="0.40" class="g-day"></stop>
+        <stop offset="0.58" class="g-day"></stop>
+        <stop offset="0.68" class="g-late"></stop>
+        <stop offset="0.74" class="g-dusk"></stop>
+        <stop offset="0.84" class="g-night2"></stop>
+        <stop offset="1" class="g-night"></stop>
+      </linearGradient>
+      <!-- rounds the squeezed band's left corners while its right edge stays a clean seam -->
+      <clipPath id="eastbound-clock-clipb">
+        <rect x={X0} y={BY} width={W} height={H} rx={R}></rect>
+      </clipPath>
+    </defs>
+
+    <!-- top ribbon: staying put -->
+    <g class="rib rib-top">
+      <text class="rlbl" x={X0} y="22">STAYING IN ONE CITY</text>
+      <text class="ro ro-top show" x={X0 + W} y="22" text-anchor="end">five prayers in 24&#8202;h</text>
+      <rect class="track" x={X0} y={TY} width={W} height={H} rx={R}></rect>
+      <rect x={X0} y={TY} width={W} height={H} rx={R} fill="url(#eastbound-clock-day)"></rect>
+      <rect class="rim" x={X0} y={TY} width={W} height={H} rx={R}></rect>
+      <text class="endlbl" x={X0} y={TY + H + 18}>midnight</text>
+      <text class="endlbl" x={X0 + W} y={TY + H + 18} text-anchor="end">midnight</text>
+      {TICKS.map((p) => (
+        <g class={`tickg p-${p.key}`} data-x={p.tx}>
+          <line x1={p.tx} x2={p.tx} y1={TY - 4} y2={TY + H + 4}></line>
+          <text x={p.tx} y={TY + H + 18} text-anchor="middle">{p.letter}</text>
+        </g>
+      ))}
+      <circle class="dot dot-top" cx={TOP_PARK} cy={TCY} r="5.5"></circle>
+    </g>
+
+    <!-- bottom ribbon: flying east -->
+    <g class="rib rib-bot">
+      <text class="rlbl" x={X0} y="124">FLYING EAST THROUGH THE SAME DAY</text>
+      <text class="ro ro-bot show" x={X0 + W} y="124" text-anchor="end">the same five in about 16&#8202;h</text>
+      <rect class="track" x={X0} y={BY} width={W} height={H} rx={R}></rect>
+      <rect x={X0} y={BY} width={DAY_END - X0} height={H} fill="url(#eastbound-clock-day)" clip-path="url(#eastbound-clock-clipb)"></rect>
+      <rect class="rim" x={X0} y={BY} width={W} height={H} rx={R}></rect>
+      <text class="nextday" x="440" y={BCY} text-anchor="middle" dominant-baseline="middle">&#8230;and the next day already begins</text>
+      <text class="endlbl" x={X0} y={BY + H + 18}>midnight</text>
+      <text class="endlbl" x={DAY_END} y={BY + H + 18} text-anchor="middle">midnight</text>
+      {TICKS.map((p) => (
+        <g class={`tickg p-${p.key}`} data-x={p.bx}>
+          <line x1={p.bx} x2={p.bx} y1={BY - 4} y2={BY + H + 4}></line>
+          <text x={p.bx} y={BY + H + 18} text-anchor="middle">{p.letter}</text>
+        </g>
+      ))}
+      <circle class="dot dot-bot" cx={DAY_END} cy={BCY} r="5.5"></circle>
+    </g>
+  </svg>
+
+  <div class="anim-controls">
+    <button class="anim-btn" type="button">Replay</button>
+  </div>
+
+  <figcaption>
+    Two days at the same speed — the eastbound one simply runs out sooner. Every eastbound
+    traveller already lives this; it is the first of the three facts.
+  </figcaption>
+</figure>
+
+<style>
+  svg { width: 100%; height: auto; display: block; }
+
+  /* day/night wash inside the bands — sky tokens at low alpha */
+  .g-night  { stop-color: oklch(from var(--sky-isha) l c h / 0.4); }
+  .g-night2 { stop-color: oklch(from var(--sky-isha) l c h / 0.3); }
+  .g-dawn   { stop-color: oklch(from var(--sky-fajr) l c h / 0.26); }
+  .g-day    { stop-color: oklch(from var(--sky-dhuhr) l c h / 0.24); }
+  .g-late   { stop-color: oklch(from var(--sky-asr) l c h / 0.24); }
+  .g-dusk   { stop-color: oklch(from var(--sky-maghrib) l c h / 0.28); }
+
+  .track { fill: var(--surface-2); }
+  .rim { fill: none; stroke: var(--border-2); stroke-width: 1; }
+
+  .rlbl { fill: var(--text-mute); font-size: 11px; letter-spacing: 0.08em; opacity: 0.75; }
+  .endlbl { fill: var(--text-mute); font-size: 11px; opacity: 0.6; }
+  .nextday {
+    fill: var(--text-mute);
+    font-family: "Newsreader", serif;
+    font-style: italic;
+    font-size: 11.5px;
+  }
+
+  /* prayer ticks — same letter/color idiom as the year wheel's key */
+  .p-fajr    { --c: var(--sky-fajr); }
+  .p-dhuhr   { --c: var(--sky-dhuhr); }
+  .p-asr     { --c: var(--sky-asr); }
+  .p-maghrib { --c: var(--sky-maghrib); }
+  .p-isha    { --c: var(--sky-isha); }
+  .tickg line { stroke: var(--c); stroke-width: 2; stroke-linecap: round; opacity: 0.75; }
+  .tickg text { fill: var(--text-mute); font-size: 11px; }
+  .tickg.pulse line { animation: eastbound-clock-pulse-line 0.7s ease-out; }
+  .tickg.pulse text { animation: eastbound-clock-pulse-text 0.7s ease-out; }
+  @keyframes eastbound-clock-pulse-line {
+    0%   { opacity: 0.75; stroke-width: 2; }
+    30%  { opacity: 1;    stroke-width: 3.5; }
+    100% { opacity: 0.75; stroke-width: 2; }
+  }
+  @keyframes eastbound-clock-pulse-text {
+    0%   { fill: var(--text-mute); }
+    30%  { fill: var(--text); }
+    100% { fill: var(--text-mute); }
+  }
+
+  /* the travelling "you" */
+  .dot {
+    fill: var(--accent);
+    filter: drop-shadow(0 0 calc(3px * var(--glow, 1)) oklch(from var(--accent) l c h / 0.55));
+  }
+
+  /* serif readouts — shown once each dot has finished its Isha */
+  .ro {
+    fill: var(--text-soft);
+    font-family: "Newsreader", serif;
+    font-style: italic;
+    font-size: 13.5px;
+    opacity: 0;
+    transition: opacity 0.6s ease-in-out;
+  }
+  .ro.show { opacity: 1; }
+
+  /* entry: the script arms the figure (hides the ribbons, parks the dots at the
+     start); scroll-in adds .in and the ribbons fade up while the sweep begins.
+     Without JS — or with reduced motion — the markup above IS the final pose. */
+  .rib { transition: opacity 0.8s ease-in-out; }
+  .rib-bot { transition-delay: 0.2s; }
+  figure.arm:not(.in) .rib { opacity: 0; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .rib, .ro { transition: none; }
+    .tickg.pulse line, .tickg.pulse text { animation: none; }
+  }
+</style>
+
+<script>
+  (function () {
+    var fig = document.querySelector('[data-anim="eastbound-clock"]');
+    if (!fig) return;
+    var svg = fig.querySelector('svg');
+    var dots = { top: svg.querySelector('.dot-top'), bot: svg.querySelector('.dot-bot') };
+    var ros = { top: svg.querySelector('.ro-top'), bot: svg.querySelector('.ro-bot') };
+    var btn = fig.querySelector('.anim-btn');
+
+    var X0 = 20;
+    var SPEED = 0.05; // svg units per ms — the full 500-unit (24 h) ribbon in 10 s
+    function grab(sel) {
+      return Array.prototype.map.call(svg.querySelectorAll(sel), function (g) {
+        return { x: parseFloat(g.getAttribute('data-x')), el: g, hit: false };
+      });
+    }
+    var ticks = { top: grab('.rib-top .tickg'), bot: grab('.rib-bot .tickg') };
+    // markup defaults are the resting pose: top dot on its Isha, bottom at its day-end
+    var ends = {
+      top: parseFloat(dots.top.getAttribute('cx')),
+      bot: parseFloat(dots.bot.getAttribute('cx'))
+    };
+    var ishaX = { top: ticks.top[4].x, bot: ticks.bot[4].x };
+    var DUR = (ends.top - X0) / SPEED;
+    var raf = 0, timer = 0, started = false;
+
+    function lane(name, x) {
+      dots[name].setAttribute('cx', Math.min(x, ends[name]));
+      var arr = ticks[name];
+      for (var i = 0; i < arr.length; i++) {
+        if (!arr[i].hit && x >= arr[i].x) {
+          arr[i].hit = true;
+          arr[i].el.classList.add('pulse');
+        }
+      }
+      if (x >= ishaX[name]) ros[name].classList.add('show');
+    }
+
+    function reset() {
+      cancelAnimationFrame(raf);
+      clearTimeout(timer);
+      ['top', 'bot'].forEach(function (n) {
+        dots[n].setAttribute('cx', X0);
+        ros[n].classList.remove('show');
+        ticks[n].forEach(function (t) { t.hit = false; t.el.classList.remove('pulse'); });
+      });
+    }
+
+    function run() {
+      started = true;
+      reset();
+      fig.classList.add('in');
+      var t0 = performance.now();
+      var step = function (now) {
+        var t = now - t0;
+        var x = X0 + SPEED * t;
+        lane('top', x);
+        lane('bot', x);
+        if (t < DUR) raf = requestAnimationFrame(step);
+      };
+      raf = requestAnimationFrame(step);
+    }
+
+    function finish() { // instant end pose (reduced motion)
+      cancelAnimationFrame(raf);
+      clearTimeout(timer);
+      ['top', 'bot'].forEach(function (n) {
+        dots[n].setAttribute('cx', ends[n]);
+        ros[n].classList.add('show');
+      });
+    }
+
+    var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    btn.addEventListener('click', function () {
+      if (reduced) finish();
+      else run();
+    });
+
+    if (reduced) { fig.classList.add('in'); return; }            // markup already holds the final pose
+    if (!('IntersectionObserver' in window)) { fig.classList.add('in'); return; }
+
+    fig.classList.add('arm');
+    reset();
+    var io = new IntersectionObserver(function (entries) {
+      for (var i = 0; i < entries.length; i++) {
+        if (entries[i].isIntersecting) {
+          fig.classList.add('in');
+          if (!started) timer = setTimeout(run, 450);
+          io.disconnect();
+        }
+      }
+    }, { threshold: 0.35 });
+    io.observe(fig);
+  })();
+</script>

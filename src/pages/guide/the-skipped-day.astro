@@ -1,0 +1,212 @@
+---
+import '../../styles/styles.css';
+import '../../styles/blog.css';
+import AnimPolarCrossing from '../../components/blog/AnimPolarCrossing.astro';
+import AnimEastboundClock from '../../components/blog/AnimEastboundClock.astro';
+import AnimMeridianSqueeze from '../../components/blog/AnimMeridianSqueeze.astro';
+import AnimSkippedDay from '../../components/blog/AnimSkippedDay.astro';
+import AnimFourChoices from '../../components/blog/AnimFourChoices.astro';
+
+const TITLE = "The day the aeroplane skipped — a question for the scholars · Isfar";
+const DESC = "A December flight from New York to Hong Kong crosses, in a few minutes, an entire day in which the sun never rises — and five prayer times collapse into a single moment. What is a traveller to do? An unlisted page, written to ask.";
+const URL = "https://isfar.app/guide/the-skipped-day/";
+---
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<!-- No <meta theme-color> — same iOS translucent-bars reasoning as index.astro. -->
+
+<!-- Unlisted: shared by hand with people of knowledge, not for search engines.
+     Deliberately absent from sitemap.xml; no JSON-LD. -->
+<meta name="robots" content="noindex" />
+
+<script is:inline>
+  (function () {
+    try {
+      var saved = localStorage.getItem("isfar.theme");
+      var pref = (saved === "light" || saved === "dark") ? saved
+        : (window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+      document.documentElement.setAttribute("data-theme", pref);
+    } catch (e) {}
+  })();
+</script>
+
+<title>{TITLE}</title>
+<meta name="description" content={DESC} />
+<link rel="canonical" href={URL} />
+
+<meta property="og:type" content="article" />
+<meta property="og:site_name" content="Isfar" />
+<meta property="og:title" content={TITLE} />
+<meta property="og:description" content={DESC} />
+<meta property="og:url" content={URL} />
+<meta property="og:image" content="https://isfar.app/og-cover.png?v=2" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content={TITLE} />
+<meta name="twitter:description" content={DESC} />
+<meta name="twitter:image" content="https://isfar.app/og-cover.png?v=2" />
+
+<link rel="icon" href="/favicon.ico" sizes="any" />
+<link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
+<link rel="manifest" href="/manifest.webmanifest" />
+<link rel="apple-touch-icon" href="/icon-192.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Isfar" />
+<meta name="mobile-web-app-capable" content="yes" />
+
+<link rel="preload" as="font" type="font/woff2" crossorigin href="/fonts/newsreader-latin-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="/fonts/newsreader-latin-400-italic.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="/fonts/hanken-grotesk-latin-400.woff2" />
+</head>
+<body>
+<div class="isfar" id="page">
+  <div class="sky" aria-hidden="true"></div>
+  <script is:inline>
+    document.getElementById("page").setAttribute(
+      "data-theme", document.documentElement.getAttribute("data-theme") || "light");
+  </script>
+
+  <div class="post-col">
+    <header class="hdr">
+      <a class="brand" href="/" aria-label="Isfar — prayer times across your flight" style="text-decoration:none;color:inherit">
+        <span class="mark">Isfar</span>
+        <span class="mark-ar ar" aria-hidden="true">إسفار</span>
+      </a>
+      <div class="hdr-actions">
+        <button class="iconbtn" id="themebtn" aria-label="Switch theme">
+          <svg class="tt-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+          <svg class="tt-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <article class="post">
+      <p class="eyebrow">Guide · A question for the scholars</p>
+      <h1>The day the aeroplane skipped</h1>
+      <p class="lede">A December flight from New York to Hong Kong crosses, in a few minutes, an entire day in which the sun never rises — and our tool shows five prayers falling due in a single moment. We have done our best with it. But the question belongs to people of knowledge, and this page is how we ask it.</p>
+      <div class="byline">
+        <span>11 June 2026</span>
+        <span>10 min read</span>
+        <span>Unlisted — shared by hand, not indexed</span>
+      </div>
+
+      <h2 id="to-the-reader">To the scholar reading this</h2>
+      <p>As-salāmu ʿalaykum wa-raḥmatullāh. <a href="/">Isfar</a> is a small tool that maps the five daily prayers across a flight. It follows the aircraft&rsquo;s position minute by minute and computes each prayer from the sky actually outside the window — with whichever calculation authority and madhhab the traveller already follows. It never invents astronomy and it marks every estimate as an estimate. For almost every flight in the world, this is routine.</p>
+      <p>One kind of flight is not routine, and it is the reason for this page. We have built the best answer we could find, and we would rather put it before scholars than leave it unexamined. The figures on this page move — we built them because this situation is far easier to <em>watch</em> than to describe. Nothing in them asks you to trust our software: the sky&rsquo;s behaviour in them is plain astronomy, and where our answer appears it is drawn as ours, marked as an estimate.</p>
+
+      <h2 id="the-flight">The flight</h2>
+      <p>Airlines have flown New York to Hong Kong nonstop for years, and the shortest path between those two cities is not across the Pacific — it is <strong>over the top of the world</strong>. The representative winter schedule we will follow departs Newark at 9:00&nbsp;pm on Sunday the 20th of December, flies fifteen hours and fifty minutes, and lands in Hong Kong at 1:50&nbsp;am on Tuesday the 22nd. At its northernmost point it passes within about 700&nbsp;km of the North Pole.</p>
+      <p>Our traveller prays Maghrib (4:32&nbsp;pm) and Isha (6:05&nbsp;pm) on the ground in Newark, boards, and takes off into the night.</p>
+
+      <AnimPolarCrossing />
+
+      <p>To see why this route creates a genuine question, we need three facts. Each one, on its own, is ordinary.</p>
+
+      <h2 id="fact-one">First fact: flying east squeezes the day</h2>
+      <p>Fly toward the sunrise and you meet it early. On any eastbound flight the sun&rsquo;s day passes faster than the clock in your body: noon comes sooner, sunset comes sooner, and the five prayers arrive closer together than they would at home. A traveller on a long eastbound flight can meet a full day&rsquo;s five prayers in roughly sixteen hours of their own time.</p>
+
+      <AnimEastboundClock />
+
+      <p>This alone raises no difficulty. The prayer marks still occur, in order, witnessed from the window — they simply come sooner, and any careful tool (ours included) follows them.</p>
+
+      <h2 id="fact-two">Second fact: in December, the far north holds days with no sunrise</h2>
+      <p>North of roughly 67°, around the winter solstice, the sun does not rise at all — the polar night. There is no dawn, no sunset, and no night-that-follows-day, because there is no day. The usual sun-marks for Fajr, Maghrib and Isha simply do not occur; even &ldquo;noon&rdquo; happens with the sun below the horizon. We wrote separately about how Isfar handles prayer times for <em>places</em> like this — Tromsø, Longyearbyen — in our guide to <a href="/guide/far-north-prayer-times/">the far north</a>: where the sky gives no marks, the night&rsquo;s times are estimated from latitude 60° on the same longitude, following the framework moonsighting.com has long applied, and every such time is marked with a <code>~</code>.</p>
+      <p>On the 21st of December, this no-sunrise region is a cap reaching about 2,500&nbsp;km out from the pole in every direction. Our flight spends almost six hours above it.</p>
+
+      <h2 id="fact-three">Third fact: near the pole, the clock spins</h2>
+      <p>Local time is governed by longitude — by which meridian you stand on. All the meridians of the world converge at the pole. At the latitude of Makkah, flying across one hour&rsquo;s worth of longitude takes the better part of two hours. At 84° north — where this flight crests — the same hour of longitude is under two hundred kilometres wide, and an airliner crosses it in about twelve minutes. The aircraft&rsquo;s &ldquo;local time&rdquo; spins. And among those converging meridians is the 180th — the <strong>date line</strong> — where the calendar itself steps forward a day.</p>
+
+      <AnimMeridianSqueeze />
+
+      <h2 id="together">Now put the three together</h2>
+      <p>Eastbound, the day passes quickly. Over the pole, the clock spins. And the ground beneath holds a day with no sun in it. Here is what those three facts do to <em>this</em> flight — the figure can be dragged through the journey:</p>
+
+      <AnimSkippedDay />
+
+      <p>Around the seventh hour, at 83° north and deep inside the no-sunrise cap, the aircraft crosses the date line. Its local solar calendar leaps from the evening of <strong>Sunday the 20th</strong> to the evening of <strong>Monday the 21st</strong> — in a few minutes of flying, Monday the 21st of December slips past the window almost whole. And the day that slipped past is no ordinary day: where the aircraft crossed it, it is a day in which <strong>the sun never rises</strong>. Its five prayers were never marked by any dawn, noon or sunset that the traveller — or anyone beneath the aircraft — could have witnessed.</p>
+      <p class="pull">A whole day, and no sun in it. Where do its five prayers go?</p>
+
+      <h2 id="what-we-ship">What our tool says today</h2>
+      <p>Isfar&rsquo;s rule, applied everywhere, is that <strong>a prayer is never silently dropped</strong>. When the schedule of the sky below jumps past the aircraft&rsquo;s clock — as it does here — each prayer falls due <em>at the moment of the jump</em>. So at 09:01 UTC, the moment of the crossing, the app shows all five prayers of the skipped day falling due together. Their underlying schedule is the one described in <a href="/guide/far-north-prayer-times/">the far-north guide</a> — the night prayers timed by the latitude-60 convention, noon kept at the aircraft&rsquo;s own meridian — and every instant of it was overflown in those few minutes, so the due-moment they share is the crossing itself. Every one is marked as an estimate:</p>
+      <div class="tablewrap">
+        <table>
+          <caption class="vh">What Isfar shows for the Newark to Hong Kong flight of 20–22 December: the prayers before departure, the five estimated prayers falling due together at the crossing, and the real prayers after landing.</caption>
+          <thead><tr><th></th><th>Prayer</th><th>Newark clock</th><th>Hong Kong clock</th></tr></thead>
+          <tbody>
+            <tr><th rowspan="2">Before departure<br/>(on the ground, real)</th><td>Maghrib</td><td>16:32 Sun</td><td>05:32 Mon</td></tr>
+            <tr><td>Isha</td><td>18:05 Sun</td><td>07:05 Mon</td></tr>
+            <tr><th rowspan="5">In flight<br/>(the crossing, 09:01 UTC)</th><td>Fajr</td><td class="t-est">~04:01 Mon</td><td class="t-est">~17:01 Mon</td></tr>
+            <tr><td>Dhuhr</td><td class="t-est">~04:01 Mon</td><td class="t-est">~17:01 Mon</td></tr>
+            <tr><td>Asr</td><td class="t-est">~04:01 Mon</td><td class="t-est">~17:01 Mon</td></tr>
+            <tr><td>Maghrib</td><td class="t-est">~04:01 Mon</td><td class="t-est">~17:01 Mon</td></tr>
+            <tr><td>Isha</td><td class="t-est">~04:01 Mon</td><td class="t-est">~17:01 Mon</td></tr>
+            <tr><th rowspan="2">After landing<br/>(Hong Kong, real)</th><td>Fajr</td><td>16:40 Mon</td><td>05:40 Tue</td></tr>
+            <tr><td>Dhuhr</td><td>23:24 Mon</td><td>12:24 Tue</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="note">These are the app&rsquo;s actual times for the flight above (Muslim World League method); <code>~</code> marks an estimate. This exact instant is pinned in our test suite, so it cannot change without us knowing.</p>
+      <p>Read as a journey, the app schedules <strong>Sunday&rsquo;s</strong> Maghrib and Isha on the ground in Newark; <strong>Monday&rsquo;s</strong> five prayers at the moment Monday slips past the window; and <strong>Tuesday&rsquo;s</strong> from Hong Kong onward. No day of prayer is lost, nothing is invented, and everything estimated says so.</p>
+
+      <h2 id="four-answers">The four answers we could find</h2>
+      <p>We did not arrive at this lightly. There are, as far as we can see, four answers a tool could give, and we walked all four to their ends before settling on one. Each of the other three carries a cost you can watch:</p>
+
+      <AnimFourChoices />
+
+      <p><strong>Follow the printed times</strong> — compute the skipped day&rsquo;s schedule and show each prayer at its listed instant. But the aircraft&rsquo;s clock leaps over those instants: by the time each one <em>exists</em> at the aircraft&rsquo;s position, it has already gone by. A schedule of moments already passed is not a schedule.</p>
+      <p><strong>Keep the departure city&rsquo;s clock</strong> — pray by Newark&rsquo;s timetable all the way. But Newark&rsquo;s timetable describes a sky six thousand kilometres behind the aircraft, contradicting the window almost immediately — and lands the traveller thirteen hours adrift of the city they step out into.</p>
+      <p><strong>Wait for the destination&rsquo;s times</strong> — show nothing until Hong Kong&rsquo;s schedule begins. The gap between Newark&rsquo;s Isha and Hong Kong&rsquo;s Fajr is then more than twenty-two hours in which no prayer falls due. We hesitated to give an answer in which an entire day of prayer vanishes because of a routing choice — and that hesitation is question three below.</p>
+      <p><strong>What we ship</strong> — the prayers of the crossed day are shown falling due, together, at the moment of the crossing; every time wears the <code>~</code> of an estimate. How the traveller should then perform them is question two below. It is blunt. We believe it is honest. It is also precisely the thing we want examined.</p>
+
+      <h2 id="our-questions">Our questions</h2>
+      <p>We ask these as engineers — we are not students of fiqh, and we do not pretend to be. We will follow what the scholars say.</p>
+      <ol>
+        <li><strong>Are the five prayers of the skipped day obligatory for this traveller at all?</strong> None of that day&rsquo;s sun-marks — its dawn, its noon, its sunset — was ever witnessed from the aircraft; at the ground it crossed, none was visible — even its noon passed with the sun below the horizon. The traveller passed, in hours, over a place where that calendar day exists in permanent night. We know the starting principle is that nothing lifts the five prayers from an able adult; we do not know how that principle meets a day whose marks were never witnessed on the traveller&rsquo;s path.</li>
+        <li><strong>If they are obliged</strong> — (a) are they performed as adāʾ at the moment of the crossing, or as qaḍāʾ? (b) in their usual order? (c) and is the app right to list them at one combined moment — which implies praying them joined — or should it space them out?</li>
+        <li><strong>If they are not obliged</strong> — should the tool show nothing between Newark&rsquo;s Isha and Hong Kong&rsquo;s Fajr? That is more than twenty-two hours without a single prayer falling due, which is what made us hesitate to give that answer.</li>
+        <li><strong>Is the estimation itself acceptable?</strong> Where the sky gives no marks we time the night&rsquo;s prayers by latitude 60° on the aircraft&rsquo;s own longitude — resting on the taqdīr scholars have drawn from the Prophet&rsquo;s ﷺ instruction, in the ḥadīth of the Dajjāl in Ṣaḥīḥ Muslim, for the day that would stretch like a year: <em>&ldquo;estimate its measure&rdquo;</em> — the same framework our far-north guide describes. Is that an acceptable basis for the times of this crossing?</li>
+        <li><strong>Does the date-line discussion bear on this?</strong> Scholars have addressed the traveller who crosses the date line and finds the calendar a day ahead or behind — for fasting, for Jumuʿah. Here the aircraft crosses the line <em>while inside</em> a region whose days have no sun. We do not know whether the established date-line treatments extend to this compound case, and we would be grateful for guidance.</li>
+        <li><strong>What should the app say?</strong> One sentence, shown at the moment of the crossing. Today it explains that the times are estimates portioned from latitude 60° and that scholars differ. If there is a better sentence — one you would be content for a traveller of your community to read at that moment — we will print that instead.</li>
+      </ol>
+
+      <h2 id="not-asking">What we are not asking</h2>
+      <p>We are not asking for an endorsement of software, and nothing on this page is a fatwā or a fiqh position of ours. The disagreements between the schools on high-latitude estimation are real and they are the scholars&rsquo; to hold, not ours to flatten. The app already follows whichever method and madhhab the traveller chooses, labels every estimate, and stays out of the way. We are asking only about the one situation above, because we could not find it treated directly, and because thousands of travellers cross that cap every winter — most without ever noticing the day that went by beneath them.</p>
+      <p>Whoever brought you this page can carry your answer back to us — jazākum Allāhu khayran for your time and knowledge. Wa-s-salāmu ʿalaykum wa-raḥmatullāhi wa-barakātuh.</p>
+    </article>
+
+    <footer class="post-footer">
+      <div class="horizon" style="margin:0 0 22px"></div>
+      <p>This page is unlisted: it asks not to be indexed, and exists to be shared by hand.<br />
+      <a href="/">Isfar</a> maps Fajr, Dhuhr, Asr, Maghrib and Isha across any flight — in both time zones, with qibla from your seat.<br />
+      All times on this page are Isfar&rsquo;s own output, computed with adhan-js, the open-source library the app is built on. Nothing here is a fiqh ruling.</p>
+    </footer>
+  </div>
+</div>
+
+<script is:inline>
+  (function () {
+    var btn = document.getElementById("themebtn");
+    if (!btn) return;
+    btn.addEventListener("click", function () {
+      var html = document.documentElement;
+      var next = html.getAttribute("data-theme") === "dark" ? "light" : "dark";
+      html.setAttribute("data-theme", next);
+      var page = document.getElementById("page");
+      if (page) page.setAttribute("data-theme", next);
+      try { localStorage.setItem("isfar.theme", next); } catch (e) {}
+    });
+  })();
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", function () {
+      navigator.serviceWorker.register("/sw.js").catch(function () {});
+    });
+  }
+</script>
+</body>
+</html>

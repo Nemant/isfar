@@ -1,0 +1,260 @@
+---
+/*
+ * "Meridian squeeze" — near the pole, the clock loses its meaning.
+ * Solar time is governed by longitude, and the meridians that define it all
+ * converge at the pole. Two flight tracks cross the same fan of hour-meridians
+ * at the same px/s for the same 9 s: the lower (40°N, Newark's latitude)
+ * collects 2 hours of clock; the upper (84°N, the EWR→HKG Dec 21 flight's
+ * polar crest, 83.67°N at minute 400 of 950) collects 10 — and steps the date
+ * at the fan's center line, where that flight crossed 180° (~minute 417–420).
+ *
+ * Geometry: the fan is a hand-tuned perspective — D[k] is each hour-meridian's
+ * bottom-edge offset from the center line; lines run straight from the pole
+ * point to (center ± D[k], bottom) and the SVG clips the wide ones. Choosing
+ * D[5] = 6·D[1] makes the upper track's ±5 h meridians sit on exactly the same
+ * x as the lower track's ±1 h meridians, so both dots sweep identical pixels
+ * [X0..X1] and the clock totals come out exact: 12:00→14:00 below,
+ * 12:00→22:00 above. Clock-vs-position is piecewise-linear through each
+ * track's baked meridian x-positions (serialized in data-geom).
+ */
+const POLE = { x: 280, y: 34 };
+const BOT = 320;                       // fan lines are drawn to the bottom edge
+const Y_UP = 70, Y_LO = 250;           // the two flight tracks
+const D = [0, 200, 380, 620, 880, 1200, 1620];   // bottom offsets, |hour| 0..6
+const KS = Array.from({ length: 13 }, (_, i) => i - 6);
+const lineX = (k, y) => POLE.x + Math.sign(k) * D[Math.abs(k)] * ((y - POLE.y) / (BOT - POLE.y));
+
+const X0 = +lineX(-1, Y_LO).toFixed(2);          // 128.95 — both sweeps start here…
+const X1 = +lineX(1, Y_LO).toFixed(2);           // 431.05 — …and end here (same px/s, ~9 s)
+const nodes = (y) => KS.map((k) => [+lineX(k, y).toFixed(2), k]);
+const GEOM = {
+  x0: X0,
+  x1: X1,
+  tracks: [
+    { base: 17 * 60, nodes: nodes(Y_UP), date: true },   // upper: 12:00 → 22:00, date steps at center
+    { base: 13 * 60, nodes: nodes(Y_LO) },               // lower: 12:00 → 14:00
+  ],
+};
+
+// hour labels sit just right of their lines at the bottom edge
+const HLAB = [[-1, '−1h'], [0, '0'], [1, '+1h']]
+  .map(([k, l]) => ({ x: +(lineX(k, 313) + 6).toFixed(1), l }));
+---
+
+<figure class="anim" data-anim="meridian-squeeze" data-geom={JSON.stringify(GEOM)}>
+  <svg
+    viewBox="0 0 560 320"
+    role="img"
+    aria-label="Two horizontal flight tracks cross a fan of thirteen meridian lines, one per hour of solar time, all converging at the North Pole at the top. Both plane dots fly left to right at the same speed for the same nine seconds. On the lower track, at 40 degrees north, the meridians are widely spaced, and its clock advances only two hours, from 12:00 to 14:00. On the upper track, at 84 degrees north, the same meridians crowd together, and its clock whirls through ten hours, from 12:00 to 22:00; as it crosses the fan's center line — where this flight crosses the 180th meridian — its date label steps from 20 December to 21 December. Same flying time, wildly different clock. The fan is schematic; at these latitudes the true contrast is larger still."
+  >
+    <!-- the fan: hour-meridians converging at the pole -->
+    <g class="fan">
+      {KS.map((k) => (
+        <line
+          class:list={['mer', { c0: k === 0 }]}
+          x1={POLE.x} y1={POLE.y}
+          x2={+lineX(k, BOT).toFixed(1)} y2={BOT}
+        />
+      ))}
+      <circle class="pole-dot" cx={POLE.x} cy={POLE.y} r="2.5" />
+      <text class="pole-lbl" x={POLE.x} y="18" text-anchor="middle">NORTH POLE</text>
+      {HLAB.map((h) => <text class="hlab" x={h.x} y="313">{h.l}</text>)}
+    </g>
+
+    <!-- upper track: 84°N, where the fan crowds -->
+    <g class="track">
+      <line class="guide" x1="120" x2="440" y1={Y_UP} y2={Y_UP} />
+      <text class="lat-lbl" x="112" y={Y_UP + 4} text-anchor="end">84°N</text>
+      <g class="mover m0" transform={`translate(${X1} 0)`}>
+        <circle class="pl" cx="0" cy={Y_UP} r="3.5" />
+        <rect class="chip" x="10" y={Y_UP - 26} width="92" height="20" rx="6" />
+        <text class="clock" x="17" y={Y_UP - 11.5}>22:00</text>
+        <text class="date stepped" x="56" y={Y_UP - 11.5}>21 Dec</text>
+      </g>
+      <text class="endlab" x="531" y="38" text-anchor="end">ten hours of clock — same flying time</text>
+    </g>
+
+    <!-- lower track: 40°N, where an hour of longitude is a long way -->
+    <g class="track">
+      <line class="guide" x1="120" x2="440" y1={Y_LO} y2={Y_LO} />
+      <text class="lat-lbl" x="112" y={Y_LO + 4} text-anchor="end">40°N</text>
+      <g class="mover m1" transform={`translate(${X1} 0)`}>
+        <circle class="pl" cx="0" cy={Y_LO} r="3.5" />
+        <rect class="chip" x="10" y={Y_LO - 26} width="50" height="20" rx="6" />
+        <text class="clock" x="17" y={Y_LO - 11.5}>14:00</text>
+      </g>
+      <text class="endlab" x="531" y="276" text-anchor="end">two hours of clock</text>
+    </g>
+
+    <!-- the serif moment: the date line, crossed at the fan's center -->
+    <text class="flash" x="280" y="120" text-anchor="middle">the date itself steps</text>
+  </svg>
+
+  <div class="anim-controls">
+    <button class="anim-btn" type="button" data-replay>Replay</button>
+  </div>
+
+  <figcaption>
+    The meridians that define the clock all meet at the pole. At 84°N this flight crosses in
+    minutes what costs hours of clock further south — and at the 180th meridian, the calendar
+    steps a day. The fan is schematic; at these latitudes the true contrast is larger still.
+  </figcaption>
+</figure>
+
+<style>
+  svg { width: 100%; height: auto; display: block; }
+
+  /* the fan — quiet, but it IS the subject */
+  .mer { stroke: var(--text-mute); stroke-width: 1; opacity: 0.22; }
+  .mer.c0 { stroke-dasharray: 5 5; opacity: 0.4; }   /* the center line: where the date lives */
+  .hlab { fill: var(--text-mute); font-size: 11px; letter-spacing: 0.04em; opacity: 0.85; }
+  .pole-dot { fill: var(--text-soft); }
+  .pole-lbl { fill: var(--text-mute); font-size: 11px; letter-spacing: 0.08em; opacity: 0.75; }
+
+  /* tracks */
+  .guide { stroke: var(--text-mute); stroke-width: 1; opacity: 0.3; }
+  .lat-lbl { fill: var(--text-mute); font-size: 11px; letter-spacing: 0.04em; }
+  .pl {
+    fill: var(--accent);
+    filter: drop-shadow(0 0 calc(3px * var(--glow, 1)) oklch(from var(--accent) l c h / 0.55));
+  }
+  .chip { fill: var(--surface-2); stroke: var(--border-2); stroke-width: 1; }
+  .clock { fill: var(--text); font-size: 13px; font-variant-numeric: tabular-nums; }
+  .date { fill: var(--text-mute); font-size: 11px; transition: fill 0.4s ease-in-out; }
+  .date.stepped { fill: var(--accent); }
+
+  /* serif moments */
+  .endlab, .flash {
+    fill: var(--text-soft);
+    font-family: "Newsreader", serif;
+    font-style: italic;
+    font-size: 13.5px;
+  }
+
+  /* entry + state. Markup default = final pose (good with no JS and under
+     reduced motion); the script adds .wind to arm, .in on scroll,
+     .flashed at the date-line crossing, .done at the end of the sweep. */
+  .wind:not(.in) :is(.fan, .track) { opacity: 0; }
+  .in :is(.fan, .track) { transition: opacity 0.9s ease-in-out; }
+  .in .fan { transition-delay: 0.05s; }
+  .in .track { transition-delay: 0.5s; }
+
+  .endlab { transition: opacity 0.8s ease-in-out; }
+  .flash { transition: opacity 0.5s ease-in-out; }
+  .wind:not(.done) .endlab { opacity: 0; }
+  .wind:not(.flashed) .flash { opacity: 0; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .wind:not(.in) :is(.fan, .track),
+    .wind:not(.done) .endlab,
+    .wind:not(.flashed) .flash { opacity: 1; }
+    .in :is(.fan, .track), .endlab, .flash, .date { transition: none; }
+  }
+</style>
+
+<script>
+  (() => {
+    const fig = document.querySelector('[data-anim="meridian-squeeze"]');
+    if (!fig) return;
+    const svg = fig.querySelector('svg');
+    const geom = JSON.parse(fig.dataset.geom);
+    const tracks = geom.tracks.map((tr, i) => {
+      const mover = svg.querySelector('.m' + i);
+      return {
+        base: tr.base,
+        nodes: tr.nodes,
+        mover,
+        clock: mover.querySelector('.clock'),
+        date: mover.querySelector('.date'),
+        shown: '',
+        flipped: null,
+      };
+    });
+    const btn = fig.querySelector('[data-replay]');
+
+    // piecewise-linear solar hours through the baked meridian x-positions
+    const hourAt = (nodes, x) => {
+      if (x <= nodes[0][0]) return nodes[0][1];
+      for (let i = 1; i < nodes.length; i++) {
+        if (x <= nodes[i][0]) {
+          const x1 = nodes[i - 1][0], h1 = nodes[i - 1][1];
+          const x2 = nodes[i][0], h2 = nodes[i][1];
+          return h1 + ((h2 - h1) * (x - x1)) / (x2 - x1);
+        }
+      }
+      return nodes[nodes.length - 1][1];
+    };
+
+    function render (t) {
+      const x = geom.x0 + (geom.x1 - geom.x0) * t;
+      for (const tr of tracks) {
+        tr.mover.setAttribute('transform', 'translate(' + x.toFixed(2) + ' 0)');
+        const h = hourAt(tr.nodes, x);
+        const m = Math.floor(tr.base + h * 60 + 1e-6);
+        const txt = String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
+        if (txt !== tr.shown) { tr.shown = txt; tr.clock.textContent = txt; }
+        if (tr.date) {
+          const past = h >= -1e-9;          // h = 0 at the fan's center line (the 180th)
+          if (past !== tr.flipped) {
+            tr.flipped = past;
+            tr.date.textContent = past ? '21 Dec' : '20 Dec';
+            tr.date.classList.toggle('stepped', past);
+            fig.classList.toggle('flashed', past);
+          }
+        }
+      }
+    }
+
+    let raf = 0, leadTimer = 0;
+    const sweep = (lead) => {
+      cancelAnimationFrame(raf);
+      clearTimeout(leadTimer);
+      fig.classList.remove('done');
+      leadTimer = setTimeout(() => {                             // no rAF busy-spin during the lead-in
+        const t0 = performance.now();
+        const step = (now) => {
+          const t = Math.min((now - t0) / 9000, 1);              // linear: constant px/s
+          render(t);
+          if (t < 1) raf = requestAnimationFrame(step);
+          else fig.classList.add('done');
+        };
+        raf = requestAnimationFrame(step);
+      }, lead);
+    };
+
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const finalize = () => {
+      render(1);
+      fig.classList.add('in');
+      fig.classList.add('flashed');
+      fig.classList.add('done');
+    };
+
+    btn.addEventListener('click', () => {
+      if (reduced) { finalize(); return; }   // instant final pose, no sweep
+      fig.classList.add('in');
+      render(0);
+      sweep(350);
+    });
+
+    if (reduced) { finalize(); return; }     // markup already holds the final pose
+
+    fig.classList.add('wind');               // arm: hide layers, park dots at the start
+    render(0);
+
+    if (!('IntersectionObserver' in window)) {
+      fig.classList.add('in');
+      sweep(1100);
+      return;
+    }
+    const io = new IntersectionObserver((entries) => {
+      for (const e of entries) {
+        if (e.isIntersecting) {
+          if (!fig.classList.contains('in')) { fig.classList.add('in'); sweep(1100); }
+          io.disconnect();
+        }
+      }
+    }, { threshold: 0.35 });
+    io.observe(fig);
+  })();
+</script>
