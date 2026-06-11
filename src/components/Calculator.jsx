@@ -331,7 +331,8 @@ function Landing({ query, setQuery, date, setDate, err, onSubmit, recents, onCle
   return (
     <main className="landing">
       <div className="hero">
-        <h1 className="display">Know your prayers from gate to gate.</h1>
+        {/* h2: the document h1 is the static sr-only one in index.astro */}
+        <h2 className="display">Know your prayers from gate to gate.</h2>
       </div>
 
       <div className="horizon" aria-hidden="true"></div>

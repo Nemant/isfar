@@ -43,8 +43,26 @@ Operational ids/gotchas live in the `isfar-cloud-infra` memory.
   wishlist animations (`src/components/blog/Anim*.astro`), a full multi-lens review pass
   (numbers re-verified via `scripts/verify-blog-times.mjs`), FAQ + BlogPosting JSON-LD, sitemap
   entry, and two-way internal links (app sheet/banner ↔ guide). Draft + production notes remain
-  at `docs/blog/2026-06-09-prayer-times-far-north.md`. Still to come in D: programmatic route
-  pages, i18n/hreflang.
+  at `docs/blog/2026-06-09-prayer-times-far-north.md`.
+  **Wave 1 SHIPPED 2026-06-11** (design: `docs/superpowers/specs/2026-06-11-seo-phase-d-design.md`):
+  48 programmatic route pages (`/prayer-times/{from}-to-{to}/`, engine-computed seasonal prayer
+  tables, per-route FAQ + Breadcrumb JSON-LD) + hub; **i18n wave 1** — full Arabic mirror
+  (`/ar/…`, RTL, hreflang both ways) + `/ar/` landing; crawlable homepage (visible FAQ from
+  `faq-home.js`, how-it-works, footer, sr-only h1); 404 page; sitemap generated at build
+  (101 URLs, en/ar alternates); `?from=&to=` deep-link prefill; SEO pages excluded from the SW
+  precache (v22).
+
+  **Phase-D forward timeline (data-gated — expansion follows Search Console, never bulk dumps):**
+  | Date | Work |
+  |---|---|
+  | 2026-06-12 | [User] GSC + Bing properties, submit sitemap. [Claude] DNS TXT verification record. |
+  | 2026-06-18 | Guide #2: "How to pray on a plane" (the head query). |
+  | 2026-06-25 | Route wave 2 (+~100, GSC-informed) · Guide #3: "Qibla on a plane". |
+  | 2026-07-09 | i18n wave 2: app island Arabic (RTL UI), Arabic guides; Urdu route pages if GSC warrants. |
+  | 2026-07-23 | Route wave 3 (purely GSC-driven; prune zero-impression pages) · Guide #4: qasr & jam'. |
+  | 2026-08-06 | i18n wave 3: Indonesian + Turkish; hreflang audit. |
+  | 2026-12-09 | Guide #5: "Fasting on a flight" (~10 weeks before Ramadan 2027). |
+  | ongoing | Per-route OG images; off-page (Product Hunt, Muslim-travel communities — user-driven). |
 - ⏳ **Follow-ups:** true "next departure ≥ now" date resolution; per-flight cruise altitude.
   (See *Tracked follow-ups*.)
 
