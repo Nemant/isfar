@@ -30,8 +30,10 @@ Operational ids/gotchas live in the `isfar-cloud-infra` memory.
   `favicon.ico` added; browser console clean.
 
 **Left**
-- ⏳ **User/billing decisions (non-blocking):** pick an AeroDataBox **paid tier** (free tier
-  throttles after ~3 quick upstream calls); **rotate the RapidAPI key** (it appeared in chat).
+- ✅ **User/billing decisions:** AeroDataBox **paid tier** picked; **RapidAPI key rotated**.
+- ⏳ **Generate additional RapidAPI/AeroDataBox keys to bypass the 1 QPS limit** — the current key
+  caps at ~1 request/sec upstream; pool several keys (round-robin in the Worker) to raise effective
+  throughput before any wider launch.
 - ✅ **Phase C — Astro port** (Wave 2): SSG shell + one `client:only` React island, Babel dropped,
   `window.*`→ES imports, SW precache-from-manifest (`isfar-v18`). *(A first port shipped then
   reverted over theme/iOS-chrome hydration; this re-attempt uses `client:only` to avoid SSR.)*
@@ -422,10 +424,12 @@ submission, Muslim-travel/Hajj-Umrah community links.
 
 ## Open items the user owns (billing/accounts/decisions)
 
-- [ ] **Pick an AeroDataBox paid tier** — free tier throttles after ~3 quick upstream calls; needed
-      before wide launch. *(RapidAPI signed up ✓; Claude to recommend a tier.)*
-- [ ] **Rotate the RapidAPI key** — it appeared in the chat transcript; regenerate on RapidAPI and
-      Claude re-sets the `RAPIDAPI_KEY` Worker secret.
+- [x] ~~**Pick an AeroDataBox paid tier**~~ — done.
+- [x] ~~**Rotate the RapidAPI key**~~ — done.
+- [ ] **Generate additional RapidAPI/AeroDataBox keys to bypass the 1 QPS limit** — the active key
+      caps upstream at ~1 request/sec. Provision several keys and round-robin them in the Worker
+      (each as its own secret, e.g. `RAPIDAPI_KEY_1..N`) to raise effective throughput before a
+      wider launch.
 - [x] ~~Daily upstream `CEILING`~~ — set to **1000**.
 - [x] ~~Turnstile launch vs defer~~ — **deferred** (rate-limit + ceiling cap the bill).
 - [x] ~~Arabic wordmark for "Isfar"~~ — **إسفار**.
