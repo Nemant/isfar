@@ -1,0 +1,18 @@
+---
+/* 404 — served by the assets Worker via not_found_handling = "404-page"
+   (root wrangler.toml). Noindex; calm; points back to the useful places. */
+import StaticShell from '../components/StaticShell.astro';
+---
+<StaticShell title="Page not found — Isfar" desc="This page doesn't exist."
+  url="https://isfar.app/404" noindex={true}>
+  <article class="post">
+    <p class="eyebrow">404</p>
+    <h1>This page doesn&rsquo;t exist</h1>
+    <p class="lede">The horizon is empty here. Try one of these instead:</p>
+    <ul>
+      <li><a href="/">Look up a flight</a> — the Isfar app</li>
+      <li><a href="/prayer-times/">Prayer times by route</a></li>
+      <li><a href="/guide/far-north-prayer-times/">Guide: praying in the far north</a></li>
+    </ul>
+  </article>
+</StaticShell>

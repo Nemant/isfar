@@ -21,6 +21,11 @@ const files = await walk(DIST);
 const urls = files
   .map((f) => '/' + relative(DIST, f).split('\\').join('/'))
   .filter((u) => u !== '/sw.js')            // never precache the SW itself
+  // The static SEO surface (route pages, Arabic pages, 404, sitemap) is not
+  // part of the offline app shell — precaching it would make every install
+  // download the whole marketing site.
+  .filter((u) => !u.startsWith('/prayer-times/') && !u.startsWith('/ar/'))
+  .filter((u) => u !== '/404.html' && u !== '/sitemap.xml')
   .sort();
 
 const swPath = join(DIST, 'sw.js');

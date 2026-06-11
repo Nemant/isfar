@@ -1085,3 +1085,76 @@ body {
 }
 .midnight-banner .banner-link::after { content: " →"; }
 .midnight-banner .banner-link:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+/* ===========================================================================
+   Static homepage content (SEO) — the crawlable section below the island.
+   Matches the .col column; calm, footer-weight presence.
+   =========================================================================== */
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+.static-info {
+  position: relative; z-index: 1;
+  width: 100%; max-width: 480px;
+  margin: 0 auto;
+  padding: 8px 20px calc(28px + env(safe-area-inset-bottom, 0px));
+  color: var(--text-soft);
+}
+.static-info .horizon-rule {
+  height: 1px; margin: 4px 0 26px;
+  background: linear-gradient(90deg, transparent, var(--text-mute), transparent);
+  opacity: 0.35;
+}
+.static-info h2 {
+  font: 500 19px/1.3 "Newsreader", serif;
+  letter-spacing: 0.1px;
+  color: var(--text);
+  margin: 26px 0 10px;
+}
+.static-info ol { padding-left: 20px; margin: 10px 0 4px; }
+.static-info li {
+  font: 400 14.5px/1.55 "Hanken Grotesk", sans-serif;
+  margin: 8px 0;
+}
+.static-info li::marker { color: var(--text-mute); }
+.static-info strong { font-weight: 600; color: var(--text); }
+.static-info code {
+  font-family: "Hanken Grotesk", sans-serif; font-weight: 600;
+  color: var(--text-soft);
+}
+.static-info details {
+  border-bottom: 1px solid color-mix(in oklch, var(--text-mute) 22%, transparent);
+}
+.static-info summary {
+  cursor: pointer; list-style: none;
+  font: 500 14.5px/1.4 "Hanken Grotesk", sans-serif;
+  color: var(--text);
+  padding: 11px 0;
+  display: flex; justify-content: space-between; align-items: center; gap: 12px;
+}
+.static-info summary::-webkit-details-marker { display: none; }
+.static-info summary::after {
+  content: "+"; color: var(--text-mute); font-weight: 400; flex: none;
+}
+.static-info details[open] summary::after { content: "−"; }
+.static-info details p {
+  font: 400 14px/1.6 "Hanken Grotesk", sans-serif;
+  margin: 0 0 14px; color: var(--text-soft);
+}
+.static-links {
+  display: flex; flex-direction: column; gap: 10px;
+  margin: 26px 0 0;
+}
+.static-links a {
+  font: 500 14.5px/1.4 "Hanken Grotesk", sans-serif;
+  color: var(--text); text-decoration: none;
+}
+.static-links a::after { content: " →"; color: var(--text-mute); }
+.static-links a:hover { text-decoration: underline; text-underline-offset: 3px; }
+.static-foot {
+  font: 400 12.5px/1.6 "Hanken Grotesk", sans-serif;
+  color: var(--text-mute);
+  margin: 22px 0 0;
+}

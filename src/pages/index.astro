@@ -1,6 +1,7 @@
 ---
 import Calculator from '../components/Calculator.jsx';
 import '../styles/styles.css';
+import { HOME_FAQ } from '../lib/faq-home.js';
 ---
 <!DOCTYPE html>
 <html lang="en">
@@ -29,6 +30,9 @@ import '../styles/styles.css';
 <title>Isfar — Prayer times across your flight (Fajr to Isha)</title>
 <meta name="description" content="Enter your flight number and see every prayer — Fajr, Dhuhr, Asr, Maghrib, Isha — mapped before departure, in the air, and after arrival, shown in both origin and destination time zones." />
 <link rel="canonical" href="https://isfar.app/" />
+<link rel="alternate" hreflang="en" href="https://isfar.app/" />
+<link rel="alternate" hreflang="ar" href="https://isfar.app/ar/" />
+<link rel="alternate" hreflang="x-default" href="https://isfar.app/" />
 
 <meta property="og:type" content="website" />
 <meta property="og:site_name" content="Isfar" />
@@ -53,14 +57,8 @@ import '../styles/styles.css';
   "featureList":["Five daily prayer times mapped across any flight","Dual time-zone display (origin and destination)","Qasr and jam' guidance for travelling Muslims","Qibla direction relative to the aircraft heading","Offline support for saved flights"]
 })} />
 <script type="application/ld+json" set:html={JSON.stringify({
-  "@context":"https://schema.org","@type":"FAQPage","mainEntity":[
-    {"@type":"Question","name":"Can you pray on an airplane?","acceptedAnswer":{"@type":"Answer","text":"Yes. The majority of scholars hold that a Muslim must pray on the aircraft if the prayer time passes during the flight and there is no prospect of landing in time. You pray as best you can — standing if space allows, otherwise seated — facing the qibla if possible, or at least the general direction. Isfar shows which prayers fall before departure, during the flight, and after arrival so you can plan ahead."}},
-    {"@type":"Question","name":"What is qasr (shortening prayers) when travelling?","acceptedAnswer":{"@type":"Answer","text":"Qasr means shortening the four-unit (rak'ah) prayers — Dhuhr, Asr, and Isha — to two units while travelling. It is established in the Quran and Sunnah and is agreed upon across the major legal schools, though they differ on the minimum travel distance that triggers it and on whether it is obligatory or merely permitted. Consult a scholar familiar with your madhhab for personal rulings."}},
-    {"@type":"Question","name":"What is jam' (combining prayers) when travelling?","acceptedAnswer":{"@type":"Answer","text":"Jam' means combining Dhuhr with Asr (praying both together) and Maghrib with Isha (praying both together). This is permitted during travel according to the Hanbali, Shafi'i, and Maliki schools; the Hanafi school generally does not permit combining except at Arafah and Muzdalifah. Isfar highlights which prayers fall in the air so you can decide, with your scholar's guidance, whether to combine or keep them separate."}},
-    {"@type":"Question","name":"How do I face the qibla on a plane?","acceptedAnswer":{"@type":"Answer","text":"Isfar calculates the qibla bearing from your aircraft's position at each prayer time and expresses it as a clock position relative to the nose — for example, '3 o'clock' means face right. Because the aircraft turns and the position changes throughout the flight, the qibla direction at prayer time is shown individually for each prayer. Most scholars hold that a traveller who cannot determine or maintain the exact direction should face as close to it as they can; standing prayer is preferred if there is space and stability."}},
-    {"@type":"Question","name":"When does Maghrib begin at altitude?","acceptedAnswer":{"@type":"Answer","text":"At cruising altitude the horizon is lower than at sea level, so the sun appears to set a few minutes later than it would on the ground. Isfar applies a horizon-dip correction based on altitude so the in-flight Maghrib time is slightly later — erring on the side of caution. Similarly, the end of Fajr (the Fajr-ending sunrise) is calculated a little earlier at altitude. These are modest adjustments of a few minutes at typical cruise levels."}},
-    {"@type":"Question","name":"Which prayer-time calculation method should I use?","acceptedAnswer":{"@type":"Answer","text":"Isfar offers the same calculation methods as adhan.js — including Muslim World League, ISNA, Egyptian General Authority, Umm Al-Qura (used for Saudi Arabia), and others. The right choice depends on the convention used by your community or country of origin. If you are unsure, the Muslim World League method is widely accepted globally, and Umm Al-Qura is standard for travellers departing from or arriving into Saudi Arabia."}}
-  ]
+  "@context":"https://schema.org","@type":"FAQPage",
+  "mainEntity": HOME_FAQ.map((f) => ({ "@type":"Question","name": f.q, "acceptedAnswer": { "@type":"Answer","text": f.a } }))
 })} />
 
 <link rel="icon" href="/favicon.ico" sizes="any" />
@@ -76,7 +74,39 @@ import '../styles/styles.css';
 <link rel="preload" as="font" type="font/woff2" crossorigin href="/fonts/hanken-grotesk-latin-400.woff2" />
 </head>
 <body>
+<h1 class="sr-only">Isfar — prayer times across your flight, from Fajr to Isha</h1>
 <div id="root"><Calculator client:only="react" /></div>
+
+<!-- Static, crawlable content. The calculator above is a client:only island —
+     without this section the homepage HTML is empty to non-JS crawlers, and
+     the FAQPage JSON-LD would mark up content invisible to users (a
+     structured-data violation). One source (faq-home.js) feeds both. -->
+<section class="static-info" aria-label="About Isfar">
+  <div class="horizon-rule" aria-hidden="true"></div>
+
+  <h2>How Isfar works</h2>
+  <ol>
+    <li><strong>Enter a flight</strong> — a flight number like SV124, or any pair of airports and times.</li>
+    <li><strong>See every prayer</strong> — Fajr, Dhuhr, Asr, Maghrib and Isha, mapped before departure, in the air, and after arrival, each shown in both airports&rsquo; clocks.</li>
+    <li><strong>Pray with confidence</strong> — qibla as a clock position from your seat, altitude-corrected Maghrib, and honest <code>~</code> marks on any estimated time. Saved flights work offline.</li>
+  </ol>
+
+  <h2>Questions travellers ask</h2>
+  {HOME_FAQ.map((f) => (
+    <details>
+      <summary>{f.q}</summary>
+      <p>{f.a}</p>
+    </details>
+  ))}
+
+  <nav class="static-links" aria-label="More from Isfar">
+    <a href="/prayer-times/">Prayer times by route</a>
+    <a href="/guide/far-north-prayer-times/">Guide: praying in the far north</a>
+    <a href="/ar/" lang="ar" dir="rtl">إسفار بالعربية</a>
+  </nav>
+  <p class="static-foot">Free · installs as an app · no account · nothing here is a fiqh ruling — follow your own scholars.</p>
+</section>
+
 <script is:inline>
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", function () {

@@ -5,7 +5,7 @@
   "private": true,
   "scripts": {
     "dev": "astro dev",
-    "build": "astro build && node scripts/gen-sw-precache.mjs",
+    "build": "astro build && node scripts/gen-sw-precache.mjs && node scripts/gen-sitemap.mjs",
     "preview": "astro preview",
     "test": "vitest run tests",
     "astro": "astro"
