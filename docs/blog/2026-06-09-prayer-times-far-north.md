@@ -248,16 +248,14 @@ position along your flight path**:
 > published page carries the full story ("The flights that redrew the rule") and
 > `tests/engine-regressions.test.js` pins every flight in it.
 
-The switch between rule 1 and rule 2 follows your chosen method, not a fixed latitude — an 18°
-angle runs out of sky sooner than a 15° one, and in winter neither does. And every estimate is
-marked: a `~` before the time, an "estimate" tag on the card, and a note saying why.
-
-A worked example, the day we kept testing: **Oslo → Tromsø, December 21st**, landing in polar
-night. Before departure, Oslo's real Asr (13:04) and Maghrib (15:08). Isha arrives mid-flight,
-where the night below the aircraft is still real. After landing: Fajr ~06:26, borrowed from
-latitude 60° — where a 15° dawn still exists even in late December — and Dhuhr ~11:44, Tromsø's
-own solar noon, flagged because the sun beneath it never rises. Both carry the `~`, under a
-banner that says the sun will not rise tomorrow in Tromsø, and that's why.
+One flight shows all three rules at once: **Oslo → Tromsø on the December solstice**, landing in
+polar night. Oslo's prayers before departure are real times. Isha arrives mid-flight, still
+real — the night below the aircraft is deep enough for the angle. Only after landing does the
+borrowing start: Fajr comes from latitude 60°, and even Dhuhr, Tromsø's own solar noon, is
+flagged, because the sun beneath it never rises. Every estimate is marked — a `~` before the
+time, an "estimate" tag on the card, a note saying why — and where that switch happens follows
+your chosen method, not a fixed latitude: an 18° angle runs out of sky sooner than a 15° one,
+and in winter neither does.
 
 ## Standing on others' work
 
