@@ -248,14 +248,9 @@ position along your flight path**:
 > published page carries the full story ("The flights that redrew the rule") and
 > `tests/engine-regressions.test.js` pins every flight in it.
 
-Watch the rules change along a single flight: **Oslo → Tromsø on the December solstice**, landing in
-polar night. Oslo's prayers before departure are real times. Isha arrives mid-flight, still
-real — the night below the aircraft is deep enough for the angle. Only after landing does the
-borrowing start: Fajr comes from latitude 60°, and even Dhuhr, Tromsø's own solar noon, is
-flagged, because the sun beneath it never rises. Every estimate is marked — a `~` before the
-time, an "estimate" tag on the card, a note saying why — and where that switch happens follows
-your chosen method, not a fixed latitude: an 18° angle runs out of sky sooner than a 15° one,
-and in winter neither does.
+Every estimate is marked — a `~` before the time, an "estimate" tag on the card, a note saying
+why — and where that switch happens follows your chosen method, not a fixed latitude: an 18°
+angle runs out of sky sooner than a 15° one, and in winter neither does.
 
 ## Standing on others' work
 
