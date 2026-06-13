@@ -136,9 +136,13 @@ it('short-night destination gets a shortnight skyNote (RKV→AEY, 37-minute Akur
   expect(note.nightMin).toBeLessThan(90);
 });
 
-// —— the June audit fleet from the guide article: each flight's Fajr must stay
-//    coherent with the sky it is actually under ——————————————————————————————
+// —— the June high-latitude audit fleet: each flight's Fajr must stay coherent
+//    with the sky it is actually under. TK80 and AC854/BA268 appear in the guide
+//    table; AY16/SK910 are kept as regression guards. ——————————————————————————
 const AUDIT = [
+  ['TK80 SFO→IST', { fromLat: 37.6198, fromLon: -122.3748, fromTz: 'America/Los_Angeles', fromIata: 'SFO',
+                      toLat: 41.2749, toLon: 28.7321, toTz: 'Europe/Istanbul', toIata: 'IST',
+                      depUTC: '2026-06-22T03:05:00Z', arrUTC: '2026-06-22T16:35:00Z' }, 'seventh'],
   ['AC854 YVR→LHR', { fromLat: 49.194, fromLon: -123.184, fromTz: 'America/Vancouver', fromIata: 'YVR',
                       toLat: 51.4706, toLon: -0.4619, toTz: 'Europe/London', toIata: 'LHR',
                       depUTC: '2026-06-09T04:35:00Z', arrUTC: '2026-06-09T13:50:00Z' }, 'seventh'],
