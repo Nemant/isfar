@@ -148,11 +148,12 @@ nothing to portion — compute as if you were at **latitude 60°N** (at your own
 the nearest valid latitude — a fixed, deliberate floor. Two reasons, and they point at the same
 line on the map.
 
-**The astronomical reason.** 60° is about the furthest north that keeps a dependable night all
-year round. Its midsummer night is short but real — just over five hours, enough for the
-seventh-of-the-night convention to produce sensible, stable, *prayable* times every single day of
-the year. Go higher and the guarantee dissolves; stop at 60° and the borrowed night never gets
-more extreme than Helsinki's.
+**The astronomical reason.** A night survives all the way up to the Arctic Circle, but it thins
+fast on the way — about five hours at 60°, three at 64°, one at 65.5°, twenty-four minutes just
+shy of the Circle. 60° is roughly the last line where the year's *shortest* night is still
+measured in hours: just over five at midsummer, enough for the seventh-of-the-night convention to
+produce sensible, stable, *prayable* times every single day of the year. Stop at 60° and the
+borrowed night never gets more extreme than Helsinki's.
 
 **The human reason.** 60°N is, in practice, where the world's big cities stop. Look at who lives
 on that line:
