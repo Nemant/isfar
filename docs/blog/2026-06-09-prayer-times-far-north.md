@@ -248,15 +248,9 @@ position along your flight path**:
 > published page carries the full story ("The flights that redrew the rule") and
 > `tests/engine-regressions.test.js` pins every flight in it.
 
-The switch between rule 1 and rule 2 isn't a line of latitude — it's *your angle meeting your
-sky*. Choose an 18° method and the fallback engages further south than your neighbour's 15°;
-in winter it disengages entirely. The app adapts to the opinion you follow rather than overriding
-it.
-
-And everything estimated *says so*. A `~` before the time, an "estimate" tag on the card, and a
-plain-language note. We'd rather show you an honest approximation than a confident fiction —
-that's the same reason the app errs late on Maghrib at altitude and tells you the sun it
-calculates from is the one outside your window.
+The switch between rule 1 and rule 2 follows your chosen method, not a fixed latitude — an 18°
+angle runs out of sky sooner than a 15° one, and in winter neither does. And every estimate is
+marked: a `~` before the time, an "estimate" tag on the card, and a note saying why.
 
 A worked example, the day we kept testing: **Oslo → Tromsø, December 21st**, landing in polar
 night. Before departure, Oslo's real Asr (13:04) and Maghrib (15:08). Isha arrives mid-flight,
