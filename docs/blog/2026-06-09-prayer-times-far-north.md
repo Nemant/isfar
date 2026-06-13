@@ -248,7 +248,7 @@ position along your flight path**:
 > published page carries the full story ("The flights that redrew the rule") and
 > `tests/engine-regressions.test.js` pins every flight in it.
 
-One flight shows all three rules at once: **Oslo → Tromsø on the December solstice**, landing in
+Watch the rules change along a single flight: **Oslo → Tromsø on the December solstice**, landing in
 polar night. Oslo's prayers before departure are real times. Isha arrives mid-flight, still
 real — the night below the aircraft is deep enough for the angle. Only after landing does the
 borrowing start: Fajr comes from latitude 60°, and even Dhuhr, Tromsø's own solar noon, is
