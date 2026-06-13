@@ -50,7 +50,8 @@ const KEYX = [171, 229, 297, 351, 429];
   <svg viewBox="40 26 560 458" role="img"
     aria-label="A year wheel for Tromsø at 69.68 degrees north, computed with a 15-degree method: five concentric rings, one per prayer, solid where the prayer has a real computed time and dashed where it must be estimated. Fajr and Isha are estimated from early April to early September and again through the darkest winter weeks. Maghrib is estimated during the midnight sun, mid-May to late July, and the polar night. Asr is estimated from mid-November to late January, around and through the polar night; Dhuhr only during the polar night itself. For most of the year every ring is solid.">
 
-    <text class="corner" x="48" y="64">TROMS&Oslash; &middot; 69.68&deg;N &middot; 15&deg; METHOD</text>
+    <text class="corner" x="48" y="48">TROMS&Oslash; &middot; 69.68&deg;N</text>
+    <text class="corner" x="48" y="63">15&deg; METHOD</text>
 
     <g class="months">
       {TICKS.map((t) => <line class="tick" x1={t.x1} y1={t.y1} x2={t.x2} y2={t.y2}></line>)}
@@ -96,10 +97,8 @@ const KEYX = [171, 229, 297, 351, 429];
         </g>
       ))}
       <g class="neutral">
-        <line class="kline solid" x1="196" y1="471" x2="214" y2="471"></line>
-        <text class="klab" x="219" y="474.5">your method&rsquo;s real time</text>
-        <line class="kline dash" x1="374" y1="471" x2="392" y2="471"></line>
-        <text class="klab" x="397" y="474.5">estimated</text>
+        <line class="kline dash" x1="280" y1="471" x2="298" y2="471"></line>
+        <text class="klab" x="303" y="474.5">estimated</text>
       </g>
     </g>
   </svg>
