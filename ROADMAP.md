@@ -126,6 +126,28 @@ Mostly user-driven (billing, account verification, outreach); Claude wires whate
 - **Per-route OG images** — ongoing. *[Claude.]*
 - **Off-page** — Product Hunt launch, Muslim-travel communities. *[User-driven.]*
 
+## Native apps (iOS / Android)
+
+The app is **already a PWA** (manifest, service worker, offline replay of saved flights, install
+nudge), so "add to home screen" works on both platforms today — that covers most users for $0. The
+open work is only if we want **App Store / Play Store** listings. No rewrite either way: the existing
+`dist/` build is the payload.
+
+- **Capacitor wrap — the both-platforms path.** Point Capacitor's `webDir` at `dist`, `cap add ios` /
+  `cap add android`, ship real `.ipa`/`.aab` artifacts. Reuses the build verbatim; opens native APIs
+  (share sheet, push) if ever wanted. Effort is ~a day of code, then the real cost is **store admin**:
+  Apple Developer ($99/yr), Google Play ($25 once), icons/screenshots/review. *[User owns store
+  accounts + paperwork; Claude scaffolds the Capacitor projects.]*
+- **Android-only shortcut — TWA via PWABuilder/Bubblewrap.** Because we're a clean PWA, PWABuilder can
+  generate a thin Play Store wrapper around live `isfar.app` (no bundled assets). Skip on iOS (no TWA
+  equivalent — use Capacitor there). *[Claude generates; user submits.]*
+- **Caveats to re-test inside a WebView (not Safari):** (1) the iOS edge-to-edge chrome handling
+  (`viewport-fit=cover`, no `theme-color`, safe-area insets — see CLAUDE.md) renders differently in a
+  Capacitor WebView; re-verify the status-bar look and insets. (2) `/api/flight` lookups are plain
+  HTTPS to our Worker — fine in a wrapper, but confirm the WebView allows the same-origin request.
+  (3) **Apple review risk:** Apple can reject "just a website" apps; our offline saved-flights +
+  focused UI is defensible, but it's the one genuine uncertainty.
+
 ## Small notes
 
 - **Favicon source:** `favicon.ico` is downscaled from `icon-192.png` via Pillow. If the brand mark
