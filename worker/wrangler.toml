@@ -64,8 +64,10 @@ preview_id = "91de0eb4e47742aeb9ada815275b4e08"
 # Native per-IP Rate Limiting (create in the Cloudflare dashboard, NOT in code):
 #   Security -> WAF -> Rate limiting rules:
 #     • Match:   http.request.uri.path eq "/api/flight"
-#     • Rate:    30 requests / 60 seconds, characteristic = IP
-#     • Action:  Block (or Managed Challenge) for 60s
+#     • Rate:    10 requests / 10 seconds, characteristic = IP
+#                (the free plan caps the window at 10s; verified 10×200 -> 429,
+#                 which the client maps to the soft "busy" error)
+#     • Action:  Block (or Managed Challenge) for the window
 #   This is the per-IP burst guard. The in-code CEILING is the separate
 #   total-daily-spend guard; Turnstile is the per-session guard.
 # --------------------------------------------------------------------------- #
