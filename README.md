@@ -1,107 +1,132 @@
 # Isfar — إسفار
 
-**Know your prayers from gate to gate.** A calm, single-page web app that maps the five
-daily prayers across an airline flight — telling a Muslim traveller which prayers to pray
-before departure, which fall in the air, and which after arrival, in both the origin and
-destination time zones.
+**Know your prayers from gate to gate.** A calm, mobile-first web app that maps the five daily
+prayers across an airline flight — which to pray before departure, which fall in the air, which after
+arrival — each shown in both the origin and destination time zones. Live at
+**[isfar.app](https://isfar.app)**.
 
-> _Isfar_ (إسفار) means **daybreak** — the brightening of the sky at first light — from the same
-> root (س-ف-ر) as _safar_, "journey." The app is mobile-first, works offline once loaded, needs no
-> account, and is built to feel reassuring rather than busy.
+> _Isfar_ (إسفار) means **daybreak**, from the same root (س-ف-ر) as _safar_, "journey." Works offline
+> once loaded, needs no account, installable as a PWA.
 
-**Live at [isfar.app](https://isfar.app)** — real flight lookups via AeroDataBox, served by a
-Cloudflare Worker with KV caching and per-IP abuse protection.
-
----
-
-## What it does
-
-Type a flight number (e.g. `SV124`) and Isfar:
-
-- Looks up the route, departure/arrival times, and time zones.
-- Walks the **great-circle flight path** and computes each prayer **at the aircraft's actual
-  position** the moment it falls — not just at the origin or destination.
-- Shows a **sun-arc timeline** of the journey with each prayer placed by the sun's elevation.
-- Lists every prayer grouped by **Before departure / In flight / After arrival**, each in
-  **both time zones**.
-- Shows the **qibla relative to the aircraft** (a clock position around a little plane),
-  since a compass is useless mid-flight.
-- Marks when **Fajr ends at sunrise**.
-- Corrects **Maghrib and sunrise for cruising altitude** (horizon dip), so the app's Maghrib
-  matches the sun you actually see out the window.
-
-### Handled edge cases
-
-- **Ultra-long eastbound** flights that cross **more than five prayers** (a second Fajr, etc.).
-- **Westbound "stretched day"** flights where very few prayers fall in the air.
-- **High-latitude / midnight-sun** routes where some prayers have **no calculated time**.
+This README is the **developer ramp-up**: stack, how to run it, where everything lives, and how it's
+hosted. For the architecture rationale and a per-file map, read **`CLAUDE.md`**. For remaining work,
+see **`ROADMAP.md`**.
 
 ---
 
-## The clever bits (geometry, not guesswork)
+## Tech stack
 
-- **Great-circle interpolation** — positions follow the true curved path across a round Earth.
-- **Moving-target crossing detection** — a prayer's instant drifts as the aircraft changes
-  longitude, so crossings are found by sign-change while walking the path.
-- **Forward azimuth** — the great-circle heading at each point, used to make the qibla
-  plane-relative.
-- **Horizon-dip altitude correction** — observer geometry for the sun-on-the-horizon events.
+| Layer | Choice |
+|---|---|
+| Framework | **Astro 4** static SSG (`astro.config.mjs`), compiled by Vite |
+| Interactivity | **one** React 18 island (`client:only`) — the whole calculator; every other page is zero-JS SSG |
+| Prayer times | **adhan-js** (`adhan` npm) — all prayer-time math; never hand-rolled |
+| Styling | vanilla CSS, oklch sun-arc palette, light / dark / auto themes |
+| Backend | **Cloudflare Worker** (`worker/`) → AeroDataBox via RapidAPI, KV cache, abuse caps |
+| Hosting | two Cloudflare Workers on `isfar.app` (static assets + `/api/*`) |
+| PWA / offline | service worker (`public/sw.js`, precache generated at build) + web manifest |
+| Tests | **vitest** (`tests/`) |
 
-**Prayer times themselves come entirely from [adhan-js](https://github.com/batoulapps/adhan-js)** —
-no prayer-time math is hand-rolled. Users pick the calculation authority (12 supported:
-Muslim World League, ISNA, Moonsighting Committee, Egyptian, Umm al-Qura, Dubai, Qatar,
-Kuwait, Karachi, Singapore/MUIS, Diyanet/Turkey, Tehran/Ja'fari) and Asr madhhab in Settings.
+Pinned deps: `astro 4.16`, `react 18.3`, `adhan 4.4`, `@astrojs/react 3.6`, `vitest 4`.
+There is **no Babel-in-browser and no CDN** — everything is an npm dep compiled at build (an earlier
+no-build version is gone; see `CLAUDE.md` history note).
 
 ---
 
 ## Running it
 
-No build step. It's plain HTML + in-browser React/Babel + adhan-js from a CDN.
-
 ```bash
-# any static server, e.g.
-npx serve .
-# then open http://localhost:3000/index.html
+npm install
+npm run dev       # astro dev server, hot reload
+npm test          # vitest — the engine's behavioral oracle; run this first
+npm run build     # astro build → dist/, then gen-sw-precache + gen-sitemap
+npm run preview    # serve the built dist/ locally
 ```
 
-Or open `index.html` through any static host. A **service worker** (`sw.js`) caches the app
-and its libraries on first load, so it works offline afterwards, and a web manifest makes it
-**installable** ("Add to Home Screen").
-
-> **Local vs. production lookups.** `data.js` decides via `useRemoteApi()`: on `localhost`/
-> `file://` it uses the built-in **sample table** (`SV124`, `QF10`, `EK215`, `DY394`, `BA286`)
-> so the demo works with no backend and offline. On the live domain it calls the real
-> same-origin `/api/flight` Worker for **any** flight number — while the curated sample chips
-> still resolve from the local table so they reliably show their edge cases. Everything else
-> (prayer math, geometry, offline) is real in both modes.
-
-### Hosting (production)
-
-Two Cloudflare Workers share `isfar.app` via routes: a **GitHub-connected static-asset Worker**
-serves the app (auto-deploys on push to `main`), and a **`isfar-flight` Worker** serves
-`/api/flight` — looking up AeroDataBox, caching records in KV, and enforcing a per-IP edge rate
-limit plus a hard daily upstream ceiling. The API key lives only in a Cloudflare secret, never
-in the repo. See `ROADMAP.md` for the full architecture and `worker/` for the Worker source.
+> **Local vs. production lookups.** `src/lib/data.js` `useRemoteApi()` decides by hostname: on
+> `localhost`/`file://` it uses the built-in **sample table** (`SV124`, `QF10`, `EK215`, `DY394`,
+> `BA286`) so the demo works offline with no backend. On the live domain it calls the real
+> same-origin `/api/flight` Worker for **any** flight number, while those curated sample chips still
+> resolve locally so their edge cases stay reliable. A non-sample live lookup therefore only works in
+> prod (or via `wrangler dev` on the worker), not the static preview.
 
 ---
 
-## Tech
+## Project layout
 
-- **React 18** + **Babel Standalone** (JSX transpiled in the browser — no toolchain).
-- **adhan-js** for all prayer-time calculation.
-- Vanilla CSS with an **oklch sun-arc palette** and light / dark / **auto** themes.
-- PWA: service worker + manifest for offline + install.
-- `localStorage` for recent searches and settings.
+```
+src/
+  pages/                 Astro pages (SSG)
+    index.astro          static shell + full SEO <head>; mounts <Calculator client:only>
+    faq.astro, 404.astro
+    guide/               long-form guide articles (zero-JS, own <head> + SVG animations)
+    prayer-times/        programmatic per-route SEO pages (/prayer-times/{from}-to-{to}/)
+    ar/                  Arabic mirror (RTL, hreflang)
+  components/
+    Calculator.jsx       the React island root (state machine + all views)
+    arc.jsx cards.jsx components.jsx route-form.jsx tweaks-panel.jsx
+    blog/Anim*.astro     self-contained SVG animation figures for the guides
+  lib/
+    engine.js            ALL geometry + the high-latitude prayer policy (the core)
+    data.js              sample flights, lookup()/lookupRemote(), METHODS, constants
+    airports.js          route-mode lookup (city+time → /api/flight record shape, offline)
+    recents.js export-card.js route-pages.js faq-home.js i18n-ar.js
+  assets/airports.json   generated ~3.8k-airport dataset (regen: scripts/gen-airports.mjs)
+  styles/                styles.css (app) + blog.css (guides)
 
-See **CLAUDE.md** for the architecture and file map.
+worker/                  the isfar-flight Worker (/api/flight) — standalone, see worker/README.md
+  src/index.js           request handler: AeroDataBox lookup, KV cache, rate limit, ceiling
+  src/map.js             AeroDataBox → record mapping + Intl tz/date derivation
+  CONTRACT.md            freezes the /api/flight response shape (= the data.js record)
+
+scripts/                 build-time helpers (gen-sw-precache, gen-sitemap, gen-airports, verify-blog-times)
+tests/                   vitest: engine policy/invariants/regressions, route-pages, recents, export-card
+public/                  copied verbatim to dist/: sw.js, manifest, icons, fonts, robots/sitemap
+```
+
+The **engine** (`src/lib/engine.js`) is where the real work is: great-circle interpolation,
+moving-target prayer-crossing detection, qibla-relative-to-aircraft, horizon-dip altitude
+correction, and the observation-driven high-latitude policy. It calls adhan for every prayer instant
+and never re-predicts astronomy itself. Its output shape is pinned by `tests/engine-display.test.js`.
+
+---
+
+## Hosting & infrastructure (Cloudflare)
+
+`isfar.app` is served by **two Cloudflare Workers under one domain via Worker Routes** (not Pages):
+
+| Worker | Serves | Config | Deploy |
+|---|---|---|---|
+| **`isfar`** | `isfar.app/*` — the static app | root **`wrangler.toml`** (assets-only, `directory=./dist`) | **GitHub-connected**: auto-builds (`npm run build`) + deploys on every push to `main` |
+| **`isfar-flight`** | `isfar.app/api/*` (more-specific route wins) | **`worker/wrangler.toml`** | `wrangler deploy` from `worker/` |
+
+**Flight API:** [AeroDataBox](https://aerodatabox.com/) via **RapidAPI**. The key is a Cloudflare
+secret (`RAPIDAPI_KEY`) — **never** in the repo or client. The Worker:
+- normalizes the flight code, resolves a date, calls AeroDataBox (`withLocation=true`), and reshapes
+  the response into the frozen record (`worker/CONTRACT.md`);
+- **KV cache** (`FLIGHT_CACHE`, key `flight:{code}:{date}`, TTL 6h future / 30d past) — the cost shield;
+- **per-IP rate limit** (Cloudflare WAF rule, dashboard-configured) + a **daily upstream `CEILING`**
+  (`vars.CEILING=1000`) bill cap; over the ceiling it returns a soft `busy` error.
+
+Secrets are set with `wrangler secret put RAPIDAPI_KEY` (prod) / `worker/.dev.vars` (local,
+gitignored). Operational ids and the deploy runbook live in `ROADMAP.md` and the project memory.
+
+---
+
+## Calculation methods
+
+Users pick the calculation authority (12 supported: Muslim World League, ISNA, Moonsighting
+Committee, Egyptian, Umm al-Qura, Dubai, Qatar, Kuwait, Karachi, Singapore/MUIS, Diyanet/Turkey,
+Tehran/Ja'fari) and Asr madhhab in Settings — see `METHODS` in `src/lib/data.js`. High-latitude
+behavior (real angle → seventh-of-night → 60° floor) is documented in `CLAUDE.md` and the far-north
+guide page.
 
 ---
 
 ## Status & license
 
-**Live** at [isfar.app](https://isfar.app) with real, abuse-protected flight lookups (Milestone 1).
-Next: an Astro port (drop Babel, prerender SEO pages) and i18n — see `ROADMAP.md`. Times are
-guidance for travellers — verify with a local source on arrival, and follow your own madhhab or a
-trusted scholar where rulings differ.
+**Live** with real, abuse-protected lookups; Astro port and SEO Phase D wave 1 shipped. See
+`ROADMAP.md` for what's left. Times are guidance for travellers — verify with a local source on
+arrival, and follow your own madhhab or a trusted scholar where rulings differ.
 
 License: **MIT** © 2026 Danish Khan. See [`LICENSE`](./LICENSE).
