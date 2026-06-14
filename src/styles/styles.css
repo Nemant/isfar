@@ -1095,12 +1095,21 @@ body {
   overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
 }
 
+/* Full-width band that continues the sky's bottom colour (--bg-bottom) so the
+   links read as part of the page, not a separate-coloured block below it. The
+   app's .sky gradient ends at --bg-bottom at the bottom of .isfar, and this
+   picks up the exact same colour edge-to-edge. Content stays in the 480px column. */
 .static-info {
   position: relative; z-index: 1;
+  width: 100%;
+  background: var(--bg-bottom);
+  color: var(--text-soft);
+  transition: background .6s ease;   /* match .sky's theme transition */
+}
+.static-inner {
   width: 100%; max-width: 480px;
   margin: 0 auto;
   padding: 8px 20px calc(28px + env(safe-area-inset-bottom, 0px));
-  color: var(--text-soft);
 }
 .static-info .horizon-rule {
   height: 1px; margin: 4px 0 26px;
@@ -1117,8 +1126,3 @@ body {
 }
 .static-links a::after { content: " →"; color: var(--text-mute); }
 .static-links a:hover { text-decoration: underline; text-underline-offset: 3px; }
-.static-foot {
-  font: 400 12.5px/1.6 "Hanken Grotesk", sans-serif;
-  color: var(--text-mute);
-  margin: 22px 0 0;
-}

@@ -502,7 +502,6 @@ function Foot() {
   return (
     <footer className="foot">
       <span className="ar" aria-hidden="true">سفر مبارك</span>
-      Safe travels. Times are guidance for travellers — verify with a local source on arrival.
     </footer>
   );
 }
