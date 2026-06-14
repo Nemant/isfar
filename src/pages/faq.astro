@@ -1,0 +1,39 @@
+---
+/* Prayer & travel FAQ — its own page so the homepage stays calm. Carries the
+   FAQPage JSON-LD alongside the SAME visible Q&As (markup must reflect visible
+   content). One source: faq-home.js. Pure SSG. */
+import StaticShell from '../components/StaticShell.astro';
+import { HOME_FAQ } from '../lib/faq-home.js';
+
+const URL = 'https://isfar.app/faq/';
+const TITLE = 'Prayer & travel FAQ — praying on a flight | Isfar';
+const DESC = 'Answers for travelling Muslims: can you pray on an airplane, qasr and jam\' when travelling, facing the qibla on a plane, Maghrib at altitude, and which calculation method to use.';
+
+const JSONLD = [
+  { '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Isfar', item: 'https://isfar.app/' },
+    { '@type': 'ListItem', position: 2, name: 'FAQ', item: URL },
+  ] },
+  { '@context': 'https://schema.org', '@type': 'FAQPage',
+    mainEntity: HOME_FAQ.map((f) => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })) },
+];
+---
+<StaticShell title={TITLE} desc={DESC} url={URL} jsonld={JSONLD}>
+  <article class="post">
+    <p class="eyebrow">Questions travellers ask</p>
+    <h1>Prayer &amp; travel FAQ</h1>
+    <p class="lede">Praying across a flight raises real questions — when, where, and which way. Here are
+      the ones travellers ask most. None of this is a fiqh ruling; follow your own scholars.</p>
+
+    <div class="faq">
+      {HOME_FAQ.map((f) => (<><h3>{f.q}</h3><p>{f.a}</p></>))}
+    </div>
+
+    <footer class="post-footer">
+      <div class="horizon" style="margin:0 0 22px"></div>
+      <p><a href="/">Isfar</a> maps Fajr, Dhuhr, Asr, Maghrib and Isha across any flight — in both time zones,
+        with qibla from your seat. See also <a href="/prayer-times/">prayer times by route</a> and the
+        <a href="/guide/far-north-prayer-times/">far-north guide</a>.</p>
+    </footer>
+  </article>
+</StaticShell>
