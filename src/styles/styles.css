@@ -1107,41 +1107,10 @@ body {
   background: linear-gradient(90deg, transparent, var(--text-mute), transparent);
   opacity: 0.35;
 }
-.static-info h2 {
-  font: 500 19px/1.3 "Newsreader", serif;
-  letter-spacing: 0.1px;
-  color: var(--text);
-  margin: 26px 0 10px;
-}
-.static-info ol { padding-left: 20px; margin: 10px 0 4px; }
-.static-info li {
-  font: 400 14.5px/1.55 "Hanken Grotesk", sans-serif;
-  margin: 8px 0;
-}
-.static-info li::marker { color: var(--text-mute); }
-.static-info strong { font-weight: 600; color: var(--text); }
-.static-info code {
-  font-family: "Hanken Grotesk", sans-serif; font-weight: 600;
-  color: var(--text-soft);
-}
-.static-info details {
-  border-bottom: 1px solid color-mix(in oklch, var(--text-mute) 22%, transparent);
-}
-.static-info summary {
-  cursor: pointer; list-style: none;
-  font: 500 14.5px/1.4 "Hanken Grotesk", sans-serif;
-  color: var(--text);
-  padding: 11px 0;
-  display: flex; justify-content: space-between; align-items: center; gap: 12px;
-}
-.static-info summary::-webkit-details-marker { display: none; }
-.static-info summary::after {
-  content: "+"; color: var(--text-mute); font-weight: 400; flex: none;
-}
-.static-info details[open] summary::after { content: "−"; }
-.static-info details p {
-  font: 400 14px/1.6 "Hanken Grotesk", sans-serif;
-  margin: 0 0 14px; color: var(--text-soft);
+.static-info .static-lead {
+  font: 400 14.5px/1.62 "Hanken Grotesk", sans-serif;
+  margin: 0;
+  text-wrap: pretty;
 }
 .static-links {
   display: flex; flex-direction: column; gap: 10px;
