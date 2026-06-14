@@ -71,17 +71,12 @@ import '../styles/styles.css';
 <h1 class="sr-only">Isfar — prayer times across your flight, from Fajr to Isha</h1>
 <div id="root"><Calculator client:only="react" /></div>
 
-<!-- Static, crawlable content. The calculator above is a client:only island, so
-     without this section the homepage HTML is empty to non-JS crawlers. Kept
-     deliberately short and calm; the FAQ lives on its own /faq/ page (with the
-     FAQPage JSON-LD), so the homepage stays uncluttered. -->
+<!-- Calm footer below the client:only island. The homepage's crawlable signals
+     are the <title>/<meta>/<h1 class="sr-only">/WebApplication JSON-LD plus the
+     keyword-bearing nav links below — no visible body copy needed. The FAQ lives
+     on its own /faq/ page with the FAQPage JSON-LD. -->
 <section class="static-info" aria-label="About Isfar">
   <div class="horizon-rule" aria-hidden="true"></div>
-
-  <p class="static-lead">Isfar maps the five daily prayers — Fajr, Dhuhr, Asr, Maghrib and Isha — across any
-    flight. Enter a flight number or a pair of airports, and each prayer is placed before departure, in the
-    air, or after arrival, shown in both airports&rsquo; clocks, with the qibla as a clock position from your
-    seat. Saved flights work offline.</p>
 
   <nav class="static-links" aria-label="More from Isfar">
     <a href="/prayer-times/">Prayer times by route</a>
