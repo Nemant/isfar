@@ -2,8 +2,8 @@
 
 > **Status:** outline / draft notes only. Not yet a published page. Captured from the
 > 2026-06-13 chat where building the far-north year-wheel animation surfaced the Asr anomaly.
-> Convention mirrors `2026-06-09-prayer-times-far-north.md` (draft notes → later canonicalised
-> into a `src/pages/guide/…astro` page).
+> Convention: these are draft notes, later canonicalised into a `src/pages/guide/…astro` page
+> (as the far-north guide was — `src/pages/guide/far-north-prayer-times.astro`).
 
 ## Title
 

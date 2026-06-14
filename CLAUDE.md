@@ -14,7 +14,7 @@ gone; `adhan`/`react` are pinned npm deps.
 > **History:** an earlier Astro port shipped to prod and was reverted over theme-FOUC / iOS-chrome
 > hydration issues. This (second) port deliberately uses **`client:only`** — the island is never
 > server-rendered, so there is no hydration mismatch to fight. Don't "optimise" it back to
-> `client:load`/SSG without re-reading that history (`docs/superpowers/specs/2026-06-08-astro-port-design.md`).
+> `client:load`/SSG without re-reading that history.
 
 ## Golden rules
 
@@ -38,7 +38,7 @@ build time, not load order.
 | File | Role |
 |---|---|
 | `src/pages/index.astro` | Static shell + the entire SEO `<head>` (title/meta/OG/Twitter/both JSON-LD blocks via `set:html`/canonical/manifest/icons/font preloads). Mounts `<Calculator client:only="react" />` in `#root`. The pre-paint `<script is:inline>` sets `<html data-theme>` before the island mounts (no FOUC); intentionally **no** `theme-color` meta (see iOS chrome note). |
-| `src/pages/guide/far-north-prayer-times.astro` | First Phase-D guide page (zero-JS-island, pure SSG + vanilla scripts): the far-north methodology article with its own `<head>` (BlogPosting + FAQPage JSON-LD), the same pre-paint theme script, a no-React theme toggle, and six interleaved animation figures. Canonical copy of the blog post (draft/notes: `docs/blog/2026-06-09-…md`). |
+| `src/pages/guide/far-north-prayer-times.astro` | First Phase-D guide page (zero-JS-island, pure SSG + vanilla scripts): the far-north methodology article with its own `<head>` (BlogPosting + FAQPage JSON-LD), the same pre-paint theme script, a no-React theme toggle, and six interleaved animation figures. The published far-north methodology article. |
 | `src/pages/guide/the-skipped-day.astro` | **Unlisted** istiftāʾ page (EWR→HKG Dec transpolar: the date-line/polar-night "skipped day" and the five-prayers-at-one-instant cliff, written as a question for a scholar). `<meta name="robots" content="noindex">`, no JSON-LD, not linked from any indexed page — keep it that way. The noindex meta is the single source of truth: `gen-sitemap.mjs` and `gen-sw-precache.mjs` both read it and exclude the page (and its solely-owned asset chunks) automatically. Same shell/theme machinery as the far-north guide; five interactive figures. |
 | `src/components/blog/Anim*.astro` | Self-contained SVG animation figures — six on the far-north guide (tilted Earth, twilight angle, shrinking dip, collapsing night, 60° floor, Tromsø year wheel) and five on the skipped-day page (polar crossing map, eastbound clock, meridian squeeze, skipped-day scrubber, four choices; the data-driven ones import `greatCircle`/`compute`/`ISFAR_TEST` from `engine.js` at build time). Contract: `<figure class="anim" data-anim="…">`, theme tokens only, IntersectionObserver entry at 0.35, full `prefers-reduced-motion` fallbacks, geometry computed in frontmatter. Page-unique SVG ids — don't mount one twice. |
 | `src/styles/blog.css` | Guide/blog layer on top of `styles.css` tokens: `.post-col`/`.post` article typography, tables, and the shared `.anim` / `.anim-controls` / `.anim-btn` / `.anim-seg` frame the blog components rely on. |

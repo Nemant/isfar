@@ -1,5 +1,6 @@
-// Re-verify every time quoted in docs/blog/2026-06-09-prayer-times-far-north.md
-// against adhan-js + the engine (publication-checklist requirement). Run:
+// Re-verify every time quoted in the far-north guide
+// (src/pages/guide/far-north-prayer-times.astro) against adhan-js + the engine
+// (publication-checklist requirement). Run:
 //   node scripts/verify-blog-times.mjs
 import * as adhan from 'adhan';
 import { compute, ISFAR_TEST } from '../src/lib/engine.js';
