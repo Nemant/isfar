@@ -74,17 +74,57 @@ What breaks first under a spike, and the lever for each:
 ## SEO Phase D — forward timeline
 
 Data-gated: expansion follows Search Console, never bulk page dumps on a young domain.
-Design strategy: balanced, quality-first waves.
+Design strategy: balanced, quality-first waves. Three parallel workstreams below —
+**Guides**, **i18n**, and **Other** (search-console setup + data-gated route waves + off-page).
 
-| Date | Work |
-|---|---|
-| 2026-06-18 | Guide #2: "How to pray on a plane" (the head query). *(draft in progress: `docs/blog/2026-06-14-asr-fails-first.md`)* |
-| 2026-06-25 | Route wave 2 (+~100, GSC-informed) · Guide #3: "Qibla on a plane". |
-| 2026-07-09 | i18n wave 2: app island Arabic (RTL UI), Arabic guides; Urdu route pages if GSC warrants. |
-| 2026-07-23 | Route wave 3 (purely GSC-driven; prune zero-impression pages) · Guide #4: qasr & jam'. |
-| 2026-08-06 | i18n wave 3: Indonesian + Turkish; hreflang audit. |
-| 2026-12-09 | Guide #5: "Fasting on a flight" (~10 weeks before Ramadan 2027). |
-| ongoing | Per-route OG images; off-page (Product Hunt, Muslim-travel communities — user-driven). |
+### Guides — the content moat
+
+Methodology and how-to articles. Two are published: `far-north-prayer-times` (listed/indexed) and
+`the-skipped-day` (unlisted + noindex). Each new guide is its own `src/pages/guide/…astro` page
+(zero-JS-island SSG, BlogPosting/FAQPage JSON-LD, shared theme machinery — see CLAUDE.md). These are
+three **distinct** posts, not one — "how to pray on a plane" is the practical how-to; "asr fails
+first" is a far-north methodology piece; "the skipped-day" is the transpolar istiftāʾ.
+
+| Target | Guide | Status |
+|---|---|---|
+| 2026-06-18 | **How to pray on a plane** — the head query. The practical how-to: when each of the five prayers falls across a flight, dual time zones, qasr/jam' pointer. | not drafted yet |
+| 2026-06-25 | **Asr fails first** — far-north methodology companion (why Asr breaks ~13 days before polar night). Listed/indexed; crosslinks `far-north-prayer-times` both ways. | draft notes: `docs/blog/2026-06-14-asr-fails-first.md` |
+| _blocked_ | **The skipped-day** — EWR→HKG Dec transpolar istiftāʾ (`/guide/the-skipped-day/`, live but **unlisted + noindex**). Page and figures already built; the open religious questions are written as an istiftāʾ. **Finish once a sheikh answers**, then decide whether to flip it to indexed. | awaiting fatwā |
+| 2026-07-23 | **Qibla on a plane**. | planned |
+| 2026-08-06 | **Qasr & jam' on a flight**. | planned |
+| 2026-12-09 | **Fasting on a flight** (~10 weeks before Ramadan 2027). | planned |
+
+### i18n — one language at a time, whole site each
+
+Each language is a **single self-contained task**: translate the **entire** site in that locale —
+the React app island, every guide, and all route/hub pages — then ship it with hreflang wired. We do
+**not** split a language across waves (no "Arabic routes now, Arabic app later"). A half-translated
+locale never goes live. Order is GSC-prioritized: do the language Search Console shows the most
+demand for next.
+
+| Target | Language | Scope (all of it, or it doesn't ship) |
+|---|---|---|
+| 2026-07-09 | **Arabic** (`ar`, RTL) | App island (RTL UI), all guides, all route/hub pages, hreflang. |
+| 2026-08-13 | **Urdu** (`ur`, RTL) | Full site. |
+| 2026-09-10 | **Indonesian** (`id`) | Full site. |
+| 2026-10-08 | **Turkish** (`tr`) | Full site. |
+
+After each language: hreflang audit + GSC re-check to confirm the next language's demand before
+starting it.
+
+### Other — search consoles, route waves, off-page
+
+Mostly user-driven (billing, account verification, outreach); Claude wires whatever is code-side.
+
+- **Google Search Console — the data gate.** Keep the domain property verified and watch
+  queries/impressions; it gates every route wave below. *[User.]*
+- **Bing Webmaster Tools.** Set up + verify the property, submit `sitemap.xml`; optionally enable
+  IndexNow for instant push. Cheap incremental reach (Bing/DuckDuckGo/ChatGPT search). *[User sets
+  up; Claude wires IndexNow if wanted.]*
+- **Route wave 2** (2026-06-25) — +~100 pages, GSC-informed. *[Claude, once GSC shows demand.]*
+- **Route wave 3** (2026-07-23) — purely GSC-driven; **prune zero-impression pages**. *[Claude.]*
+- **Per-route OG images** — ongoing. *[Claude.]*
+- **Off-page** — Product Hunt launch, Muslim-travel communities. *[User-driven.]*
 
 ## Small notes
 
