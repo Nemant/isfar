@@ -20,6 +20,7 @@ function hhmm(isoUTC, tz) {
 export function recordToParams(rec) {
   if (!rec || !rec.found) return null;
   if (rec.routeMode) {
+    if (!rec.from || !rec.to || !rec.from.tz || !rec.to.tz) return null;
     return {
       from: rec.from.iata, to: rec.to.iata, date: rec.dateISO,
       dep: hhmm(rec.depUTC, rec.from.tz),

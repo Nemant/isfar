@@ -22,6 +22,10 @@ describe('flight records', () => {
     expect(recordToUrl(rec, 'https://isfar.app'))
       .toBe('https://isfar.app/?flight=SV124&date=2026-06-16');
   });
+
+  it('recordToParams returns null for an unresolved record', () => {
+    expect(recordToParams({ found: false, code: 'XX1' })).toBeNull();
+  });
 });
 
 describe('route records round-trip', () => {
@@ -41,6 +45,11 @@ describe('route records round-trip', () => {
     expect(rebuilt.to.iata).toBe(orig.to.iata);
     expect(rebuilt.depUTC).toBe(orig.depUTC);
     expect(rebuilt.arrUTC).toBe(orig.arrUTC);
+  });
+
+  it('routeParamsToRecord returns null for an unknown IATA', () => {
+    expect(routeParamsToRecord(
+      { from: 'ZZZ', to: 'JED', date: '2026-06-16', dep: '09:30', arr: '18:05' }, LIST)).toBeNull();
   });
 });
 
