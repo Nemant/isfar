@@ -496,6 +496,16 @@ function Loading({ query, msg }) {
 /* ---- Results ------------------------------------------------------------ */
 function Results({ f, settings, activeKey, selectPrayer, cardRefs, onBack, nudge }) {
   const [exportErr, setExportErr] = useS(false);
+  const [shared, setShared] = useS(false);
+  async function shareLink() {
+    const url = recordToUrl(f, window.location.origin);
+    try {
+      if (navigator.share) { await navigator.share({ url }); return; }
+      await navigator.clipboard.writeText(url);
+      setShared(true);
+      setTimeout(() => setShared(false), 1800);
+    } catch (e) { /* user cancelled share or clipboard blocked — no-op */ }
+  }
   async function saveImage() {
     setExportErr(false);
     try { await exportImage(f, settings, document.querySelector(".isfar")); }
@@ -522,6 +532,7 @@ function Results({ f, settings, activeKey, selectPrayer, cardRefs, onBack, nudge
       <div className="results-actions">
         <button className="btn" onClick={onBack}><Ic.back style={{width:16,height:16}} aria-hidden="true" /> Look up another flight</button>
         <button className="btn-ghost" onClick={saveImage}><Ic.download style={{width:16,height:16}} aria-hidden="true" /> Save as image</button>
+        <button className="btn-ghost" onClick={shareLink}><Ic.share style={{width:16,height:16}} aria-hidden="true" /> {shared ? "Link copied" : "Share link"}</button>
       </div>
       {exportErr ? <div className="field-error">Couldn’t create the image on this browser.</div> : null}
       <Foot />
