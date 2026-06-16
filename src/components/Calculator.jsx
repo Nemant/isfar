@@ -124,10 +124,10 @@ function Calculator() {
         setView("landing"); setRaw(null); setErr(null); setActiveKey(null);
         return;
       }
-      if (intent.kind === "flight") runFlightLookup(intent.code, intent.date, true);
+      if (intent.kind === "flight") runFlightLookup(intent.code, intent.date, true, true);
       else loadAirports().then((list) => {
         const rec = routeParamsToRecord(intent, list);
-        if (rec) showRecord(rec, { replace: true });
+        if (rec) showRecord(rec, { replace: true, skipRecord: true });
       }).catch(() => {});
     };
     window.addEventListener("popstate", onPop);
@@ -232,10 +232,11 @@ function Calculator() {
   // when bootstrapping from a shared/refreshed URL (don't add a history entry).
   function showRecord(rec, opts) {
     const replace = !!(opts && opts.replace);
+    const skipRecord = !!(opts && opts.skipRecord);
     setErr(null);
     setQuery(rec.code || "");
     setRaw(rec);
-    recordRecent(rec);
+    if (!skipRecord) recordRecent(rec);
     setView("results");
     try {
       const url = recordToUrl(rec, window.location.origin);
@@ -246,7 +247,7 @@ function Calculator() {
 
   // Core flight lookup (shared by user submit and URL bootstrap). Keeps the
   // calm minimum loading dwell; cache-first via lookupRemote (offline replay).
-  function runFlightLookup(code, useDate, replace) {
+  function runFlightLookup(code, useDate, replace, skipRecord) {
     setErr(null);
     setQuery(code.toUpperCase());
     setView("loading"); setLoadMsg(0);
@@ -260,12 +261,12 @@ function Calculator() {
     (async () => {
       const [res] = await Promise.all([
         lookupRemote(code, useDate),
-        new Promise((r) => setTimeout(r, 1200))
+        new Promise((r) => setTimeout(r, replace ? 0 : 1200))
       ]);
       clearInterval(msgInt);
       if (loadTimer.current !== token) return;   // user navigated away mid-load
       if (!res.found) { setRaw(res); setView("error"); return; }
-      showRecord(res, { replace });
+      showRecord(res, { replace, skipRecord });
     })();
   }
 
