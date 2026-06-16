@@ -9,20 +9,21 @@
 ## Title
 
 - **The higher you fly, the later the sun sets** ← recommended. Subtitle: "How cruise altitude
-  bends Maghrib and Fajr — and why a turboprop at dawn is the case that bites."
-- Alternates: *Seeing past the horizon* · *A guess about altitude* · *Six minutes of dawn you
-  never had* (the turboprop Fajr hook).
+  pushes Maghrib later — and why a Ramadan turboprop is the case that bites."
+- Alternates: *Seeing past the horizon* · *A guess about altitude* · *The three minutes you waited
+  too long for iftar* (the turboprop Maghrib hook).
 
 Slug: `/guide/altitude-and-prayer-times`. **Listed and indexed** (methodology piece like the
 far-north guide — not noindex). Crosslink with `far-north-prayer-times` and `asr-fails-first`.
 
 ## Dek / one-liner
 
-At 38,000 ft the sun sets later and rises earlier than it does for anyone on the ground beneath
-you — you can literally see past the curve of the Earth. Isfar has to bake that into Maghrib and
-Fajr. But the airline never tells us how high you're flying, so we estimate it from the aircraft
-type. Here's the geometry, the guess, and the one flight where guessing wrong actually costs you
-prayer time.
+From a cruising plane the sun sets later than it does for the city below — you can literally see
+past the curve of the Earth, so the disk takes a few more minutes to drop out of view. For someone
+fasting, that means Maghrib (iftar) comes later in the air than on the ground. Isfar bakes that in.
+But the airline never tells us how high you're actually flying, so we estimate it from the aircraft
+type — and on a low-cruising turboprop, the old one-size guess held iftar back about three minutes
+too long. Here's the geometry, the guess, and the fix.
 
 ## Outline
 
@@ -36,11 +37,11 @@ prayer time.
 
 2. **The number.** Dip angle ≈ `1.76 · √(height in metres)` arc-minutes; the sky turns at about
    4 minutes of time per degree. So at 38,000 ft (11,580 m) the sun-disk sunset is delayed
-   **~12.6 minutes at the equator**. A latitude factor stretches it toward the poles (the sun
-   slants in shallow, so the same vertical dip eats more clock): **~20 min at 50°, ~25 min at
-   60°, ~36 min near 70°**. This is `altDipMinutes(lat, altFt)` in `engine.js`. It errs
-   *slightly late* for Maghrib on purpose — the safe side: you never pray while the sun is still
-   visibly up.
+   **~12.6 minutes at the equator**, and a little more away from it as the sun slants in shallower
+   (the same vertical dip eats more clock): **~13.6 min at 24° (Jeddah, Madinah), ~14.6 min at 30°
+   (Cairo, Lahore), ~16.6 min at 40° (Istanbul, Tashkent)**. This is `altDipMinutes(lat, altFt)` in
+   `engine.js`. It errs *slightly late* for Maghrib on purpose — the safe side: you never pray
+   while the sun is still visibly up.
 
 3. **The problem: nobody tells us the altitude.** AeroDataBox returns the airline, the route, the
    times, the aircraft *model* — but not a cruise altitude (and a live one only exists once the
@@ -48,29 +49,31 @@ prayer time.
    simply assumed **38,000 ft** for everyone.
 
 4. **How wrong is one flat guess?** Across the realistic 31,000–43,000 ft band, surprisingly
-   little. The dip changes by under a minute and a half from the 38k assumption at common
-   latitudes (±~1 min at 50°, ±~2.4 min at 60°). The headline error is not the wide-body that
-   cruises 3,000 ft higher than we guessed — it's the aircraft that flies **far lower**.
+   little. The dip changes by only ~1 minute either side of the 38k assumption at the latitudes
+   most travellers fly. The headline error is not the wide-body that cruises 3,000 ft higher than
+   we guessed — it's the aircraft that flies **far lower**: a regional turboprop.
 
-5. **The turboprop at dawn — where it actually bites.** A Widerøe Dash-8 hopping up the Norwegian
-   coast cruises near **24,000 ft**, not 38,000. The dip is *subtracted* from the Fajr-ending
-   sunrise, so over-assuming altitude closes the Fajr window **early**:
-   - At ~65°N the 38k assumption pulls the displayed sunrise **29.9 min** earlier than ground
-     level; the true 24k value is only **23.7 min**.
-   - Net: Fajr's window shown ending **~6 minutes too early**. A passenger trusting the app would
-     think dawn had lapsed — or rush the prayer — while the sun is still six minutes below the
-     real horizon from their seat.
-   - Same effect, smaller, at common latitudes: ~4 min early at 50°N, ~5 min at 60°N.
-   The mirror case (a wide-body stepped up to FL430 late in a long sector) shows Maghrib ~1.3 min
-   *early* at 50°N — also the unsafe side, but small.
+5. **Iftar on a turboprop — where it actually bites.** Picture a Ramadan evening hop: an Iran
+   Aseman **ATR 72-600**, Tehran → Mashhad, ~36°N, climbing into the sunset as the fast nears its
+   end. A turboprop cruises near **25,000 ft**, not 38,000 — and at altitude Maghrib genuinely
+   falls *later* than on the ground, because you still see the sun after the city below has lost
+   it. The question is *how much* later, and that depends on altitude we have to guess:
+   - At ~36°N the dip pushes the in-flight sunset **~12 minutes** past the ground sunset at the
+     true 25,000 ft — but **~15 minutes** if you wrongly assume 38,000.
+   - Net: the old flat 38k guess put Maghrib **~3 minutes too late** (engine-checked: 2.9 min on
+     this flight). Someone breaking their fast by the app would have waited about three minutes
+     longer than the sun above the wing actually required.
+   - This is the *safe* direction for iftar (you never break early), which is why it sat unnoticed —
+     but it's still wrong, and the same ~3 minutes flips to the *unsafe* side for the Fajr-ending
+     sunrise (window shown closing early). Both vanish once the altitude is right.
 
-6. **The honest caveat that shrinks the scare.** The dip is only applied to a **real** Maghrib /
-   **real** Fajr-ending sunrise — never to a portioned or borrowed one (estimates get no dip). The
-   biggest dip errors live near the poles — but that's exactly where, in summer, those prayers
-   stop being real and get portioned instead, so the dip isn't applied there at all. Where it
-   genuinely fires (a real sunrise/sunset exists), the worst real-world residual is the
-   mid-latitude turboprop above — a handful of minutes, not the half-hour the raw poleward numbers
-   suggest.
+6. **The honest caveat that keeps it proportionate.** The dip is only ever applied to a **real**
+   Maghrib / **real** Fajr-ending sunrise — never to a portioned or borrowed one (estimates get no
+   dip). The effect grows with latitude, but the far-north latitudes where it would be largest are
+   exactly where, in summer, those prayers stop being real and get portioned instead — so the dip
+   isn't applied there at all. That leaves the meaningful real-world cases sitting right where most
+   Muslims actually fly: the populated mid-latitudes, where a low-cruising turboprop is off by a
+   real ~3 minutes and a jet by ~1.
 
 7. **What Isfar does about it now.** `estimateCruiseFt(aircraftModel, distanceNm)`:
    - **Type is the dominant signal.** A small family table keyed off the model string —
@@ -86,8 +89,8 @@ prayer time.
 8. **Closing thought.** The sky-math here is fourteen centuries old and assumes your feet are on
    the ground. Flight breaks that one quiet assumption — the horizon itself moves. Most of the
    time a single sensible guess is within a minute of the truth; the craft is knowing the one
-   place it isn't (a propeller aircraft climbing into a high-latitude dawn) and spending exactly
-   the data you already have to fix it.
+   place it isn't (a regional turboprop climbing into a Ramadan sunset) and spending exactly the
+   data you already have to fix it.
 
 ## Animations
 
@@ -101,9 +104,10 @@ prayer time.
 3. **Type → altitude bars (centerpiece).** The family table as a horizontal bar chart: turboprop
    25k, regional 37k, narrowbody 38k, widebody 41k, with example tails (Dash-8, E175, A320, 787).
    The 38k default line drawn across — the point is how far the turboprop bar sits below it.
-4. **The escaping dawn.** Day as a band; the Fajr-ending sunrise marker at ground level, then
-   pulled earlier by the dip — show the 38k assumption (−29.9 min) overshooting the true 24k
-   value (−23.7 min) at 65°N, the 6-minute gap shaded as "dawn you never had."
+4. **The iftar you waited too long for.** A horizon line with the sun just below it; ground sunset
+   marked, then the altitude-delayed Maghrib pushed later by the dip — show the true 25k value
+   (+~12 min) and the wrong 38k assumption (+~15 min) for the Tehran→Mashhad ATR, the ~3-minute
+   gap shaded as "minutes you waited that the sky didn't ask for."
 5. **Static figure — which prayers get the dip.** Two of five prayers lit (Maghrib, Fajr-sunrise),
    the other three dimmed, with a note: only when *real*, never when portioned/borrowed.
 
@@ -120,10 +124,14 @@ prayer time.
 
 ## Before publishing — verify
 
-- The dip figures (12.6 / 20 / 25 / 36 min at 38k; the 38k-vs-24k turboprop deltas of 29.9 vs
-  23.7 min at 65°N) come straight from `altDipMinutes`. **Pin the worked numbers with a test**
-  (alongside `tests/engine-altitude.test.js`) so a future tweak to the dip constant or the family
-  table can't silently invalidate the post's claims.
+- The dip figures (12.6 / 13.6 / 14.6 / 16.6 min at 38k for 0 / 24 / 30 / 40°; the 38k-vs-25k
+  turboprop delta of ~15 vs ~12 min at ~36°N) come straight from `altDipMinutes`. **Pin the worked
+  numbers with a test** (alongside `tests/engine-altitude.test.js`) so a future tweak to the dip
+  constant or the family table can't silently invalidate the post's claims. The Tehran→Mashhad ATR
+  centerpiece is already engine-checked: a real in-flight Maghrib, **2.9 min** later at the 38k
+  default than at the true 25k cruise (THR 35.69,51.31 → MHD 36.23,59.64, dep 2026-03-05 14:00Z,
+  ATR 72-600). Re-run `compute()` to confirm before printing, and keep the example on a *real*
+  in-flight Maghrib (not a portioned one) so the dip actually applies.
 - Re-confirm the "narrowbody == 38,000" claim still holds if the family table is retuned — the
   whole "most jets don't move off the old default" framing depends on it.
 - Double-check the safe-side direction language: over-assuming altitude pushes **Maghrib later**
