@@ -1,5 +1,7 @@
 import React from 'react';
 import { lookupRemote } from '../lib/data.js';
+import { loadAirports } from '../lib/airports.js';
+import { recordToUrl, parseShareParams, routeParamsToRecord } from '../lib/share-url.js';
 import { upsertRecent, recentLabel } from '../lib/recents.js';
 import { exportImage } from '../lib/export-card.js';
 import { compute } from '../lib/engine.js';
@@ -25,6 +27,14 @@ const URL_PREFILL = (() => {
     if (/^[A-Z]{3}$/.test(from) && /^[A-Z]{3}$/.test(to) && from !== to) return { from, to };
   } catch (e) {}
   return null;
+})();
+
+// Full share intent (flight or route with all itinerary fields) — distinct
+// from URL_PREFILL, which is the legacy from/to-only form prefill. When this
+// is set we reconstruct the whole result on mount and KEEP the URL (shareable).
+const SHARE_INTENT = (() => {
+  try { return parseShareParams(window.location.search); }
+  catch (e) { return null; }
 })();
 const { useState: useS, useEffect: useE, useRef: useR } = React;
 
@@ -88,11 +98,40 @@ function Calculator() {
     try { return localStorage.getItem("isfar.lookupMode") === "route" ? "route" : "flight"; }
     catch (e) { return "flight"; }
   });
-  // strip the consumed deep-link params so refresh/share behaves normally
+  // Mount: handle a shared/refreshed result URL, else scrub a legacy prefill.
   useE(() => {
-    if (URL_PREFILL) {
+    if (SHARE_INTENT && SHARE_INTENT.kind === "flight") {
+      setDate(SHARE_INTENT.date);
+      runFlightLookup(SHARE_INTENT.code, SHARE_INTENT.date, true);
+    } else if (SHARE_INTENT && SHARE_INTENT.kind === "route") {
+      switchMode("route");
+      loadAirports().then((list) => {
+        const rec = routeParamsToRecord(SHARE_INTENT, list);
+        if (rec) showRecord(rec, { replace: true });
+      }).catch(() => {});
+    } else if (URL_PREFILL) {
       try { history.replaceState(null, "", window.location.pathname); } catch (e) {}
     }
+  }, []);
+
+  // Browser back/forward drives the view from the URL. No share params => the
+  // landing screen; share params => rebuild that result (cache-first/offline).
+  useE(() => {
+    const onPop = () => {
+      const intent = parseShareParams(window.location.search);
+      if (!intent) {
+        clearTimeout(loadTimer.current); loadTimer.current = null;
+        setView("landing"); setRaw(null); setErr(null); setActiveKey(null);
+        return;
+      }
+      if (intent.kind === "flight") runFlightLookup(intent.code, intent.date, true);
+      else loadAirports().then((list) => {
+        const rec = routeParamsToRecord(intent, list);
+        if (rec) showRecord(rec, { replace: true });
+      }).catch(() => {});
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
   }, []);
   function switchMode(m) {
     setMode(m); setErr(null);
@@ -123,7 +162,7 @@ function Calculator() {
   // mode); legacy code-only entries fall back to the normal lookup
   function openRecent(r) {
     if (r.rec && r.rec.found) {
-      setErr(null); setQuery(r.code || ""); setRaw(r.rec); setView("results");
+      showRecord(r.rec);
       return;
     }
     submit(r.code);
@@ -185,38 +224,55 @@ function Calculator() {
     clearTimeout(loadTimer.current);
     loadTimer.current = null;            // invalidate any in-flight async lookup
     setView("landing"); setRaw(null); setErr(null); setActiveKey(null);
+    // back to a clean root URL so the in-app Home and the browser Back agree
+    try { history.replaceState(null, "", window.location.pathname); } catch (e) {}
+  }
+
+  // Show a resolved record as a result and sync the URL. replace:true is used
+  // when bootstrapping from a shared/refreshed URL (don't add a history entry).
+  function showRecord(rec, opts) {
+    const replace = !!(opts && opts.replace);
+    setErr(null);
+    setQuery(rec.code || "");
+    setRaw(rec);
+    recordRecent(rec);
+    setView("results");
+    try {
+      const url = recordToUrl(rec, window.location.origin);
+      if (replace) history.replaceState({ isfar: "result" }, "", url);
+      else history.pushState({ isfar: "result" }, "", url);
+    } catch (e) {}
+  }
+
+  // Core flight lookup (shared by user submit and URL bootstrap). Keeps the
+  // calm minimum loading dwell; cache-first via lookupRemote (offline replay).
+  function runFlightLookup(code, useDate, replace) {
+    setErr(null);
+    setQuery(code.toUpperCase());
+    setView("loading"); setLoadMsg(0);
+
+    let i = 0;
+    const msgInt = setInterval(() => { i = Math.min(i + 1, LOAD_MSGS.length - 1); setLoadMsg(i); }, 620);
+
+    const token = {};
+    loadTimer.current = token;
+
+    (async () => {
+      const [res] = await Promise.all([
+        lookupRemote(code, useDate),
+        new Promise((r) => setTimeout(r, 1200))
+      ]);
+      clearInterval(msgInt);
+      if (loadTimer.current !== token) return;   // user navigated away mid-load
+      if (!res.found) { setRaw(res); setView("error"); return; }
+      showRecord(res, { replace });
+    })();
   }
 
   function submit(rawArg) {
     const raw = (typeof rawArg === "string" ? rawArg : query).trim();
     if (!raw) { setErr("Enter a flight number to continue."); return; }
-    setErr(null);
-    setQuery(raw.toUpperCase());
-    setView("loading"); setLoadMsg(0);
-
-    // cycle loading messages
-    let i = 0;
-    const msgInt = setInterval(() => { i = Math.min(i + 1, LOAD_MSGS.length - 1); setLoadMsg(i); }, 620);
-
-    // token marks this run live; goHome() nulls it to drop a stale resolution
-    const token = {};
-    loadTimer.current = token;
-
-    // Await the lookup AND a minimum calm dwell so the loading animation never
-    // feels jarring — whichever finishes last gates the transition.
-    (async () => {
-      const [res] = await Promise.all([
-        lookupRemote(raw, date),
-        new Promise((r) => setTimeout(r, 1200))
-      ]);
-      clearInterval(msgInt);
-      if (loadTimer.current !== token) return;   // user navigated away mid-load
-      setRaw(res);
-      if (!res.found) { setView("error"); return; }
-      recordRecent(res);
-      let model; try { model = compute(res, { method: settings.method, madhab: settings.madhab }); } catch (e) { model = res; }
-      setView("results");
-    })();
+    runFlightLookup(raw, date, false);
   }
 
   // PWA install nudge — captured native prompt (Chrome/Android) or iOS steps;
@@ -261,7 +317,7 @@ function Calculator() {
     setTimeout(() => {
       clearInterval(msgInt);
       if (loadTimer.current !== token) return;
-      setRaw(rec); recordRecent(rec); setView("results");
+      showRecord(rec);
     }, 1200);
   }
 
