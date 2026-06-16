@@ -36,6 +36,15 @@ id = "7cb844a84ef149a88d0c4cbe517461ed"
 preview_id = "91de0eb4e47742aeb9ada815275b4e08"
 
 # --------------------------------------------------------------------------- #
+# Workers Analytics Engine — one data point per /api/flight lookup.
+#   blobs: [route, cacheHitMiss, errorKind]  indexes: [route]  doubles: [1]
+# Query via the GraphQL/SQL API (see ANALYTICS.md). Free-plan friendly.
+# --------------------------------------------------------------------------- #
+[[analytics_engine_datasets]]
+binding = "AE"
+dataset = "isfar_lookups"
+
+# --------------------------------------------------------------------------- #
 # Routing — bind /api/* to the custom domain so Pages + Worker are same-origin
 # (lets the service worker cache /api/flight responses for offline re-display).
 # --------------------------------------------------------------------------- #

@@ -42,6 +42,33 @@ const notfound = (code, headers) => json({ found: false, error: "notfound", code
 const busy = (headers) => json({ found: false, error: "busy" }, 503, headers);
 
 /* ----------------------------------------------------------------------- *
+ * analytics-engine event (best-effort, never blocks or throws)
+ * ----------------------------------------------------------------------- */
+
+/** "DEP-ARR" IATA from a record, or "" when unresolved. */
+export function routeOf(record) {
+  try {
+    if (record && record.from && record.to && record.from.iata && record.to.iata) {
+      return record.from.iata + "-" + record.to.iata;
+    }
+  } catch (e) {}
+  return "";
+}
+
+/** One data point per lookup. No-op when the AE binding is absent (local/test). */
+function logEvent(env, route, cacheHitMiss, errorKind) {
+  try {
+    if (env && env.AE) {
+      env.AE.writeDataPoint({
+        blobs: [route || "", cacheHitMiss, errorKind],
+        indexes: [route || ""],
+        doubles: [1],
+      });
+    }
+  } catch (e) {}
+}
+
+/* ----------------------------------------------------------------------- *
  * date helpers
  * ----------------------------------------------------------------------- */
 
@@ -192,6 +219,7 @@ async function handleFlight(request, env) {
   if (!code) {
     // Blank input is a client-side concern (data.js -> {error:"empty"}); the
     // Worker treats a missing code as notfound-with-empty-code for safety.
+    logEvent(env, "", "miss", "notfound");
     return notfound("", { "X-Isfar-Cache": "miss" });
   }
 
@@ -207,6 +235,9 @@ async function handleFlight(request, env) {
   const cacheKey = `flight:${code}:${resolvedDate}`;
   const cached = await env.FLIGHT_CACHE.get(cacheKey);
   if (cached) {
+    let hitRoute = "";
+    try { hitRoute = routeOf(JSON.parse(cached)); } catch (e) {}
+    logEvent(env, hitRoute, "hit", "ok");
     return new Response(cached, {
       status: 200,
       headers: {
@@ -223,17 +254,18 @@ async function handleFlight(request, env) {
   const ip = request.headers.get("CF-Connecting-IP") || "";
   const tsToken = request.headers.get("CF-Turnstile-Token") || "";
   const tsOk = await verifyTurnstile(tsToken, env.TURNSTILE_SECRET, ip);
-  if (!tsOk) return busy(missHeaders); // failed challenge -> "try again shortly"
+  if (!tsOk) { logEvent(env, "", "miss", "busy"); return busy(missHeaders); } // failed challenge -> "try again shortly"
 
   // 4b. daily upstream ceiling
-  if (!(await underDailyCeiling(env))) return busy(missHeaders);
+  if (!(await underDailyCeiling(env))) { logEvent(env, "", "miss", "busy"); return busy(missHeaders); }
 
   // 5. upstream call (count it)
   await bumpDailyCounter(env);
   const adb = await fetchAeroDataBox(code, resolvedDate, env);
 
   if (!adb.ok) {
-    if (adb.status === 404) return notfound(code, missHeaders);
+    if (adb.status === 404) { logEvent(env, "", "miss", "notfound"); return notfound(code, missHeaders); }
+    logEvent(env, "", "miss", "busy");
     return busy(missHeaders); // other upstream failure
   }
 
@@ -241,7 +273,7 @@ async function handleFlight(request, env) {
   const record = mapFlight(seg);
 
   // mapFlight returns notfound on non-recoverable gaps (missing coords/tz).
-  if (!record.found) return notfound(code, missHeaders);
+  if (!record.found) { logEvent(env, "", "miss", "notfound"); return notfound(code, missHeaders); }
 
   // 6. store + return. Cache under both the requested date and the record's
   // own resolved dateISO so a date-less lookup and a dated lookup share state.
@@ -252,6 +284,7 @@ async function handleFlight(request, env) {
     await env.FLIGHT_CACHE.put(`flight:${code}:${record.dateISO}`, body, ttl);
   }
 
+  logEvent(env, routeOf(record), "miss", "ok");
   return new Response(body, {
     status: 200,
     headers: {
