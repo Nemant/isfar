@@ -83,6 +83,11 @@ missing-location / missing-tz → `notfound` paths.
 | `CEILING` daily counter | `src/index.js` + KV `upstream:count:{date}` | total RapidAPI spend/day → `busy` |
 | Turnstile | `verifyTurnstile()`, cache-miss only | per-session; **no-op until `TURNSTILE_SECRET` set** |
 
+> **Is 1 QPS enough?** Yes — by ~86×. The math (cache → unique-flight-days,
+> Poisson burst + stampede analysis) lives in [`CAPACITY.md`](./CAPACITY.md).
+> Short version: `CEILING=1000/day` and the monthly plan quota bind first; the
+> rate limit never does. Read that instead of worrying about it.
+
 ## Wave-1 validation checklist (run the instant the key lands)
 
 Hit the deployed Worker for each sample flight and confirm the mapped record
