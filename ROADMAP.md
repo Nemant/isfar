@@ -62,22 +62,6 @@ What breaks first under a spike, and the lever for each:
 > scaling lever that ever matters is the **monthly quota / tier upgrade**, driven by the Ceiling
 > alert above; multi-key round-robin is unnecessary at any plausible scale.
 
-## Engine follow-ups
-
-- **True "next departure ≥ now" date resolution.** The Worker currently uses "today UTC + first
-  matching segment"; implement true next-departure resolution + the optional date chip already in
-  the UI.
-- ~~**Per-flight cruise altitude.**~~ ✅ done. `estimateCruiseFt(aircraftModel, distanceNm)` in
-  `engine.js` derives the dip's altitude from the aircraft type (already in the record) + great-circle
-  distance — turboprop ≈25k, regional ≈37k, narrowbody ≈38k (= old default), widebody ≈41k, with a
-  short-leg clamp; unknown/explicit-record values fall through. Zero new API calls. Tests:
-  `tests/engine-altitude.test.js`. Methodology write-up drafted (Guides table above). A true
-  per-flight altitude (if upstream ever exposes one) still overrides the estimate.
-- ~~**adhan local-getter date drift (pre-existing quirk).**~~ ✅ done. `ptFor()` now builds the adhan
-  date from **local** components instead of `Date.UTC`, so the longitude's solar day is read back
-  device-tz-independently (NZ/Pacific devices no longer drift ~1–4 min). Guarded by a forced-tz test
-  (`tests/engine-timezone.test.js`) since CI runs in UTC where the bug is invisible.
-
 ## SEO Phase D — forward timeline
 
 Data-gated: expansion follows Search Console, never bulk page dumps on a young domain.
