@@ -34,8 +34,9 @@ Claude builds the cron worker + thresholds.]* Alerts to wire:
 
 - **Ceiling — the upgrade trigger.** Fire at ~80% of the daily upstream `CEILING` so you can raise
   it / upgrade the AeroDataBox tier **before** lookups start returning `busy`.
-- **Upstream failure.** AeroDataBox 5xx + RapidAPI **429** (the 1 QPS ceiling) rate over a window —
-  the signal to provision more keys (see *Scaling levers*) or bump the tier.
+- **Upstream failure.** AeroDataBox 5xx + RapidAPI **429** rate over a window. A sustained 429 rate
+  would be surprising given the headroom math (`worker/CAPACITY.md`) — treat it as a signal to
+  *investigate* (stampede on a hot flight? misconfigured retry?), not a reflex to provision keys.
 - **Uptime/latency.** External pinger (UptimeRobot free, or Cloudflare Health Checks) hitting
   `isfar.app/` and `/api/flight?code=…` from a couple of regions, alerting on outage independent of
   Cloudflare's own signals. *[User sets up the monitor; Claude supplies the health URLs.]*
@@ -54,10 +55,12 @@ What breaks first under a spike, and the lever for each:
 - **KV reads.** Free = **100k reads/day**; every cache-hit lookup is a read. The 6h/30d TTLs already
   maximise hits; a short edge **Cache API** layer in front of KV for hot flights would absorb more.
   **Lever:** Workers Paid raises the limit; the Cache-API layer is the code-side win.
-- **AeroDataBox 1 QPS / tier — the upstream bottleneck.** The active key caps upstream at ~1 req/sec.
-  Provision several keys (each its own secret, `RAPIDAPI_KEY_1..N`) and round-robin them in the
-  Worker, plus a tier upgrade. `CEILING` + the per-IP rate limit keep the bill bounded while you
-  react. *[User owns billing/key generation; Claude wires the round-robin.]*
+
+> **Not on this list: the AeroDataBox 1 QPS rate limit.** It looks like a bottleneck but never binds
+> — the `CEILING=1000/day` cost cap and the monthly plan quota are hit first, by ~86×. See
+> [`worker/CAPACITY.md`](./worker/CAPACITY.md) for the full Poisson/stampede math. The only upstream
+> scaling lever that ever matters is the **monthly quota / tier upgrade**, driven by the Ceiling
+> alert above; multi-key round-robin is unnecessary at any plausible scale.
 
 ## Engine follow-ups
 
