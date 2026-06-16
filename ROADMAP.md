@@ -67,12 +67,16 @@ What breaks first under a spike, and the lever for each:
 - **True "next departure ≥ now" date resolution.** The Worker currently uses "today UTC + first
   matching segment"; implement true next-departure resolution + the optional date chip already in
   the UI.
-- **Per-flight cruise altitude.** Read true cruise altitude per flight instead of the 38,000 ft
-  default.
-- **adhan local-getter date drift (pre-existing quirk).** adhan reads the calendar day off the
-  `Date` with **local** getters, so on a device whose tz is far from UTC `Date.UTC(y,m,d,12)` can
-  map to the adjacent solar day (times shift ~1–4 min). Harmless and uniform; fix would pass adhan a
-  date built from local components.
+- ~~**Per-flight cruise altitude.**~~ ✅ done. `estimateCruiseFt(aircraftModel, distanceNm)` in
+  `engine.js` derives the dip's altitude from the aircraft type (already in the record) + great-circle
+  distance — turboprop ≈25k, regional ≈37k, narrowbody ≈38k (= old default), widebody ≈41k, with a
+  short-leg clamp; unknown/explicit-record values fall through. Zero new API calls. Tests:
+  `tests/engine-altitude.test.js`. Methodology write-up drafted (Guides table above). A true
+  per-flight altitude (if upstream ever exposes one) still overrides the estimate.
+- ~~**adhan local-getter date drift (pre-existing quirk).**~~ ✅ done. `ptFor()` now builds the adhan
+  date from **local** components instead of `Date.UTC`, so the longitude's solar day is read back
+  device-tz-independently (NZ/Pacific devices no longer drift ~1–4 min). Guarded by a forced-tz test
+  (`tests/engine-timezone.test.js`) since CI runs in UTC where the bug is invisible.
 
 ## SEO Phase D — forward timeline
 
@@ -92,6 +96,7 @@ first" is a far-north methodology piece; "the skipped-day" is the transpolar ist
 |---|---|---|
 | 2026-06-18 | **How to pray on a plane** — the head query. The practical how-to: when each of the five prayers falls across a flight, dual time zones, qasr/jam' pointer. | not drafted yet |
 | 2026-06-25 | **Asr fails first** — far-north methodology companion (why Asr breaks ~13 days before polar night). Listed/indexed; crosslinks `far-north-prayer-times` both ways. | draft notes: `docs/blog/2026-06-14-asr-fails-first.md` |
+| 2026-07-02 | **The higher you fly, the later the sun sets** — altitude/horizon-dip methodology piece: how cruise altitude bends Maghrib and the Fajr-ending sunrise, and why a turboprop at dawn is the case that bites. Listed/indexed; crosslinks `far-north-prayer-times` + `asr-fails-first`. Backs the shipped `estimateCruiseFt` engine change. | draft notes: `docs/blog/2026-06-16-the-higher-you-fly-the-later-the-sun-sets.md` |
 | _blocked_ | **The skipped-day** — EWR→HKG Dec transpolar istiftāʾ (`/guide/the-skipped-day/`, live but **unlisted + noindex**). Page and figures already built; the open religious questions are written as an istiftāʾ. **Finish once a sheikh answers**, then decide whether to flip it to indexed. | awaiting fatwā |
 | 2026-07-23 | **Qibla on a plane**. | planned |
 | 2026-08-06 | **Qasr & jam' on a flight**. | planned |

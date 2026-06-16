@@ -69,6 +69,36 @@ function altDipMinutes(latDeg, altFt) {
   return dipDeg * 4 * latFactor;                  // 4 min per degree of arc
 }
 
+/* great-circle distance in nautical miles (haversine) — feeds the cruise
+   estimate's short-leg clamp, and nothing prayer-calc. */
+function distanceNm(lat1, lon1, lat2, lon2) {
+  const φ1 = lat1 * D2R, φ2 = lat2 * D2R, dφ = (lat2 - lat1) * D2R, dλ = (lon2 - lon1) * D2R;
+  const a = Math.sin(dφ / 2) ** 2 + Math.cos(φ1) * Math.cos(φ2) * Math.sin(dλ / 2) ** 2;
+  return 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)) / 1.852;  // km → nm
+}
+
+/* Typical cruise altitude (ft) by aircraft family, matched on the normalized
+   model string. Type is the dominant signal; the bare 38k default got the dip
+   badly wrong for turboprops (which cruise ~13k ft lower). Narrowbody == the
+   default, so only turboprops and widebodies move off it. */
+const CRUISE_FT = [
+  [/ATR\d|DHC8|DASH8|Q[234]00|SAAB|BEECH|CARAVAN|TWINOTTER|EMB1[12]\d/, 25000], // turboprop
+  [/CRJ|ERJ|E1(70|75)|RJ\d|SSJ|SUPERJET/,                              37000], // regional jet
+  [/7(47|67|77|87)|A3(3|4|5)\d|A380|MD11|DC10|IL96/,                   41000], // long-haul widebody
+];
+
+/* Estimate cruise altitude from aircraft model + trip distance — used only when
+   the record carries no real per-flight altitude. Falls back to the 38k default
+   for narrowbody/unknown; clamps short legs that never reach the ceiling. */
+function estimateCruiseFt(aircraftModel, distanceNm) {
+  const s = String(aircraftModel || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  let base = DEFAULT_CRUISE_FT;                              // narrowbody / unknown
+  for (const [re, ft] of CRUISE_FT) if (re.test(s)) { base = ft; break; }
+  const cap = distanceNm < 250 ? 28000 : distanceNm < 500 ? 33000
+            : distanceNm < 1000 ? 36000 : Infinity;          // no completed step-climb
+  return Math.min(base, cap);
+}
+
 /* solar declination (deg) for a date — standard approximation. Used ONLY to
    tell polar night from midnight sun once adhan has already said there is no
    sunrise/sunset; never to compute or predict a prayer time. */
@@ -111,11 +141,15 @@ function seventhParams(params) {
 
 const msOf = (v) => (v && !isNaN(v.getTime())) ? v.getTime() : null;
 
-/* adhan PrayerTimes for the mean-solar calendar day implied by lon around refMs */
+/* adhan PrayerTimes for the mean-solar calendar day implied by lon around refMs.
+   The date is built from LOCAL components, not Date.UTC: adhan reads the calendar
+   day off the Date with local getters, so a UTC-built noon tips to the adjacent
+   solar day on devices past a ±12 h offset (e.g. NZ), drifting every prayer by a
+   day's solar change. Local construction makes the day device-tz-independent. */
 function ptFor(lat, lon, refMs, params, dayOffset) {
   const l = meanSolarClock(refMs, lon);
-  const d = new Date(Date.UTC(l.getUTCFullYear(), l.getUTCMonth(),
-                              l.getUTCDate() + (dayOffset || 0), 12));
+  const d = new Date(l.getUTCFullYear(), l.getUTCMonth(),
+                     l.getUTCDate() + (dayOffset || 0), 12);
   return new adhan.PrayerTimes(new adhan.Coordinates(lat, lon), d, params);
 }
 
@@ -482,7 +516,8 @@ export function compute(raw, opts) {
   const params = makeParams(method, opts.madhab || "shafi");
   const dep = Date.parse(raw.depUTC), arr = Date.parse(raw.arrUTC);
   const { from, to } = raw;
-  const cruiseAltFt = raw.cruiseAltFt || DEFAULT_CRUISE_FT;
+  const cruiseAltFt = raw.cruiseAltFt ||
+    estimateCruiseFt(raw.aircraft, distanceNm(from.lat, from.lon, to.lat, to.lon));
   const sched = (lat, lon, refMs) => daySchedule(lat, lon, refMs, params, method);
 
   const entries = [
@@ -510,6 +545,6 @@ export function compute(raw, opts) {
   });
 }
 
-export const ISFAR_TEST = { makeParams, daySchedule };
+export const ISFAR_TEST = { makeParams, daySchedule, estimateCruiseFt, distanceNm };
 // build-time consumer: the guide pages sample the flight path for their figures
 export { greatCircle };

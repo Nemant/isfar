@@ -18,7 +18,7 @@ describe('top-level display model', () => {
     expect(m.from.iata).toBe('LHR');
     expect(m.to.iata).toBe('JED');
     expect(typeof m.durationMin).toBe('number');
-    expect(m.cruiseAltFt).toBe(38000);          // default when the record has none
+    expect(m.cruiseAltFt).toBe(41000);          // estimated from the 787 (long-haul widebody)
     expect(typeof m.multiDay).toBe('boolean');
     expect(Array.isArray(m.skyNotes)).toBe(true);
     expect(Array.isArray(m.prayers)).toBe(true);
@@ -127,7 +127,7 @@ describe('value pins — the curated samples compute exactly what they compute t
       ['fajr', 'before', 1780713780000, true, 'seventh'],
       ['dhuhr', 'before', 1780747320000, false, null],
       ['asr', 'inflight', 1780758660000, false, null],
-      ['maghrib', 'inflight', 1780767504641, false, null],   // dip-shifted real sunset
+      ['maghrib', 'inflight', 1780767540446, false, null],   // dip-shifted real sunset (41k cruise)
       ['isha', 'inflight', 1780770120000, false, null],
       ['fajr', 'after', 1780794900000, false, null],
       ['dhuhr', 'after', 1780824180000, false, null],
@@ -140,7 +140,7 @@ describe('value pins — the curated samples compute exactly what they compute t
       ['fajr', 'before', 1780713780000, true, 'seventh'],
       ['dhuhr', 'inflight', 1780747260000, false, null],
       ['asr', 'inflight', 1780755780000, false, null],
-      ['maghrib', 'inflight', 1780763961575, false, null],
+      ['maghrib', 'inflight', 1780763999586, false, null],
       ['isha', 'inflight', 1780766400000, false, null],
       ['fajr', 'inflight', 1780786740000, false, null],
       ['dhuhr', 'inflight', 1780806540000, false, null],
