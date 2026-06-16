@@ -105,6 +105,7 @@ function Calculator() {
       runFlightLookup(SHARE_INTENT.code, SHARE_INTENT.date, true);
     } else if (SHARE_INTENT && SHARE_INTENT.kind === "route") {
       switchMode("route");
+      setDate(SHARE_INTENT.date);
       loadAirports().then((list) => {
         const rec = routeParamsToRecord(SHARE_INTENT, list);
         if (rec) showRecord(rec, { replace: true });
