@@ -95,3 +95,31 @@ test("scheduled: busy breach sends, healthy sends nothing", async () => {
   await worker.scheduled({}, baseEnv(kv2), { waitUntil() {} });
   assert.equal(calls2.resend.length, 0);
 });
+
+test("scheduled: a FAILED send does NOT set the dedup key (retries next tick)", async () => {
+  const kv = mockKV({ [`upstream:count:${today()}`]: "900" });
+  const calls = { resend: [] };
+  globalThis.fetch = async (url, opts = {}) => {
+    const u = String(url);
+    if (u.includes("/workers/scripts/isfar-flight/settings"))
+      return { ok: true, json: async () => ({ result: { bindings: [{ type: "plain_text", name: "CEILING", text: "1000" }] } }) };
+    if (u.includes("/analytics_engine/sql"))
+      return { ok: true, json: async () => ({ data: [{ busy: 0, total: 0 }] }) };
+    if (u.includes("api.resend.com")) { calls.resend.push(1); return { ok: false, json: async () => ({}) }; }
+    throw new Error("unexpected fetch " + u);
+  };
+  const env = baseEnv(kv);
+  await worker.scheduled({}, env, { waitUntil() {} });
+  assert.equal(calls.resend.length, 1);                            // send attempted
+  assert.equal(await kv.get(`alert:ceiling:${today()}`), null);    // but NOT deduped
+  await worker.scheduled({}, env, { waitUntil() {} });             // next tick
+  assert.equal(calls.resend.length, 2);                            // retried
+});
+
+test("fetch probe: missing or wrong token => 403; correct token => 200", async () => {
+  stubFetch({ busyRow: { busy: 0, total: 0 } });
+  const env = { ...baseEnv(mockKV()), MONITOR_SECRET: "s3cret" };
+  assert.equal((await worker.fetch(new Request("https://m/?token=wrong"), env)).status, 403);
+  assert.equal((await worker.fetch(new Request("https://m/"), env)).status, 403);
+  assert.equal((await worker.fetch(new Request("https://m/?token=s3cret"), env)).status, 200);
+});
