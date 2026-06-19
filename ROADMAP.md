@@ -18,27 +18,20 @@ threshold alerting already exist — see `CLAUDE.md`.)
 
 What breaks first under a spike, and the lever for each:
 
-- **Worker requests — the real cliff.** Free plan = **100k invocations/day**, shared across the
-  request-serving workers (every page load hits `isfar`, every lookup hits `isfar-flight`;
-  `isfar-monitor`'s ~24 cron runs/day are negligible). Static assets are edge-cached so repeat loads
-  are cheap, but invocations still count. **Lever:** Workers Paid
+- **Worker requests — the real cliff.** Free plan = **100k invocations/day**, shared across *both*
+  workers (every page load hits `isfar`, every lookup hits `isfar-flight`). Static assets are
+  edge-cached so repeat loads are cheap, but invocations still count. **Lever:** Workers Paid
   (~$5/mo → 10M req/mo, more CPU, longer rate-limit windows) the moment you trend toward 100k/day —
   the first thing to buy if you go viral.
 - **KV reads.** Free = **100k reads/day**; every cache-hit lookup is a read. The 6h/30d TTLs already
   maximise hits; a short edge **Cache API** layer in front of KV for hot flights would absorb more.
   **Lever:** Workers Paid raises the limit; the Cache-API layer is the code-side win.
 
-> **Not on this list: the AeroDataBox 1 QPS rate limit.** It looks like a bottleneck but never binds
-> — the `CEILING=1000/day` cost cap and the monthly plan quota are hit first, by ~86×. See
-> [`worker/CAPACITY.md`](./worker/CAPACITY.md) for the full Poisson/stampede math. The only upstream
-> scaling lever that ever matters is the **monthly quota / tier upgrade**, driven by the Ceiling
-> alert above; multi-key round-robin is unnecessary at any plausible scale.
-
-## SEO Phase D — forward timeline
+## SEO
 
 Data-gated: expansion follows Search Console, never bulk page dumps on a young domain.
 Design strategy: balanced, quality-first waves. Three parallel workstreams below —
-**Guides**, **i18n**, and **Other** (search-console setup + data-gated route waves + off-page).
+**Guides**, **i18n**, and **Other** (data-gated route waves + off-page).
 
 ### Guides — the content moat
 
@@ -76,16 +69,10 @@ demand for next.
 After each language: hreflang audit + GSC re-check to confirm the next language's demand before
 starting it.
 
-### Other — search consoles, route waves, off-page
+### Other — route waves, off-page
 
 Mostly user-driven (billing, account verification, outreach); Claude wires whatever is code-side.
 
-- **Google Search Console — the data gate.** ✅ Domain property `isfar.app` verified (Cloudflare↔Google
-  auto-DNS) and `sitemap.xml` submitted (102 URLs) 2026-06-19. Ongoing: watch the Performance tab —
-  queries/impressions gate every route wave below. *[User.]*
-- **Bing Webmaster Tools.** Set up + verify the property, submit `sitemap.xml`; optionally enable
-  IndexNow for instant push. Cheap incremental reach (Bing/DuckDuckGo/ChatGPT search). *[User sets
-  up; Claude wires IndexNow if wanted.]*
 - **Route wave 2** (2026-06-25) — +~100 pages, GSC-informed. *[Claude, once GSC shows demand.]*
 - **Route wave 3** (2026-07-23) — purely GSC-driven; **prune zero-impression pages**. *[Claude.]*
 - **Per-route OG images** — ongoing. *[Claude.]*
