@@ -108,8 +108,9 @@ starting it.
 
 Mostly user-driven (billing, account verification, outreach); Claude wires whatever is code-side.
 
-- **Google Search Console — the data gate.** Keep the domain property verified and watch
-  queries/impressions; it gates every route wave below. *[User.]*
+- **Google Search Console — the data gate.** ✅ Domain property `isfar.app` verified (Cloudflare↔Google
+  auto-DNS) and `sitemap.xml` submitted (102 URLs) 2026-06-19. Ongoing: watch the Performance tab —
+  queries/impressions gate every route wave below. *[User.]*
 - **Bing Webmaster Tools.** Set up + verify the property, submit `sitemap.xml`; optionally enable
   IndexNow for instant push. Cheap incremental reach (Bing/DuckDuckGo/ChatGPT search). *[User sets
   up; Claude wires IndexNow if wanted.]*
