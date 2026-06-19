@@ -20,11 +20,17 @@ confirm KV behaviour.
 
 | File | Role |
 |---|---|
-| `src/index.js` | Worker entry. Normalize → resolve date → KV read-through → abuse scaffolding → AeroDataBox → map → KV write → return. |
+| `src/index.js` | Worker entry. Normalize → resolve date → KV read-through → abuse scaffolding → AeroDataBox → map → KV write → return. Emits one Analytics Engine data point per request (`blobs:[route, cacheHitMiss, errorKind]`, dataset `isfar_lookups`). |
 | `src/map.js` | **Pure** `mapFlight(segment)` — the whole field-provenance table, no network/env. Unit-tested offline. |
 | `test/map.test.mjs` | `node --test` suite; feeds a documented AeroDataBox SV124 segment through `mapFlight()` and asserts the fixture shape. |
+| `test/events.test.mjs` | `node --test` for the Analytics Engine emission — `routeOf` + the cache-hit / blank-code exits with a mock `AE` spy. |
 | `fixtures/` | `SV124.json` (success) + `notfound.json` — the client lane develops against these. |
-| `wrangler.toml` | Bindings, vars, and TODO placeholders (KV id, route/domain, secrets). |
+| `wrangler.toml` | Bindings (KV + the `AE` Analytics Engine dataset), vars (`CEILING`), and secrets. |
+| `ANALYTICS.md` | Query cookbook: Web Analytics + the `isfar_lookups` AE dataset (lookup volume, cache-hit ratio, top routes, busy-rate breakdown). |
+| `CAPACITY.md` | Back-of-envelope upstream-capacity model — why 1 QPS never binds. |
+
+> **Monitoring/alerting** on these signals (ceiling + busy-rate email alerts) is a **separate**
+> worker, [`../monitor/`](../monitor/README.md) (`isfar-monitor`, hourly cron) — not part of this one.
 
 ## Tests (offline, no key needed)
 

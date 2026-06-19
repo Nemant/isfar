@@ -22,9 +22,10 @@ see **`ROADMAP.md`**.
 | Interactivity | **one** React 18 island (`client:only`) — the whole calculator; every other page is zero-JS SSG |
 | Prayer times | **adhan-js** (`adhan` npm) — all prayer-time math; never hand-rolled |
 | Styling | vanilla CSS, oklch sun-arc palette, light / dark / auto themes |
-| Backend | **Cloudflare Worker** (`worker/`) → AeroDataBox via RapidAPI, KV cache, abuse caps |
-| Hosting | two Cloudflare Workers on `isfar.app` (static assets + `/api/*`) |
-| PWA / offline | service worker (`public/sw.js`, precache generated at build) + web manifest |
+| Backend | **Cloudflare Worker** (`worker/`) → AeroDataBox via RapidAPI, KV cache, abuse caps, per-lookup Analytics Engine events |
+| Analytics / alerting | Cloudflare **Web Analytics** (cookieless beacon) + **Workers Analytics Engine** (`isfar_lookups`); **`isfar-monitor`** cron worker emails threshold alerts via Resend |
+| Hosting | two Cloudflare Workers on `isfar.app` (static assets + `/api/*`), plus the cron-only `isfar-monitor` |
+| PWA / offline | service worker (`public/sw.js`, precache generated at build) + web manifest; results are shareable by URL and replay offline |
 | Tests | **vitest** (`tests/`) |
 
 Pinned deps: `astro 4.16`, `react 18.3`, `adhan 4.4`, `@astrojs/react 3.6`, `vitest 4`.
@@ -70,14 +71,19 @@ src/
     engine.js            ALL geometry + the high-latitude prayer policy (the core)
     data.js              sample flights, lookup()/lookupRemote(), METHODS, constants
     airports.js          route-mode lookup (city+time → /api/flight record shape, offline)
-    recents.js export-card.js route-pages.js faq-home.js i18n-ar.js
+    recents.js share-url.js export-card.js route-pages.js faq-home.js i18n-ar.js
   assets/airports.json   generated ~3.8k-airport dataset (regen: scripts/gen-airports.mjs)
   styles/                styles.css (app) + blog.css (guides)
 
 worker/                  the isfar-flight Worker (/api/flight) — standalone, see worker/README.md
-  src/index.js           request handler: AeroDataBox lookup, KV cache, rate limit, ceiling
+  src/index.js           request handler: AeroDataBox lookup, KV cache, rate limit, ceiling, AE events
   src/map.js             AeroDataBox → record mapping + Intl tz/date derivation
   CONTRACT.md            freezes the /api/flight response shape (= the data.js record)
+  ANALYTICS.md           query cookbook for Web Analytics + the isfar_lookups AE dataset
+
+monitor/                 the isfar-monitor Worker — hourly-cron threshold alerts (email via Resend)
+  src/index.js           reads KV ceiling counter + isfar_lookups; emails on ceiling/busy breaches
+  README.md              alerts, config, deploy, uptime health URLs
 
 scripts/                 build-time helpers (gen-sw-precache, gen-sitemap, gen-airports, verify-blog-times)
 tests/                   vitest: engine policy/invariants/regressions, route-pages, recents, export-card
@@ -93,12 +99,14 @@ and never re-predicts astronomy itself. Its output shape is pinned by `tests/eng
 
 ## Hosting & infrastructure (Cloudflare)
 
-`isfar.app` is served by **two Cloudflare Workers under one domain via Worker Routes** (not Pages):
+`isfar.app` is served by **two Cloudflare Workers under one domain via Worker Routes** (not Pages),
+plus a third cron-only worker (`isfar-monitor`) that serves no `isfar.app` route:
 
 | Worker | Serves | Config | Deploy |
 |---|---|---|---|
 | **`isfar`** | `isfar.app/*` — the static app | root **`wrangler.toml`** (assets-only, `directory=./dist`) | **GitHub-connected**: auto-builds (`npm run build`) + deploys on every push to `main` |
 | **`isfar-flight`** | `isfar.app/api/*` (more-specific route wins) | **`worker/wrangler.toml`** | `wrangler deploy` from `worker/` |
+| **`isfar-monitor`** | — (hourly cron; secret-gated probe on its `workers.dev` URL) | **`monitor/wrangler.toml`** | `wrangler deploy` from `monitor/` |
 
 **Flight API:** [AeroDataBox](https://aerodatabox.com/) via **RapidAPI**. The key is a Cloudflare
 secret (`RAPIDAPI_KEY`) — **never** in the repo or client. The Worker:
@@ -110,6 +118,12 @@ secret (`RAPIDAPI_KEY`) — **never** in the repo or client. The Worker:
 
 Secrets are set with `wrangler secret put RAPIDAPI_KEY` (prod) / `worker/.dev.vars` (local,
 gitignored). Operational ids and the deploy runbook live in `ROADMAP.md` and the project memory.
+
+**Observability:** cookieless Cloudflare **Web Analytics** (a beacon in every page `<head>`) for
+traffic; **Workers Analytics Engine** (`isfar_lookups`) for per-lookup volume / cache-hit ratio /
+top routes (`worker/ANALYTICS.md`); and **`isfar-monitor`** (a separate hourly-cron worker) emails
+alerts via Resend when upstream usage nears the daily ceiling or the `busy` rate spikes
+(`monitor/README.md`). Uptime pinging is left to an external monitor (URLs in `monitor/README.md`).
 
 ---
 
@@ -125,8 +139,8 @@ guide page.
 
 ## Status & license
 
-**Live** with real, abuse-protected lookups; Astro port and SEO Phase D wave 1 shipped. See
-`ROADMAP.md` for what's left. Times are guidance for travellers — verify with a local source on
+**Live** with real, abuse-protected lookups; Astro port, SEO Phase D wave 1, shareable/offline
+results, and observability (analytics + monitoring) shipped. See `ROADMAP.md` for what's left. Times are guidance for travellers — verify with a local source on
 arrival, and follow your own madhhab or a trusted scholar where rulings differ.
 
 License: **MIT** © 2026 Danish Khan. See [`LICENSE`](./LICENSE).

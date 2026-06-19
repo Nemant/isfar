@@ -37,7 +37,7 @@ build time, not load order.
 
 | File | Role |
 |---|---|
-| `src/pages/index.astro` | Static shell + the entire SEO `<head>` (title/meta/OG/Twitter/both JSON-LD blocks via `set:html`/canonical/manifest/icons/font preloads). Mounts `<Calculator client:only="react" />` in `#root`. The pre-paint `<script is:inline>` sets `<html data-theme>` before the island mounts (no FOUC); intentionally **no** `theme-color` meta (see iOS chrome note). |
+| `src/pages/index.astro` | Static shell + the entire SEO `<head>` (title/meta/OG/Twitter/both JSON-LD blocks via `set:html`/canonical/manifest/icons/font preloads). Mounts `<Calculator client:only="react" />` in `#root`. The pre-paint `<script is:inline>` sets `<html data-theme>` before the island mounts (no FOUC); intentionally **no** `theme-color` meta (see iOS chrome note). The cookieless **Cloudflare Web Analytics** beacon (`<script>` only — never a `theme-color` meta) lives here, in `StaticShell.astro`, and in both guide pages. |
 | `src/pages/guide/far-north-prayer-times.astro` | First Phase-D guide page (zero-JS-island, pure SSG + vanilla scripts): the far-north methodology article with its own `<head>` (BlogPosting + FAQPage JSON-LD), the same pre-paint theme script, a no-React theme toggle, and six interleaved animation figures. The published far-north methodology article. |
 | `src/pages/guide/the-skipped-day.astro` | **Unlisted** istiftāʾ page (EWR→HKG Dec transpolar: the date-line/polar-night "skipped day" and the five-prayers-at-one-instant cliff, written as a question for a scholar). `<meta name="robots" content="noindex">`, no JSON-LD, not linked from any indexed page — keep it that way. The noindex meta is the single source of truth: `gen-sitemap.mjs` and `gen-sw-precache.mjs` both read it and exclude the page (and its solely-owned asset chunks) automatically. Same shell/theme machinery as the far-north guide; five interactive figures. |
 | `src/components/blog/Anim*.astro` | Self-contained SVG animation figures — six on the far-north guide (tilted Earth, twilight angle, shrinking dip, collapsing night, 60° floor, Tromsø year wheel) and five on the skipped-day page (polar crossing map, eastbound clock, meridian squeeze, skipped-day scrubber, four choices; the data-driven ones import `greatCircle`/`compute`/`ISFAR_TEST` from `engine.js` at build time). Contract: `<figure class="anim" data-anim="…">`, theme tokens only, IntersectionObserver entry at 0.35, full `prefers-reduced-motion` fallbacks, geometry computed in frontmatter. Page-unique SVG ids — don't mount one twice. |
@@ -47,12 +47,14 @@ build time, not load order.
 | `src/lib/airports.js` | **Route mode**: `searchAirports()` (prefix search over the bundled dataset), `civilToUTC()` (DST-correct via Intl, no tz lib), `routeRecord()` — synthesizes the exact `/api/flight` record shape (incl. the Worker's zone/gmt derivation) from itinerary times, so `compute()` is untouched and route lookups work fully offline. |
 | `src/assets/airports.json` | Generated, committed dataset: ~3.8k scheduled-service airports `[iata, city, name, lat, lon, tz]` (~107 KB gz). Lazy-imported only when route mode opens; the built chunk is SW-precached. Regenerate with `node scripts/gen-airports.mjs` (downloads OurAirports + mwgg/Airports at run time — never at build time). |
 | `src/lib/recents.js` | Saved flights: `upsertRecent()` stores the **full record** (offline replay needs zero network; dedup `code+dateISO`, cap 6), `recentLabel()`. Legacy code-only entries still replay via lookup. |
+| `src/lib/share-url.js` | Shareable-result URL codec: `recordToParams`/`recordToUrl` (record → root-path query) and `parseShareParams`/`routeParamsToRecord` (query → record). Flight links carry `?flight=&date=` (re-looked-up, cache-first); route links carry `?from=&to=&date=&dep=&arr=` (rebuilt **fully offline** via `routeRecord`). Method/madhab deliberately NOT encoded (recipient's own settings apply). Pure module (Intl + `airports.js`). |
 | `src/lib/export-card.js` | "Save as image": `cardLines()` (pure, tested layout model) → `drawCard()` (hand-drawn canvas, live theme tokens — deliberate: DOM capture hits the backdrop-filter artifact) → `exportImage()` (Web Share files, download fallback). |
 | `src/components/route-form.jsx` | `RouteForm` + `AirportField` combobox (`.input.combo` — no uppercase). Live duration line is the wrong-day safety net; arrival day = first instant ≥ departure. |
-| `worker/` | The `isfar-flight` Cloudflare Worker (`/api/flight`): AeroDataBox lookup, `Intl`-derived tz/date, KV cache, daily ceiling. `CONTRACT.md` freezes the response shape (= the `data.js` record). Standalone — **not** ported into Astro. |
+| `worker/` | The `isfar-flight` Cloudflare Worker (`/api/flight`): AeroDataBox lookup, `Intl`-derived tz/date, KV cache, daily ceiling. `CONTRACT.md` freezes the response shape (= the `data.js` record). Emits one Workers Analytics Engine event per lookup (`blobs:[route, cacheHitMiss, errorKind]`, dataset `isfar_lookups`); query cookbook in `worker/ANALYTICS.md`. Standalone — **not** ported into Astro. |
+| `monitor/` | The **`isfar-monitor`** Cloudflare Worker — separate hourly-cron alerting, decoupled from `isfar-flight`. Emails (Resend, from `alerts@isfar.app`) on ceiling ≥80% of `isfar-flight`'s **live** `CEILING` and on elevated `busy` rate (`busy/total ≥ 25%`, ≥8 lookups/hr, from `isfar_lookups`); de-duped (ceiling 1/day, busy 6h). Reads CEILING via the Workers settings API (single source of truth, fallback only on failure). Secret-gated manual probe (`?token=…`; `&email=1` sends a test). Deploys separately via `wrangler deploy`. See `monitor/README.md`. |
 | `wrangler.toml` (root) | Config for the **`isfar`** static-asset Worker: assets-only, `[assets] directory="./dist"`. Read by `npx wrangler deploy` after the build. (Separate from `worker/wrangler.toml`.) |
 | `scripts/gen-sw-precache.mjs` | Runs after `astro build`; rewrites `dist/sw.js`'s `CORE` list from the build output (hashed asset names never hand-maintained). Fails loudly if its marker is missing. |
-| `src/components/Calculator.jsx` | Default-exported island root: `App` state machine + `Landing`/`Loading`/`Results`/`ErrorState`. `Results` renders one banner per `skyNotes` entry. Landing has two lookup modes (flight number / route, top segmented `.mode-seg` switch, persisted `isfar.lookupMode`); date defaults to today with a `Today` reset chip; every view change scrolls to top; the PWA install nudge (`beforeinstallprompt` capture / iOS sheet, shown each session until installed, ✕ = session dismiss) sits above `Results`. |
+| `src/components/Calculator.jsx` | Default-exported island root: `App` state machine + `Landing`/`Loading`/`Results`/`ErrorState`. `Results` renders one banner per `skyNotes` entry. Landing has two lookup modes (flight number / route, top segmented `.mode-seg` switch, persisted `isfar.lookupMode`); date defaults to today with a `Today` reset chip; every view change scrolls to top; the PWA install nudge (`beforeinstallprompt` capture / iOS sheet, shown each session until installed, ✕ = session dismiss) sits above `Results`. Result state is mirrored to the root URL query (`?flight=…` / `?from=…`) via the History API so results are **shareable / refreshable** and the browser **Back** button works (codec: `share-url.js`; bootstrap is cache-first / offline; popstate restores don't re-record recents); a `Share link` button (Web Share + clipboard) sits beside `Save as image`. |
 | `src/components/tweaks-panel.jsx` | Tweaks shell (theme, accent warmth). Dev `__edit_mode_*` postMessage host bridge removed. |
 | `src/components/components.jsx` | Icons (`Ic`), `Header`, sheets (`SettingsSheet`, `GuideSheet`, `MethodSheet`), `FlightSummary`, `TzBanner`, `PlaneQibla`, `NextPrayer`. |
 | `src/components/arc.jsx` | `ArcTimeline` — sun-elevation curve, prayer dots, in-flight band, day-break dividers. |
@@ -155,13 +157,19 @@ production** so their edge cases stay reliable; every other code hits the real A
 
 ## Production / hosting (LIVE — Milestone 1 shipped)
 
-`isfar.app` is served by **two Cloudflare Workers under one domain via Worker Routes** (not Pages):
+`isfar.app` is served by **two Cloudflare Workers under one domain via Worker Routes** (not Pages),
+plus a third cron-only worker that serves no routes:
 - **`isfar`** — static-asset Worker, GitHub-connected (Cloudflare "Connect to Git" made a Worker,
   not Pages). **Auto-deploys on every push to `Nemant/isfar` `main`** — that *is* the deploy.
   Serves `isfar.app/*`.
 - **`isfar-flight`** — the `/api/flight` backend (`worker/`). Serves `isfar.app/api/*` (more-specific
   route wins). Holds the AeroDataBox key as a Cloudflare secret; KV cache; per-IP rate limit
-  (10 req/10s, free-plan cap); daily `CEILING=1000` upstream bill cap.
+  (10 req/10s, free-plan cap); daily `CEILING=1000` upstream bill cap. Writes the `isfar_lookups`
+  Analytics Engine dataset. Deploys separately via `wrangler deploy`.
+- **`isfar-monitor`** (`monitor/`) — hourly-cron alerting worker; no `isfar.app` route (only a
+  secret-gated probe on its `workers.dev` URL). Reads the KV ceiling counter + `isfar_lookups`,
+  emails via Resend. Deploys separately via `wrangler deploy`. Secrets: `RESEND_API_KEY`,
+  `CF_API_TOKEN`, `MONITOR_SECRET`.
 - `data.js` `useRemoteApi()` picks live API vs. sample table by hostname (`localhost`/`file://` →
   table). Same-origin `/api/flight` ⇒ no CORS and the SW can cache lookups for offline replay.
 - **The `isfar` Worker now BUILDS** (since the Astro cutover): its dashboard build command is
@@ -186,7 +194,11 @@ preview — the curated sample chips resolve from the local table everywhere.
 - ~~Wire a real flight API~~ ✅ done (live `/api/flight` Worker + `lookupRemote`).
 - ~~Astro port (drop Babel, ES modules, build step)~~ ✅ done (Phase C). **Next major work:** Phase D
   — SEO build-out (programmatic route/guide pages, i18n) → see `ROADMAP.md`.
-- Read true cruise altitude per flight instead of the 38,000 ft default.
+- ~~Observability: analytics + monitoring~~ ✅ done (Web Analytics beacon + `isfar_lookups` AE events +
+  `isfar-monitor` cron alerts → see `ROADMAP.md` "Observability & scale" and `worker/ANALYTICS.md`).
+- ~~Shareable / refreshable results + browser Back~~ ✅ done (root-URL query + History API; `share-url.js`).
+- ~~Read true cruise altitude per flight instead of the 38,000 ft default~~ ✅ done (`estimateCruiseFt`
+  from aircraft type).
 - Worker date resolution is "today UTC + first matching segment"; implement true "next departure ≥ now".
 - Pre-existing quirk: adhan reads the calendar day off the `Date` with **local** getters, so on a
   device whose tz is far from UTC the engine's `Date.UTC(y,m,d,12)` can map to the adjacent solar
