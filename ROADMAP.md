@@ -10,43 +10,9 @@ hreflang). Operational ids/gotchas live in the `isfar-cloud-infra` memory. Archi
 
 The app is static SSG + a stateless Worker + client-side adhan compute — **no origin, DB, or server
 render to scale.** Surviving a traffic spike is almost entirely a *plan-tier + API-key* problem, not
-an architecture one; the only code-side lever is raising cache hit-rate. **Analytics and alerting are
-shipped** (below); what's left is the user-side uptime monitor and knowing which upgrade to reach for
-(the scaling-lever reference).
-
-### Analytics — see usage ✅ shipped (2026-06-16)
-
-- **Cloudflare Web Analytics** — cookieless beacon live in every page `<head>` (`StaticShell.astro`
-  shell + `index.astro` + both guide pages; `auto_install` set to "JS Snippet installation" so the
-  manual beacon is the only one — no double-count). Pageviews, top pages, referrers, geo in the
-  dashboard. (No Google Analytics, per the calm/minimal ethos.)
-- **Workers Analytics Engine** — `isfar-flight` writes one data point per `/api/flight` lookup
-  (`blobs:[route, cacheHitMiss, errorKind]`, dataset `isfar_lookups`). Reveals lookup volume, the
-  **cache-hit ratio** (cost-shield health), and top routes — which feed the GSC-gated SEO route waves.
-  Query cookbook: `worker/ANALYTICS.md`. (Worker-only: route-mode lookups are client-side and the
-  calc method is client-only, so the `mode`/`method` split was dropped by design.)
-
-### Monitoring & alerting — know when to act ✅ shipped (2026-06-16)
-
-`isfar-monitor` (`monitor/`) is a separate hourly-cron Worker that emails (Resend, from
-`alerts@isfar.app`) on two thresholds, de-duped:
-
-- **Ceiling — the upgrade trigger.** Today's upstream count ≥ 80% of `isfar-flight`'s **live**
-  `CEILING` (read via the Workers settings API — single source of truth). One email/day. Raise the
-  ceiling / upgrade the AeroDataBox tier **before** lookups start returning `busy`.
-- **Busy rate.** `busy/total ≥ 25%` with ≥8 lookups over the last hour (from `isfar_lookups`). One
-  email per 6h. A sustained rate is a signal to *investigate* (stampede on a hot flight? upstream
-  5xx/429?), not a reflex to provision keys — see the headroom math in `worker/CAPACITY.md`.
-
-Secret-gated probe at `isfar-monitor.isfar-app.workers.dev/?token=…` (`&email=1` sends a test). Full
-ops detail in `monitor/README.md`.
-
-**Still to do (user actions):**
-- **Uptime/latency.** External pinger (UptimeRobot free, or Cloudflare Health Checks) hitting
-  `isfar.app/` and `/api/flight?code=…` from a couple of regions, alerting on outage independent of
-  Cloudflare's own signals. Health URLs are in `monitor/README.md`. *[User sets up the monitor.]*
-- **Zero-code backstop.** Turn on Cloudflare **Notifications** for Worker error-rate, and for the
-  daily request/KV-usage trend (the free-plan cliffs below). *[User toggles in the dashboard.]*
+an architecture one; the only code-side lever is raising cache hit-rate. What remains here is just
+reference: which limit breaks first under a spike, and the lever for each. (Usage analytics and
+threshold alerting already exist — see `CLAUDE.md`.)
 
 ### Scaling levers & free-plan limits
 
