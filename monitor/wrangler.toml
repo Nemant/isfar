@@ -1,0 +1,27 @@
+# isfar-monitor — hourly cron Worker: emails on ceiling/busy thresholds.
+name = "isfar-monitor"
+main = "src/index.js"
+compatibility_date = "2025-01-01"
+
+[triggers]
+crons = ["0 * * * *"]   # hourly
+
+[vars]
+ALERT_EMAIL = "danishkhan91@gmail.com"
+FROM_EMAIL = "alerts@isfar.app"
+ACCOUNT_ID = "1eb2fd914b081774a2b5fe1db1fcecf0"
+CEILING_PCT = "0.8"        # alert at >=80% of CEILING
+CEILING_FALLBACK = "1000"  # used only if the live CEILING read fails
+BUSY_RATIO = "0.25"        # alert if busy/total >= 25% ...
+BUSY_MIN_TOTAL = "8"       # ... with at least this many lookups in the window
+
+# Shares isfar-flight's namespace (reads upstream:count:{date}, stores alert:* dedup keys)
+[[kv_namespaces]]
+binding = "FLIGHT_CACHE"
+id = "7cb844a84ef149a88d0c4cbe517461ed"
+preview_id = "91de0eb4e47742aeb9ada815275b4e08"
+
+# Secrets (set via `wrangler secret put`, never committed):
+#   RESEND_API_KEY   — Resend sending key
+#   CF_API_TOKEN     — reads the isfar_lookups AE dataset + isfar-flight settings
+#   MONITOR_SECRET   — gates the manual ?token= probe
