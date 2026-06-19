@@ -41,10 +41,15 @@ threshold trips. Free-plan friendly (24 cron invocations/day; tiny KV usage).
 - **KV `FLIGHT_CACHE`** (same namespace as `isfar-flight`, id
   `7cb844a84ef149a88d0c4cbe517461ed`): reads `upstream:count:{YYYY-MM-DD}` (the
   ceiling input) and stores the alert-dedup keys.
-- **Vars:** `CEILING="1000"` (monitor's own copy; keep in sync with
-  `isfar-flight`), `ALERT_EMAIL="danishkhan91@gmail.com"`,
+- **Vars:** `ALERT_EMAIL="danishkhan91@gmail.com"`,
   `FROM_EMAIL="alerts@isfar.app"`, `ACCOUNT_ID="1eb2fd914b081774a2b5fe1db1fcecf0"`,
-  `CEILING_PCT="0.8"`, `BUSY_MIN="10"`, `BUSY_RATIO="0.25"`, `BUSY_MIN_TOTAL="8"`.
+  `CEILING_PCT="0.8"`, `CEILING_FALLBACK="1000"` (used only if the live read
+  fails), `BUSY_RATIO="0.25"`, `BUSY_MIN_TOTAL="8"`.
+  **`CEILING` is NOT duplicated here** — the monitor reads `isfar-flight`'s live
+  `CEILING` var at runtime via the Workers settings API (verified: that var is
+  returned as `plain_text` and the existing token can read it), so `isfar-flight`
+  stays the single source of truth. `CEILING_FALLBACK` is only the safety net if
+  that API read fails.
 - **Secrets:** `RESEND_API_KEY` (operator-provided, from `~/.isfar_env`),
   `CF_API_TOKEN` (= the existing `CLOUDFLARE_API_TOKEN`; reads the AE dataset via
   the SQL API — verified that token can read AE), `MONITOR_SECRET` (random;
@@ -55,8 +60,9 @@ threshold trips. Free-plan friendly (24 cron invocations/day; tiny KV usage).
 
 | Unit | Responsibility | Serves |
 |---|---|---|
+| `readCeiling(env)` | reads `isfar-flight`'s live `CEILING` via the Workers settings API; falls back to `CEILING_FALLBACK` on any error | single-source ceiling input |
 | `ceilingBreach(count, ceiling, pct)` | pure: `count ≥ pct × ceiling`? | ceiling alert decision |
-| `busyBreach(busy, total, {min, ratio, minTotal})` | pure: `busy ≥ min` OR (`busy/total ≥ ratio` AND `total ≥ minTotal`) | busy alert decision |
+| `busyBreach(busy, total, {ratio, minTotal})` | pure: `total ≥ minTotal` AND `busy/total ≥ ratio` | busy alert decision (ratio-only) |
 | `ceilingEmail(count, ceiling)` / `busyEmail(busy, total, windowHrs)` | pure: `{subject, text}` (numbers + suggested action) | clear, testable email bodies |
 | `queryBusy(env)` | POST the AE SQL API; returns `{busy, total}` for the last hour | busy alert input |
 | `sendEmail(env, {subject, text})` | POST Resend `/emails` (From `FROM_EMAIL`, To `ALERT_EMAIL`, `Authorization: Bearer RESEND_API_KEY`) | delivery |
@@ -65,9 +71,10 @@ threshold trips. Free-plan friendly (24 cron invocations/day; tiny KV usage).
 
 ### Data flow (each hourly tick)
 1. `today = ` UTC `YYYY-MM-DD`. `count = Number(KV.get(upstream:count:{today}) || 0)`.
-2. If `ceilingBreach(count, CEILING, CEILING_PCT)` **and** `!KV.get(alert:ceiling:{today})`
-   → `sendEmail(ceilingEmail(count, CEILING))`; `KV.put(alert:ceiling:{today}, "1", {expirationTtl: 48h})`.
-3. `{busy, total} = await queryBusy(env)` (last 1h). If `busyBreach(busy, total, …)`
+   `ceiling = await readCeiling(env)` (live from `isfar-flight`, else `CEILING_FALLBACK`).
+2. If `ceilingBreach(count, ceiling, CEILING_PCT)` **and** `!KV.get(alert:ceiling:{today})`
+   → `sendEmail(ceilingEmail(count, ceiling))`; `KV.put(alert:ceiling:{today}, "1", {expirationTtl: 48h})`.
+3. `{busy, total} = await queryBusy(env)` (last 1h). If `busyBreach(busy, total, {ratio: BUSY_RATIO, minTotal: BUSY_MIN_TOTAL})`
    **and** `!KV.get(alert:busy:cooldown)` → `sendEmail(busyEmail(busy, total, 1))`;
    `KV.put(alert:busy:cooldown, "1", {expirationTtl: 6h})`.
 4. Both steps wrapped so one failure (e.g. AE briefly unqueryable) never blocks
@@ -96,8 +103,10 @@ Parse `data[0]` → `{busy: Number, total: Number}` (default 0/0 on empty/error)
 `monitor/test/monitor.test.mjs`, dependency-free `node:test` (matches
 `isfar-flight`'s style):
 - `ceilingBreach`: under / at / over 80%.
-- `busyBreach`: under both rules; over the absolute floor; over the ratio with
-  enough sample; **not** firing on tiny samples (e.g. 2 busy of 3 total).
+- `busyBreach` (ratio-only): under the ratio; over the ratio with enough sample;
+  **not** firing on tiny samples (e.g. 2 busy of 3 total → below `minTotal`).
+- `readCeiling`: parses the live `CEILING` from a mocked settings response; falls
+  back to `CEILING_FALLBACK` when the fetch errors / var is missing.
 - email builders: subject/body contain the key numbers.
 - `scheduled` with mock `env` (mock KV + mock global `fetch` for AE SQL and
   Resend): emails when a rule trips; **no** email when healthy; **no** email
@@ -105,10 +114,14 @@ Parse `data[0]` → `{busy: Number, total: Number}` (default 0/0 on empty/error)
 
 ## Verification (live, gated)
 - The secret-gated `fetch` probe (`?token=…&email=1`) confirms real Resend
-  delivery to the inbox without touching the live counter.
-- A momentary deploy with a low `CEILING` var (the monitor's own var — does NOT
-  affect `isfar-flight`) confirms a real ceiling email fires on the next probe,
-  then restore `CEILING="1000"`.
+  delivery to the inbox without touching the live counter. (Resend already
+  verified working end-to-end during brainstorm — a test send returned a message
+  id from `alerts@isfar.app` → `danishkhan91@gmail.com`.)
+- To exercise a real ceiling alert without touching `isfar-flight`: momentarily
+  set the monitor's own `CEILING_PCT` very low (e.g. `0.0001`) so the current
+  count breaches, trigger via the probe, confirm the email, then restore
+  `CEILING_PCT="0.8"`. (The monitor reads the real `CEILING` from `isfar-flight`,
+  so we never alter the live cap.)
 
 ## Deploy (GATED — requires operator authorization)
 1. Operator adds `RESEND_API_KEY` to `~/.isfar_env` (done out-of-band).
