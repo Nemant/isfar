@@ -259,8 +259,8 @@ function ScanSheet({ open, onClose, onResult, parse }) {
       } catch (e) {
         if (done || ctrl.signal.reason === 'closed') return;
         setErr((e && e.name === 'NotAllowedError')
-          ? 'Camera access is needed to scan — you can still type the flight number.'
-          : 'Couldn’t read the barcode. Try better light, or enter the flight number.');
+          ? "Camera access is needed to scan — you can still type the flight number."
+          : "Couldn't read the barcode. Try better light, or enter the flight number.");
       }
     })();
     return () => {
