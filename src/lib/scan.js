@@ -25,16 +25,22 @@ async function scanNative(videoEl, signal) {
   const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
   const stop = () => stream.getTracks().forEach((t) => t.stop());
   if (signal.aborted) { stop(); throw new Error('aborted'); }
-  videoEl.srcObject = stream;
-  videoEl.setAttribute('playsinline', '');
-  await videoEl.play();
+  try {
+    videoEl.srcObject = stream;
+    videoEl.setAttribute('playsinline', '');
+    await videoEl.play();
+  } catch (e) {
+    stop();
+    throw e;
+  }
   const detector = new window.BarcodeDetector({ formats: ['pdf417'] });
   return await new Promise((resolve, reject) => {
     let raf = 0;
     const onAbort = () => { cancelAnimationFrame(raf); stop(); reject(new Error('aborted')); };
     signal.addEventListener('abort', onAbort, { once: true });
+    if (signal.aborted) { onAbort(); return; }
     const tick = async () => {
-      if (signal.aborted) return;
+      if (signal.aborted) { cancelAnimationFrame(raf); stop(); reject(new Error('aborted')); return; }
       try {
         const codes = await detector.detect(videoEl);
         if (codes && codes.length) {
