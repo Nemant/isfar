@@ -54,4 +54,14 @@ describe('parseBCBP', () => {
     const badFrom = M1.slice(0, 30) + '1UL' + M1.slice(33);       // from not IATA
     expect(parseBCBP(badFrom)).toBe(null);
   });
+  it('accepts an alphanumeric 2-char carrier code', () => {
+    // replace carrier field "AC " (offsets 37-39) with "U2 " (easyJet)
+    const u2 = M1.slice(0, 36) + 'U2 ' + M1.slice(39);
+    expect(parseBCBP(u2, new Date(2026, 0, 1)).code).toBe('U2834');
+  });
+  it('returns null when the to-airport is not a valid IATA code', () => {
+    // replace to field "FRA" (offsets 34-36) with "FR1"
+    const badTo = M1.slice(0, 33) + 'FR1' + M1.slice(36);
+    expect(parseBCBP(badTo)).toBe(null);
+  });
 });

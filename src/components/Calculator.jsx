@@ -463,7 +463,8 @@ function Landing({ query, setQuery, date, setDate, err, onSubmit, recents, onCle
         </form>
       ) : (
         <RouteForm date={date} setDate={setDate} todayISO={todayISO} onSubmitRecord={onSubmitRecord}
-                   prefill={URL_PREFILL} canScan={canScan} onScan={onScan} scanPrefill={scanPrefill} />
+                   prefill={URL_PREFILL} canScan={canScan} onScan={onScan} scanPrefill={scanPrefill}
+                   onScanPrefillConsumed={() => setScanPrefill(null)} />
       )}
 
       <div className="form form-tail">

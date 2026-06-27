@@ -71,7 +71,7 @@ function AirportField({ id, label, placeholder, list, value, onPick }) {
 }
 
 /* ---- the route form ------------------------------------------------------ */
-function RouteForm({ date, setDate, todayISO, onSubmitRecord, prefill, canScan, onScan, scanPrefill }) {
+function RouteForm({ date, setDate, todayISO, onSubmitRecord, prefill, canScan, onScan, scanPrefill, onScanPrefillConsumed }) {
   const [list, setList] = useS(null);
   const [from, setFrom] = useS(null);
   const [to, setTo] = useS(null);
@@ -109,6 +109,7 @@ function RouteForm({ date, setDate, todayISO, onSubmitRecord, prefill, canScan, 
     const f = exact(scanPrefill.from), t = exact(scanPrefill.to);
     if (f) setFrom(f);
     if (t) setTo(t);
+    if (onScanPrefillConsumed) onScanPrefillConsumed();
   }, [scanPrefill && scanPrefill.n, list]);
 
   // live duration preview — the safety net for a wrong-day arrival
