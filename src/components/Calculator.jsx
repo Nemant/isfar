@@ -5,7 +5,8 @@ import { recordToUrl, parseShareParams, routeParamsToRecord } from '../lib/share
 import { upsertRecent, recentLabel } from '../lib/recents.js';
 import { exportImage } from '../lib/export-card.js';
 import { compute } from '../lib/engine.js';
-import { Header, SettingsSheet, GuideSheet, MethodSheet, FlightSummary, NextPrayer, Ic, InstallNudge, IOSInstallSheet } from './components.jsx';
+import { parseBCBP } from '../lib/bcbp.js';
+import { Header, SettingsSheet, GuideSheet, MethodSheet, FlightSummary, NextPrayer, Ic, InstallNudge, IOSInstallSheet, ScanSheet } from './components.jsx';
 import { ArcTimeline } from './arc.jsx';
 import { PrayerList } from './cards.jsx';
 import { useTweaks, TweaksPanel, TweakSection, TweakSlider, TweakRadio } from './tweaks-panel.jsx';
@@ -88,6 +89,10 @@ function Calculator() {
   const [showSettings, setShowSettings] = useS(false);
   const [showGuide, setShowGuide] = useS(false);
   const [showMethod, setShowMethod] = useS(false);
+  const [showScan, setShowScan] = useS(false);
+  const [scanPrefill, setScanPrefill] = useS(null); // route-mode offline prefill
+  const canScan = (typeof navigator !== 'undefined') &&
+    !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
 
   const [view, setView] = useS("landing");      // landing|loading|results|error
   const [query, setQuery] = useS("");
@@ -277,6 +282,20 @@ function Calculator() {
     runFlightLookup(raw, date, false);
   }
 
+  // A boarding pass was scanned & parsed → { code, dateISO, fromIata, toIata }.
+  // Flight mode: straight to the lookup. Route mode: look up if online (richer,
+  // the barcode has the flight number), else prefill the route form so the user
+  // can finish offline (the barcode carries no times).
+  function onScanResult(pass) {
+    setShowScan(false);
+    setDate(pass.dateISO);
+    if (mode === 'flight' || navigator.onLine) {
+      runFlightLookup(pass.code, pass.dateISO, false);
+    } else {
+      setScanPrefill({ from: pass.fromIata, to: pass.toIata, n: Date.now() });
+    }
+  }
+
   // PWA install nudge — captured native prompt (Chrome/Android) or iOS steps;
   // on every results screen until installed (never when already standalone);
   // the ✕ only rests it for this session — saving offline is the app's point
@@ -348,7 +367,9 @@ function Calculator() {
                                           recents={recents} onClearRecents={clearRecents}
                                           onOpenRecent={openRecent}
                                           mode={mode} onSwitchMode={switchMode}
-                                          onSubmitRecord={submitRecord} />}
+                                          onSubmitRecord={submitRecord}
+                                          canScan={canScan} onScan={() => setShowScan(true)}
+                                          scanPrefill={scanPrefill} />}
         {view === "loading"  && <Loading query={query} msg={LOAD_MSGS[loadMsg]} />}
         {view === "results"  && <Results f={data} settings={settings} activeKey={activeKey} selectPrayer={selectPrayer}
                                          cardRefs={cardRefs} onBack={goHome}
@@ -370,6 +391,7 @@ function Calculator() {
         <GuideSheet open={showGuide} onClose={() => setShowGuide(false)} />
         <MethodSheet open={showMethod} onClose={() => setShowMethod(false)} />
         <IOSInstallSheet open={showIOSHelp} onClose={() => setShowIOSHelp(false)} />
+        <ScanSheet open={showScan} onClose={() => setShowScan(false)} onResult={onScanResult} parse={parseBCBP} />
       </div>
     </div>
   );
@@ -377,7 +399,7 @@ function Calculator() {
 
 /* ---- Landing ------------------------------------------------------------ */
 function Landing({ query, setQuery, date, setDate, err, onSubmit, recents, onClearRecents, onOpenRecent,
-                   mode, onSwitchMode, onSubmitRecord }) {
+                   mode, onSwitchMode, onSubmitRecord, canScan, onScan, scanPrefill }) {
   const inputRef = useR(null);
   useE(() => { if (mode === "flight" && inputRef.current) inputRef.current.focus({ preventScroll: true }); }, [mode]);
   const examples = [
@@ -432,10 +454,16 @@ function Landing({ query, setQuery, date, setDate, err, onSubmit, recents, onCle
           <button className="btn" type="submit">
             Find my prayer times <Ic.arrow aria-hidden="true" />
           </button>
+          {canScan ? (
+            <button type="button" className="btn-ghost scan-entry" onClick={onScan}>
+              <Ic.camera style={{ width: 16, height: 16 }} aria-hidden="true" /> Scan boarding pass
+            </button>
+          ) : null}
           <div className="offline-note"><Ic.plane aria-hidden="true" /> Look up once — your flights then work offline</div>
         </form>
       ) : (
-        <RouteForm date={date} setDate={setDate} todayISO={todayISO} onSubmitRecord={onSubmitRecord} prefill={URL_PREFILL} />
+        <RouteForm date={date} setDate={setDate} todayISO={todayISO} onSubmitRecord={onSubmitRecord}
+                   prefill={URL_PREFILL} canScan={canScan} onScan={onScan} scanPrefill={scanPrefill} />
       )}
 
       <div className="form form-tail">
