@@ -71,7 +71,7 @@ function AirportField({ id, label, placeholder, list, value, onPick }) {
 }
 
 /* ---- the route form ------------------------------------------------------ */
-function RouteForm({ date, setDate, todayISO, onSubmitRecord, prefill }) {
+function RouteForm({ date, setDate, todayISO, onSubmitRecord, prefill, canScan, onScan, scanPrefill }) {
   const [list, setList] = useS(null);
   const [from, setFrom] = useS(null);
   const [to, setTo] = useS(null);
@@ -96,6 +96,20 @@ function RouteForm({ date, setDate, todayISO, onSubmitRecord, prefill }) {
     });
     return () => { on = false; };
   }, []);
+
+  // A boarding pass scanned while offline in route mode → fill From/To from the
+  // barcode (times still come from the user; the barcode has none). Keyed on
+  // scanPrefill.n so each scan re-applies even to the same airports.
+  useE(() => {
+    if (!scanPrefill || !list) return;
+    const exact = (code) => {
+      const row = searchAirports(list, code, 1)[0];
+      return row && row[0] === code ? airportFromRow(row) : null;
+    };
+    const f = exact(scanPrefill.from), t = exact(scanPrefill.to);
+    if (f) setFrom(f);
+    if (t) setTo(t);
+  }, [scanPrefill && scanPrefill.n, list]);
 
   // live duration preview — the safety net for a wrong-day arrival
   let durLine = null;
@@ -150,6 +164,11 @@ function RouteForm({ date, setDate, todayISO, onSubmitRecord, prefill }) {
       <button className="btn" type="submit">
         Find my prayer times <Ic.arrow aria-hidden="true" />
       </button>
+      {canScan ? (
+        <button type="button" className="btn-ghost scan-entry" onClick={onScan}>
+          <Ic.camera style={{ width: 16, height: 16 }} aria-hidden="true" /> Scan boarding pass
+        </button>
+      ) : null}
       <div className="offline-note"><Ic.plane aria-hidden="true" /> All on your device — route lookups work offline</div>
     </form>
   );
