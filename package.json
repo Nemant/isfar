@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@astrojs/react": "3.6.3",
+    "@zxing/library": "0.21.3",
     "adhan": "4.4.3",
     "astro": "4.16.18",
     "react": "18.3.1",
