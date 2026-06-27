@@ -26,7 +26,8 @@ const Ic = {
   dawn: (p) => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M17 18a5 5 0 0 0-10 0M12 2v3M22 18H2M5 11l1.5 1.5M19 11l-1.5 1.5M12 9a3 3 0 0 0-3 3"/></svg>),
   noon: (p) => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" {...p}><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M5 5l1.7 1.7M17.3 17.3 19 19M5 19l1.7-1.7M17.3 6.7 19 5"/></svg>),
   dusk: (p) => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M17 18a5 5 0 0 0-10 0M12 9V6M22 18H2M5 11l1.5 1.5M19 11l-1.5 1.5M9 3l3 3 3-3"/></svg>),
-  night: (p) => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>)
+  night: (p) => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>),
+  camera: (p) => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M3 8a2 2 0 0 1 2-2h2l1.2-1.6A1 1 0 0 1 11 4h2a1 1 0 0 1 .8.4L15 6h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><circle cx="12" cy="13" r="3.2"/></svg>),
 };
 const PRAYER_GLYPH = { fajr: Ic.dawn, dhuhr: Ic.noon, asr: Ic.sun, maghrib: Ic.dusk, isha: Ic.night };
 
@@ -234,6 +235,58 @@ function IOSInstallSheet({ open, onClose }) {
   );
 }
 
+/* ---- Boarding-pass scan overlay ---------------------------------------- */
+function ScanSheet({ open, onClose, onResult, parse }) {
+  const videoRef = React.useRef(null);
+  const [err, setErr] = React.useState(null);
+  const [attempt, setAttempt] = React.useState(0); // bump → retry
+  React.useEffect(() => {
+    if (!open) return;
+    setErr(null);
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort('timeout'), 15000);
+    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    let done = false;
+    (async () => {
+      try {
+        const { scanBarcode } = await import('../lib/scan.js');
+        const raw = await scanBarcode(videoRef.current, ctrl.signal);
+        const pass = parse(raw);
+        if (!pass) throw new Error('parse');
+        done = true;
+        onResult(pass);
+      } catch (e) {
+        if (done || ctrl.signal.reason === 'closed') return;
+        setErr((e && e.name === 'NotAllowedError')
+          ? 'Camera access is needed to scan — you can still type the flight number.'
+          : 'Couldn’t read the barcode. Try better light, or enter the flight number.');
+      }
+    })();
+    return () => {
+      clearTimeout(timer);
+      ctrl.abort('closed');
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [open, attempt]);
+  if (!open) return null;
+  return (
+    <div className="scan-overlay" role="dialog" aria-modal="true" aria-label="Scan boarding pass">
+      <video ref={videoRef} className="scan-video" playsInline muted aria-hidden="true"></video>
+      <div className="scan-frame" aria-hidden="true"><div className="scan-guide"></div></div>
+      <button className="iconbtn scan-cancel" onClick={onClose} aria-label="Cancel scan"><Ic.close aria-hidden="true" /></button>
+      {err ? (
+        <div className="scan-msg" role="alert">
+          <p>{err}</p>
+          <button className="btn" onClick={() => setAttempt((n) => n + 1)}>Try again</button>
+        </div>
+      ) : (
+        <div className="scan-msg"><p>Point at the barcode on your boarding pass</p></div>
+      )}
+    </div>
+  );
+}
+
 /* ---- Flight summary ----------------------------------------------------- */
 function FlightSummary({ f }) {
   const dur = `${Math.floor(f.durationMin/60)}h ${String(f.durationMin%60).padStart(2,"0")}m`;
@@ -368,4 +421,4 @@ function NextPrayer({ prayers, order }) {
 
 /* ---- Timezone switch removed — cards now show both zones equally -------- */
 
-export { Ic, PRAYER_GLYPH, Header, SettingsSheet, GuideSheet, MethodSheet, FlightSummary, TzBanner, QiblaCompass, PlaneQibla, NextPrayer, cardinalOf, InstallNudge, IOSInstallSheet };
+export { Ic, PRAYER_GLYPH, Header, SettingsSheet, GuideSheet, MethodSheet, FlightSummary, TzBanner, QiblaCompass, PlaneQibla, NextPrayer, cardinalOf, InstallNudge, IOSInstallSheet, ScanSheet };

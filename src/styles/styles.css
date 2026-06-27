@@ -1126,3 +1126,15 @@ body {
 }
 .static-links a::after { content: " →"; color: var(--text-mute); }
 .static-links a:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+/* boarding-pass scan overlay (full-screen camera; no theme-color, scrolls
+   under nothing — it's a modal that covers the app while scanning) */
+.scan-overlay { position: fixed; inset: 0; z-index: 70; background: #000; overflow: hidden; }
+.scan-video { width: 100%; height: 100%; object-fit: cover; }
+.scan-frame { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; }
+.scan-guide { width: 80%; max-width: 440px; aspect-ratio: 5 / 2; border: 2px solid rgba(255,255,255,.9); border-radius: 14px; box-shadow: 0 0 0 100vmax rgba(0,0,0,.45); }
+.scan-cancel { position: absolute; top: calc(env(safe-area-inset-top) + 14px); left: 14px; z-index: 2; color: #fff; background: rgba(0,0,0,.4); }
+.scan-msg { position: absolute; left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom) + 34px); text-align: center; color: #fff; padding: 0 26px; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.scan-msg p { margin: 0; font-size: 15px; line-height: 1.4; text-shadow: 0 1px 4px rgba(0,0,0,.7); }
+/* entry button under each form's primary action */
+.scan-entry { width: 100%; justify-content: center; }
