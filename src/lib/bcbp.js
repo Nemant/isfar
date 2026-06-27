@@ -20,9 +20,8 @@ export function julianToDateISO(dayOfYear, today = new Date()) {
     const d = new Date(y, 0, dayOfYear);
     if (d.getFullYear() === y && d >= todayMid) return iso(d);
   }
-  // Edge: day valid this year but already passed and invalid next year — pin to
-  // this year's mapped date so a real pass is never dropped.
-  return iso(new Date(y0, 0, dayOfYear));
+  // day 366 in a non-leap year is not a representable date — reject it
+  return null;
 }
 
 export function parseBCBP(raw, today = new Date()) {

@@ -27,6 +27,9 @@ describe('julianToDateISO', () => {
     expect(julianToDateISO(0)).toBe(null);
     expect(julianToDateISO(400)).toBe(null);
   });
+  it('returns null for day 366 in a non-leap year', () => {
+    expect(julianToDateISO(366, new Date(2026, 0, 1))).toBe(null);
+  });
 });
 
 describe('parseBCBP', () => {
