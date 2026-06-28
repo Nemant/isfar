@@ -123,8 +123,11 @@ const ISFAR_DATA = (function () {
 
     // Production: the curated sample codes still resolve from the local table so the
     // demo chips reliably illustrate their edge cases (midnight sun, stretched day,
-    // recurring prayers); every other flight number goes to the live Worker.
-    if (FLIGHTS[code]) {
+    // recurring prayers) — but ONLY at their own demo date. If a sample code is
+    // looked up for a different date, honor that date via the live Worker instead
+    // of silently returning the canned record. Every other flight number always
+    // goes to the live Worker.
+    if (FLIGHTS[code] && (!date || date === FLIGHTS[code].dateISO)) {
       return Promise.resolve(FLIGHTS[code]);
     }
 

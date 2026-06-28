@@ -152,8 +152,12 @@ Key internals:
 `SV124` LHR→JED (normal, crosses dusk) · `BA286` codeshare · `QF10` LHR→PER (9 prayers,
 2 days, eastbound) · `EK215` DXB→LAX (stretched day, westbound) · `DY394` OSL→TOS
 (midnight sun, no-sunset). Any unknown but well-formed code → live Worker lookup in prod
-(error state locally). These five are curated demos: they resolve from the **local table even in
-production** so their edge cases stay reliable; every other code hits the real API.
+(error state locally). These five are curated demos: in production they resolve from the **local
+table only at their own demo date (`dateISO`, all `2026-06-06`)** so their edge cases stay reliable
+— the sample chips pin that date. A sample code typed with a *different* date falls through to the
+live Worker (so the user's date is honored, not silently overridden); every other code always hits
+the real API. (Earlier the local record was returned for sample codes regardless of date — the
+2026-06-06 demo date is stale/past, a follow-up to refresh.)
 
 ## Production / hosting (LIVE — Milestone 1 shipped)
 

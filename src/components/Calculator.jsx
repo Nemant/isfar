@@ -276,10 +276,12 @@ function Calculator() {
     })();
   }
 
-  function submit(rawArg) {
+  function submit(rawArg, dateArg) {
     const raw = (typeof rawArg === "string" ? rawArg : query).trim();
     if (!raw) { setErr("Enter a flight number to continue."); return; }
-    runFlightLookup(raw, date, false);
+    // dateArg lets the sample chips look up at their own demo date (which now
+    // matters: a sample code is only served from the local table at that date).
+    runFlightLookup(raw, dateArg || date, false);
   }
 
   // A boarding pass was scanned & parsed → { code, dateISO, fromIata, toIata }.
@@ -402,11 +404,13 @@ function Landing({ query, setQuery, date, setDate, err, onSubmit, recents, onCle
                    mode, onSwitchMode, onSubmitRecord, canScan, onScan, scanPrefill }) {
   const inputRef = useR(null);
   useE(() => { if (mode === "flight" && inputRef.current) inputRef.current.focus({ preventScroll: true }); }, [mode]);
+  // date pinned to each sample's own demo date so the curated record (its edge
+  // case) resolves from the local table; without it the chip would hit the live API.
   const examples = [
-    { code: "SV124", label: "London → Jeddah" },
-    { code: "QF10", label: "London → Perth · 9 prayers" },
-    { code: "EK215", label: "Dubai → LA · stretched day" },
-    { code: "DY394", label: "Oslo → Tromsø · midnight sun" }
+    { code: "SV124", label: "London → Jeddah", date: "2026-06-06" },
+    { code: "QF10", label: "London → Perth · 9 prayers", date: "2026-06-06" },
+    { code: "EK215", label: "Dubai → LA · stretched day", date: "2026-06-06" },
+    { code: "DY394", label: "Oslo → Tromsø · midnight sun", date: "2026-06-06" }
   ];
   return (
     <main className="landing">
@@ -490,7 +494,7 @@ function Landing({ query, setQuery, date, setDate, err, onSubmit, recents, onCle
         <div className="examples">
           {examples.map((ex) => (
             <button type="button" key={ex.code} className="chip"
-                    onClick={() => { setQuery(ex.code); onSubmit(ex.code); }}>
+                    onClick={() => { setQuery(ex.code); setDate(ex.date); onSubmit(ex.code, ex.date); }}>
               {ex.code} <b>· {ex.label}</b>
             </button>
           ))}
