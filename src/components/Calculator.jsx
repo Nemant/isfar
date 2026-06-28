@@ -230,6 +230,7 @@ function Calculator() {
     clearTimeout(loadTimer.current);
     loadTimer.current = null;            // invalidate any in-flight async lookup
     setView("landing"); setRaw(null); setErr(null); setActiveKey(null);
+    setDate(todayISO());                 // the date field always defaults back to today
     // back to a clean root URL so the in-app Home and the browser Back agree
     try { history.replaceState(null, "", window.location.pathname); } catch (e) {}
   }
@@ -494,7 +495,7 @@ function Landing({ query, setQuery, date, setDate, err, onSubmit, recents, onCle
         <div className="examples">
           {examples.map((ex) => (
             <button type="button" key={ex.code} className="chip"
-                    onClick={() => { setQuery(ex.code); setDate(ex.date); onSubmit(ex.code, ex.date); }}>
+                    onClick={() => { setQuery(ex.code); onSubmit(ex.code, ex.date); }}>
               {ex.code} <b>· {ex.label}</b>
             </button>
           ))}
