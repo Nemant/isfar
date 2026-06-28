@@ -258,9 +258,13 @@ function ScanSheet({ open, onClose, onResult, parse }) {
         onResult(pass);
       } catch (e) {
         if (done || ctrl.signal.reason === 'closed') return;
-        setErr((e && e.name === 'NotAllowedError')
-          ? "Camera access is needed to scan — you can still type the flight number."
-          : "Couldn't read the barcode. Try better light, or enter the flight number.");
+        setErr(
+          e && e.name === 'NotAllowedError'
+            ? "Camera access is needed to scan — you can still type the flight number."
+            : e && e.message === 'parse'
+              ? "That's not a boarding-pass barcode. Scan the wide one (usually at the bottom of the pass), not a square QR code."
+              : "Couldn't read it — hold steady on the wide barcode in good light, or type the flight number."
+        );
       }
     })();
     return () => {
@@ -273,7 +277,7 @@ function ScanSheet({ open, onClose, onResult, parse }) {
   return (
     <div className="scan-overlay" role="dialog" aria-modal="true" aria-label="Scan boarding pass">
       <video ref={videoRef} className="scan-video" playsInline muted aria-hidden="true"></video>
-      <div className="scan-frame" aria-hidden="true"><div className="scan-guide"></div></div>
+      <div className="scan-frame" aria-hidden="true"><div className="scan-guide"><span className="scan-guide-tag">the wide barcode</span></div></div>
       <button className="iconbtn scan-cancel" onClick={onClose} aria-label="Cancel scan"><Ic.close aria-hidden="true" /></button>
       {err ? (
         <div className="scan-msg" role="alert">
@@ -281,7 +285,10 @@ function ScanSheet({ open, onClose, onResult, parse }) {
           <button className="btn" onClick={() => setAttempt((n) => n + 1)}>Try again</button>
         </div>
       ) : (
-        <div className="scan-msg"><p>Point at the barcode on your boarding pass</p></div>
+        <div className="scan-msg">
+          <p>Scan the <b>wide</b> barcode on your boarding pass</p>
+          <p className="scan-sub">It's the long rectangular one, usually near the bottom — not a square QR code.</p>
+        </div>
       )}
     </div>
   );
