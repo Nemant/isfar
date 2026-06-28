@@ -235,6 +235,38 @@ function IOSInstallSheet({ open, onClose }) {
   );
 }
 
+/* "this one, not that one" pictograph for the scan overlay — a wide barcode
+   (PDF417) ticked vs a square QR crossed, so it reads without words. */
+function ScanGuideArt() {
+  const bars = [4, 9, 14, 17, 23, 26, 31, 37, 40, 46, 51, 54, 60, 65, 68, 74, 79, 84, 88, 94];
+  return (
+    <svg className="scan-art" viewBox="0 0 230 92" fill="none" aria-hidden="true">
+      {/* DO: wide barcode */}
+      <rect x="6" y="20" width="124" height="56" rx="9" stroke="currentColor" strokeWidth="2.5" />
+      <g fill="currentColor">
+        {bars.map((x, i) => (
+          <rect key={i} x={18 + x} y="31" width={i % 3 === 0 ? 5 : 2.5} height="34" rx="1" />
+        ))}
+      </g>
+      <circle cx="124" cy="22" r="13" fill="#16a34a" />
+      <path d="M117 22.5l4.5 4.5 8-9" stroke="#fff" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
+      {/* DON'T: square QR, dimmed + crossed */}
+      <g opacity="0.42">
+        <rect x="166" y="28" width="48" height="48" rx="7" stroke="currentColor" strokeWidth="2.5" />
+        <rect x="172" y="34" width="11" height="11" stroke="currentColor" strokeWidth="2" />
+        <rect x="197" y="34" width="11" height="11" stroke="currentColor" strokeWidth="2" />
+        <rect x="172" y="59" width="11" height="11" stroke="currentColor" strokeWidth="2" />
+        <g fill="currentColor">
+          <rect x="198" y="59" width="4" height="4" /><rect x="204" y="63" width="4" height="4" />
+          <rect x="198" y="67" width="4" height="4" /><rect x="204" y="55" width="4" height="4" />
+        </g>
+      </g>
+      <circle cx="166" cy="28" r="12" fill="#dc2626" />
+      <path d="M161 23l10 10M171 23l-10 10" stroke="#fff" strokeWidth="2.6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 /* ---- Boarding-pass scan overlay ---------------------------------------- */
 function ScanSheet({ open, onClose, onResult, parse }) {
   const videoRef = React.useRef(null);
@@ -277,17 +309,21 @@ function ScanSheet({ open, onClose, onResult, parse }) {
   return (
     <div className="scan-overlay" role="dialog" aria-modal="true" aria-label="Scan boarding pass">
       <video ref={videoRef} className="scan-video" playsInline muted aria-hidden="true"></video>
-      <div className="scan-frame" aria-hidden="true"><div className="scan-guide"><span className="scan-guide-tag">the wide barcode</span></div></div>
+      <div className="scan-frame" aria-hidden="true"><div className="scan-guide"></div></div>
       <button className="iconbtn scan-cancel" onClick={onClose} aria-label="Cancel scan"><Ic.close aria-hidden="true" /></button>
       {err ? (
         <div className="scan-msg" role="alert">
-          <p>{err}</p>
-          <button className="btn" onClick={() => setAttempt((n) => n + 1)}>Try again</button>
+          <div className="scan-panel">
+            <p>{err}</p>
+            <button className="btn" onClick={() => setAttempt((n) => n + 1)}>Try again</button>
+          </div>
         </div>
       ) : (
         <div className="scan-msg">
-          <p>Scan the <b>wide</b> barcode on your boarding pass</p>
-          <p className="scan-sub">It's the long rectangular one, usually near the bottom — not a square QR code.</p>
+          <div className="scan-panel">
+            <ScanGuideArt />
+            <p className="scan-cap">Scan the <b>wide</b> barcode — not a square QR</p>
+          </div>
         </div>
       )}
     </div>
